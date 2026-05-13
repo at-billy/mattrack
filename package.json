@@ -1,0 +1,12 @@
+{
+  "name": "material-tracker",
+  "version": "1.0.0",
+  "description": "Shared material database with real-time Convex backend",
+  "scripts": {
+    "dev": "npx convex dev",
+    "deploy": "npx convex deploy"
+  },
+  "dependencies": {
+    "convex": "^1.17.0"
+  }
+}
