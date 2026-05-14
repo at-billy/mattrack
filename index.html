@@ -17,6 +17,9 @@ body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;col
 #nav .user-area{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12px;padding:0 0 0 20px;}
 .role-tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border:1px solid #000;}
 .role-tag.crafter{border-color:var(--red);color:var(--red);}
+.role-tag.admin{background:#000;color:#fff;border-color:#000;}
+.role-tag.crafter_pending{border-color:#f59e0b;color:#f59e0b;}
+.role-tag.provider{border-color:#bbb;color:#999;}
 .live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
 .live-dot{animation:pulse 2s infinite;}
@@ -72,8 +75,14 @@ tbody tr:hover{background:#fafafa;}
 .badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;}
 .badge-crafted{background:var(--red);color:#fff;}
 .badge-material_added{background:#000;color:#fff;}
-.badge-material_removed,.badge-item_created{background:#888;color:#fff;}
+.badge-material_removed,.badge-item_created,.badge-item_deleted{background:#888;color:#fff;}
 .badge-user_joined{background:#e8e8e8;color:#555;}
+.badge-crafter_approved{background:#16a34a;color:#fff;}
+.badge-crafter_denied{background:#888;color:#fff;}
+.badge-admin_granted{background:#000;color:#fff;}
+.btn-del{background:none;border:1px solid #fca5a5;color:var(--red);padding:4px 10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
+.btn-del:hover{background:var(--red);color:#fff;border-color:var(--red);}
+.pending-note{background:#fffbeb;border:1px solid #fcd34d;padding:10px 14px;font-size:12px;color:#92400e;margin-top:10px;line-height:1.6;display:none;}
 
 .center-screen{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px;}
 .auth-box{width:100%;max-width:380px;}
@@ -204,9 +213,9 @@ function itemCatLabel(id) {
 }
 
 // ─── CONFIG / STATE ───────────────────────────────────────────────────────────
-let CONVEX_URL = localStorage.getItem('mattrack_url') || '';
+let CONVEX_URL = localStorage.getItem('mattrack_url') || 'https://notable-grasshopper-505.convex.cloud';
 let currentPage = 'materials';
-const state = { user: null, stock: [], craftItems: [], archive: [] };
+const state = { user: null, stock: [], craftItems: [], archive: [], allUsers: [] };
 let craftState = { itemId: null, mode: 'best', qMin: 850, qMax: 1000, quantity: 1, plan: null };
 let itemsFilter = 'all';
 let pollTimer = null;
@@ -266,14 +275,21 @@ function locationOptions(system) {
 // ─── POLLING / DATA ───────────────────────────────────────────────────────────
 async function refreshAll(silent=false) {
   try {
-    const [stock, items, archive] = await Promise.all([
+    const [stock, items, archive, allUsers] = await Promise.all([
       convexQuery('materials:getAvailable'),
       convexQuery('craftItems:getAll'),
       convexQuery('archive:getAll'),
+      convexQuery('users:getAllUsers'),
     ]);
-    state.stock      = stock  || [];
-    state.craftItems = items  || [];
-    state.archive    = archive|| [];
+    state.stock      = stock    || [];
+    state.craftItems = items    || [];
+    state.archive    = archive  || [];
+    state.allUsers   = allUsers || [];
+    // Sync logged-in user's roles from server
+    if(state.user) {
+      const fresh=state.allUsers.find(u=>u._id===state.user._id);
+      if(fresh) state.user=fresh;
+    }
     updateLiveView();
   } catch(e) { if(!silent) console.warn('Refresh:', e.message); }
 }
@@ -292,8 +308,14 @@ function updateLiveView() {
   }
   if (currentPage==='archive') {
     const el=document.getElementById('archive-table'); if(el) el.innerHTML=renderArchiveTable();
+    const s=document.getElementById('archive-count'); if(s) s.textContent=`${state.archive.length} action${state.archive.length!==1?'s':''} recorded`;
   }
   if (currentPage==='craft' && craftState.itemId) recomputePlan();
+  if (currentPage==='admin') {
+    const el=document.getElementById('admin-wrap'); if(el) el.innerHTML=renderAdminContent();
+  }
+  // Sync nav for role changes (e.g. crafter approved)
+  renderNav();
 }
 
 // ─── ROUTER ───────────────────────────────────────────────────────────────────
@@ -362,7 +384,10 @@ function showAuth(tab='signin') {
           <div class="field">
             <label class="lbl">Roles</label>
             <label class="chk-row"><input type="checkbox" id="su-prov" checked><span>Material Provider — add &amp; manage stock</span></label>
-            <label class="chk-row"><input type="checkbox" id="su-craft"><span>Crafter — use materials to craft items</span></label>
+            <label class="chk-row"><input type="checkbox" id="su-craft" onchange="toggleCrafterNote()"><span>Crafter — use materials to craft items</span></label>
+            <div class="pending-note" id="crafter-pending-note">
+              ⏳ <strong>Approval required</strong> — Crafter access is granted by an admin. Your account will be created with Provider access. Once an admin approves your request you'll gain Crafter access.
+            </div>
           </div>
           <div class="err-msg" id="su-err"></div>
           <button class="btn btn-black" style="width:100%;justify-content:center;" onclick="doSignUp()">Create Account</button>
@@ -387,6 +412,12 @@ async function doSignIn() {
   } catch(e){showErr('si-err',e.message);}
 }
 
+function toggleCrafterNote() {
+  const chk=(document.getElementById('su-craft')||{checked:false});
+  const note=document.getElementById('crafter-pending-note');
+  if(note) note.style.display=chk.checked?'block':'none';
+}
+
 async function doSignUp() {
   const username=(document.getElementById('su-user')||{value:''}).value.trim();
   const password=(document.getElementById('su-pass')||{value:''}).value;
@@ -396,7 +427,8 @@ async function doSignUp() {
   if(!isProv&&!isCraft){showErr('su-err','Select at least one role');return;}
   try {
     const ph=await hashPwd(password);
-    const roles=[...(isProv?['provider']:[]),...(isCraft?['crafter']:[])];
+    // Crafter → crafter_pending until admin approves
+    const roles=[...(isProv?['provider']:[]),...(isCraft?['crafter_pending']:[])];
     const user=await convexMutation('users:signUp',{username,passwordHash:ph,roles});
     await convexMutation('archive:addLog',{type:'user_joined',userId:user._id,userName:username,details:{roles}});
     state.user=user; localStorage.setItem('mattrack_uid',user._id); showApp();
@@ -412,21 +444,32 @@ function showApp() {
   document.getElementById('root').innerHTML=`<div id="nav"></div><div id="page-wrap"></div>`;
   renderNav(); renderPage(); startPolling();
 }
+function roleTagHtml(role) {
+  const labels={'provider':'Provider','crafter':'Crafter','crafter_pending':'Pending','admin':'Admin'};
+  const cls={'crafter':' crafter','admin':' admin','crafter_pending':' crafter_pending','provider':' provider'};
+  return `<span class="role-tag${cls[role]||''}">${labels[role]||role}</span>`;
+}
+function isAdmin(u) { return u && (u.roles||[]).includes('admin'); }
+function hasAdmin() { return state.allUsers.some(u=>(u.roles||[]).includes('admin')); }
+
 function renderNav() {
   const u=state.user; if(!u) return;
   const tabs=[['materials','Materials'],['craft','Craft'],['items','Items'],['archive','Log']];
+  if(isAdmin(u)) tabs.push(['admin','Admin']);
+  const noAdmin=!hasAdmin();
   document.getElementById('nav').innerHTML=`
     <div class="brand">MATTRACK</div>
     ${tabs.map(([id,lbl])=>`<div class="nav-item${currentPage===id?' active':''}" onclick="goTo('${id}')">${lbl}</div>`).join('')}
     <div class="user-area">
       <span class="live-dot"></span>
       <span style="font-weight:700;">${esc(u.username)}</span>
-      ${u.roles.map(r=>`<span class="role-tag${r==='crafter'?' crafter':''}">${r}</span>`).join('')}
+      ${u.roles.map(r=>roleTagHtml(r)).join('')}
+      ${noAdmin?`<button class="btn-ghost" style="border-color:#f59e0b;color:#92400e;" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
       <button class="btn-ghost" onclick="doLogout()">Sign out</button>
     </div>`;
 }
 function renderPage() {
-  const pages={materials:pageMaterials,craft:pageCraft,items:pageItems,archive:pageArchive};
+  const pages={materials:pageMaterials,craft:pageCraft,items:pageItems,archive:pageArchive,admin:pageAdmin};
   const pw=document.getElementById('page-wrap');
   if(pw) pw.innerHTML=`<div class="page">${(pages[currentPage]||pageMaterials)()}</div>`;
 }
@@ -524,7 +567,7 @@ function pageMaterials() {
 
 function renderMatTable(stock) {
   if (!stock.length) return `<div class="empty">No materials in stock yet.</div>`;
-  const u=state.user;
+  const u=state.user; const admin=isAdmin(u);
   return `<table>
     <thead><tr><th>Material</th><th>Category</th><th>Quality</th><th>Qty</th><th>Location</th><th>Owner</th><th>Added</th><th></th></tr></thead>
     <tbody>${stock.map(m=>`<tr>
@@ -535,7 +578,7 @@ function renderMatTable(stock) {
       <td class="loc-display">${sysBadge(m.system)}${esc(m.location)}</td>
       <td style="font-size:12px;">${esc(m.ownerName)}${m.ownerId===u._id?' <span style="color:#bbb;">(you)</span>':''}</td>
       <td style="font-size:11px;color:#999;">${fmtDate(m._creationTime)}</td>
-      <td>${m.ownerId===u._id?`<button class="btn-ghost btn-sm" onclick="removeMaterial('${esc(m._id)}')">Remove</button>`:''}</td>
+      <td>${(m.ownerId===u._id||admin)?`<button class="${admin&&m.ownerId!==u._id?'btn-del':'btn-ghost btn-sm'}" onclick="removeMaterial('${esc(m._id)}')">${admin&&m.ownerId!==u._id?'✕ Delete':'Remove'}</button>`:''}</td>
     </tr>`).join('')}</tbody></table>`;
 }
 
@@ -677,6 +720,7 @@ function setItemsFilter(f) {
 }
 
 function renderItemsList() {
+  const u=state.user; const admin=isAdmin(u);
   let items=state.craftItems;
   if(itemsFilter!=='all') items=items.filter(i=>i.category===itemsFilter);
   if(!items.length) return `<div class="empty">No craftable items defined${itemsFilter!=='all'?' in this category':''}.</div>`;
@@ -696,6 +740,7 @@ function renderItemsList() {
         </div>
         <div style="text-align:right;font-size:11px;color:#999;flex-shrink:0;margin-left:24px;">
           ${esc(item.createdByName)}<br>${fmtDate(item._creationTime)}
+          ${admin?`<br><button class="btn-del" style="margin-top:8px;" onclick="adminDeleteItem('${esc(item._id)}','${esc(item.name)}')">✕ Delete</button>`:''}
         </div>
       </div>
     </div>`).join('');
@@ -761,12 +806,17 @@ function craftItemOptgroups() {
 
 function pageCraft() {
   const u=state.user;
-  if(!u.roles.includes('crafter')) return `
+  if(!u.roles.includes('crafter')) {
+    const isPending=u.roles.includes('crafter_pending');
+    return `
     <div class="page-title">CRAFT</div>
     <div style="margin-top:24px;max-width:480px;">
-      <p style="color:#555;margin-bottom:20px;">Your account doesn't have the Crafter role.</p>
-      <button class="btn btn-black" onclick="enableCrafter()">Enable Crafter Role</button>
+      ${isPending
+        ?`<div class="pending-note" style="display:block;margin-bottom:16px;">⏳ <strong>Crafter approval pending</strong> — An admin needs to approve your crafter application. You'll gain access once approved.</div>`
+        :`<p style="color:#555;margin-bottom:20px;">Your account doesn't have the Crafter role. Request crafter access below — an admin will need to approve it.</p>
+        <button class="btn btn-black" onclick="requestCrafter()">Request Crafter Access</button>`}
     </div>`;
+  }
   const cs=craftState;
   return `
     <div class="page-title">CRAFT</div>
@@ -812,11 +862,11 @@ function pageCraft() {
     <div id="craft-detail-area" style="margin-top:32px;">${cs.plan?renderCraftDetail(cs.plan):''}</div>`;
 }
 
-async function enableCrafter() {
+async function requestCrafter() {
   try {
-    await convexMutation('users:addRole',{userId:state.user._id,role:'crafter'});
-    state.user.roles.push('crafter');
-    toast('Crafter role enabled');
+    await convexMutation('users:addRole',{userId:state.user._id,role:'crafter_pending'});
+    if(!state.user.roles.includes('crafter_pending')) state.user.roles.push('crafter_pending');
+    toast('Crafter access requested — awaiting admin approval');
     renderNav(); renderPage();
   } catch(e){alert(e.message);}
 }
@@ -1018,19 +1068,21 @@ async function executeCraft(){
 function pageArchive(){
   return `
     <div class="page-title">LOG</div>
-    <div class="page-sub">${state.archive.length} action${state.archive.length!==1?'s':''} recorded</div>
+    <div class="page-sub" id="archive-count">${state.archive.length} action${state.archive.length!==1?'s':''} recorded</div>
     <div id="archive-table">${renderArchiveTable()}</div>`;
 }
 function renderArchiveTable(){
   if(!state.archive.length) return `<div class="empty">No actions logged yet.</div>`;
-  const labels={crafted:'Crafted',material_added:'Added',material_removed:'Removed',item_created:'New Item',user_joined:'Joined'};
+  const admin=isAdmin(state.user);
+  const labels={crafted:'Crafted',material_added:'Added',material_removed:'Removed',item_created:'New Item',item_deleted:'Deleted Item',user_joined:'Joined',crafter_approved:'Crafter Approved',crafter_denied:'Crafter Denied',admin_granted:'Admin Granted'};
   return `<table>
-    <thead><tr><th>Date</th><th>Action</th><th>User</th><th>Details</th></tr></thead>
+    <thead><tr><th>Date</th><th>Action</th><th>User</th><th>Details</th>${admin?'<th></th>':''}</tr></thead>
     <tbody>${state.archive.map(e=>`<tr>
       <td style="font-size:11px;color:#999;white-space:nowrap;">${fmtDT(e._creationTime)}</td>
       <td><span class="badge badge-${e.type}">${labels[e.type]||e.type}</span></td>
       <td style="font-weight:600;font-size:13px;">${esc(e.userName)}</td>
       <td style="font-size:12px;color:#555;">${fmtArchiveDetails(e)}</td>
+      ${admin?`<td><button class="btn-del" onclick="adminDeleteLog('${esc(e._id)}')">✕</button></td>`:''}
     </tr>`).join('')}</tbody></table>`;
 }
 function fmtArchiveDetails(e){
@@ -1040,13 +1092,18 @@ function fmtArchiveDetails(e){
       return `${esc(d.materialName)} &middot; ${d.quantity} ${esc(d.unit||'')} &middot; q${d.quality} &middot; ${sysBadge(d.system)}${esc(d.location)}`;
     case 'material_removed':
       return `${esc(d.materialName)} &middot; ${d.quantity} ${esc(d.unit||'')} &middot; ${sysBadge(d.system)}${esc(d.location)}`;
-    case 'crafted':
+    case 'crafted': {
       const lines=(d.materialsUsed||[]).map(m=>`${esc(m.materialName)} &times;${m.quantityUsed}${esc(m.unit||'')} (q${m.quality}, ${esc(m.ownerName)}, ${sysBadge(m.system)}${esc(m.location)})`).join(' | ');
-      return `<strong>${esc(d.itemName)}</strong> &middot; avg q${d.avgQuality}<br><span style="font-size:11px;color:#aaa;">${lines}</span>`;
+      return `<strong>${esc(d.itemName)}</strong> &middot; avg q${d.avgQuality}<br><span style="font-size:11px;color:#aaa;">${lines}</span>`; }
     case 'item_created':
       return `${esc(d.itemName)} &middot; ${(d.requirements||[]).map(r=>`${esc(r.materialName)}&times;${r.quantity}${esc(r.unit||'')}`).join(', ')}`;
+    case 'item_deleted':
+      return `${esc(d.itemName)}`;
     case 'user_joined':
       return `Roles: ${(d.roles||[]).join(', ')}`;
+    case 'crafter_approved': return `Approved <strong>${esc(d.targetUsername)}</strong> as Crafter`;
+    case 'crafter_denied':   return `Denied <strong>${esc(d.targetUsername)}</strong> crafter request`;
+    case 'admin_granted':    return `Granted admin to <strong>${esc(d.targetUsername)}</strong>`;
     default: return JSON.stringify(d);
   }
 }
@@ -1058,6 +1115,108 @@ function togglePanel(id){
   el.classList.toggle('open');
   if(!wasOpen&&id==='add-item-panel'){
     const rr=document.getElementById('req-rows'); if(rr){rr.innerHTML='';addReqRow();}
+  }
+}
+
+// ─── ADMIN PAGE ──────────────────────────────────────────────────────────────
+function pageAdmin() {
+  const u=state.user;
+  if(!isAdmin(u)) return `<div class="page-title">ADMIN</div><p style="color:#999;margin-top:24px;">Access denied.</p>`;
+  return `
+    <div class="page-title">ADMIN</div>
+    <div class="page-sub">Manage members and crafter applications</div>
+    <div id="admin-wrap">${renderAdminContent()}</div>`;
+}
+
+function renderAdminContent() {
+  const u=state.user;
+  const pending=state.allUsers.filter(m=>m.roles.includes('crafter_pending'));
+  const members=state.allUsers.filter(m=>m._id!==u._id);
+  return `
+    ${pending.length?`
+    <div style="margin-bottom:40px;">
+      <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000;">
+        Pending Crafter Applications <span style="background:var(--red);color:#fff;padding:1px 8px;font-size:11px;margin-left:8px;">${pending.length}</span>
+      </div>
+      ${pending.map(m=>`
+        <div style="display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid #e8e8e8;">
+          <div style="font-weight:700;font-size:15px;flex:1;">${esc(m.username)}</div>
+          <div style="font-size:11px;color:#999;">${m.roles.filter(r=>r!=='crafter_pending').join(', ')||'—'}</div>
+          <button class="btn btn-black btn-sm" onclick="adminApproveCrafter('${esc(m._id)}','${esc(m.username)}')">✓ Approve</button>
+          <button class="btn btn-outline btn-sm" onclick="adminDenyCrafter('${esc(m._id)}','${esc(m.username)}')">✕ Deny</button>
+        </div>`).join('')}
+    </div>`:''}
+
+    <div>
+      <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000;">All Members</div>
+      <table>
+        <thead><tr><th>Username</th><th>Roles</th><th></th></tr></thead>
+        <tbody>${state.allUsers.map(m=>`<tr>
+          <td style="font-weight:600;">${esc(m.username)}${m._id===u._id?' <span style="color:#bbb;font-size:11px;">(you)</span>':''}</td>
+          <td>${m.roles.map(r=>roleTagHtml(r)).join(' ')}</td>
+          <td>${(!m.roles.includes('admin')&&m._id!==u._id)?`<button class="btn-ghost btn-sm" onclick="adminGrantAdmin('${esc(m._id)}','${esc(m.username)}')">Grant Admin</button>`:'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+}
+
+async function adminApproveCrafter(targetId, targetName) {
+  if(!confirm(`Approve ${targetName} as a Crafter?`)) return;
+  try {
+    await convexMutation('users:approveCrafter',{adminId:state.user._id,targetUserId:targetId});
+    toast(`${targetName} approved as Crafter`);
+    await refreshAll();
+  } catch(e){alert(e.message);}
+}
+
+async function adminDenyCrafter(targetId, targetName) {
+  if(!confirm(`Deny ${targetName}'s crafter application?`)) return;
+  try {
+    await convexMutation('users:denyCrafter',{adminId:state.user._id,targetUserId:targetId});
+    toast(`${targetName}'s application denied`);
+    await refreshAll();
+  } catch(e){alert(e.message);}
+}
+
+async function adminGrantAdmin(targetId, targetName) {
+  if(!confirm(`Grant admin role to ${targetName}? This cannot be undone.`)) return;
+  try {
+    await convexMutation('users:grantAdmin',{adminId:state.user._id,targetUserId:targetId});
+    toast(`Admin role granted to ${targetName}`);
+    await refreshAll();
+  } catch(e){alert(e.message);}
+}
+
+async function adminDeleteItem(id, name) {
+  if(!confirm(`Delete item "${name}"? This cannot be undone.`)) return;
+  try {
+    await convexMutation('craftItems:remove',{id,adminId:state.user._id});
+    toast('Item deleted');
+    await refreshAll();
+  } catch(e){alert(e.message);}
+}
+
+async function adminDeleteLog(id) {
+  if(!confirm('Delete this log entry?')) return;
+  try {
+    await convexMutation('archive:removeLog',{id,adminId:state.user._id});
+    toast('Log entry deleted');
+    await refreshAll();
+  } catch(e){alert(e.message);}
+}
+
+async function claimBootstrapAdmin() {
+  if(hasAdmin()) { toast('An admin already exists.'); renderNav(); return; }
+  if(!confirm(`Claim admin role for "${state.user.username}"? This is only possible while no admins exist.`)) return;
+  try {
+    const updated=await convexMutation('users:claimBootstrapAdmin',{userId:state.user._id});
+    state.user=updated;
+    toast('Admin role claimed!');
+    await refreshAll();
+    goTo('admin');
+  } catch(e){
+    if(e.message.includes('ADMIN_EXISTS')) toast('An admin already exists — cannot claim.');
+    else alert(e.message);
   }
 }
 

@@ -1,6 +1,23 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+export const remove = mutation({
+  args: { id: v.id("craftItems"), adminId: v.id("users") },
+  handler: async (ctx, { id, adminId }) => {
+    const admin = await ctx.db.get(adminId);
+    if (!admin || !admin.roles.includes("admin")) throw new Error("Not authorized");
+    const item = await ctx.db.get(id);
+    if (!item) throw new Error("Not found");
+    await ctx.db.delete(id);
+    await ctx.db.insert("archive", {
+      type: "item_deleted",
+      userId: adminId,
+      userName: admin.username,
+      details: { itemName: item.name },
+    });
+  },
+});
+
 export const getAll = query({
   args: {},
   handler: async (ctx) => {

@@ -19,3 +19,12 @@ export const addLog = mutation({
     await ctx.db.insert("archive", args);
   },
 });
+
+export const removeLog = mutation({
+  args: { id: v.id("archive"), adminId: v.id("users") },
+  handler: async (ctx, { id, adminId }) => {
+    const admin = await ctx.db.get(adminId);
+    if (!admin || !admin.roles.includes("admin")) throw new Error("Not authorized");
+    await ctx.db.delete(id);
+  },
+});

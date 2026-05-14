@@ -107,7 +107,9 @@ export const remove = mutation({
   handler: async (ctx, { id, userId }) => {
     const item = await ctx.db.get(id);
     if (!item) throw new Error("Not found");
-    if (item.ownerId !== userId) throw new Error("Not authorized");
+    const actor = await ctx.db.get(userId);
+    const isAdmin = actor?.roles.includes("admin") ?? false;
+    if (item.ownerId !== userId && !isAdmin) throw new Error("Not authorized");
     await ctx.db.patch(id, { status: "removed" });
     await ctx.db.insert("archive", {
       type: "material_removed",
