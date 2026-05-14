@@ -120,6 +120,10 @@ tbody tr:hover{background:#fafafa;}
 .filter-tab{padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1.5px solid #ddd;background:#fff;color:#888;cursor:pointer;}
 .filter-tab.active{border-color:#000;background:#000;color:#fff;}
 .filter-tab:hover:not(.active){border-color:#999;color:#000;}
+.sub-tabs{display:flex;border-bottom:2px solid #000;margin-bottom:36px;}
+.sub-tab{padding:10px 24px 10px 0;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;color:#999;}
+.sub-tab.active{border-bottom-color:#000;color:#000;}
+.sub-tab:hover:not(.active){color:#555;}
 
 .hint-box{background:#f5f5f5;border-left:3px solid #000;padding:10px 14px;font-size:11px;color:#555;margin-top:8px;line-height:1.7;}
 .hint-box strong{color:#000;}
@@ -228,6 +232,7 @@ const state = { user: null, stock: [], craftItems: [], archive: [], allUsers: []
 let craftState = { itemId: null, mode: 'best', qMin: 850, qMax: 1000, quantity: 1, plan: null };
 let itemsFilter = 'all';
 let invFilter = 'available'; // "available" | "handed_out"
+let craftSubTab = 'craft'; // 'craft' | 'items'
 let pollTimer = null;
 let pendingCraft = null; // holds craft data while user picks location
 
@@ -321,9 +326,13 @@ function updateLiveView() {
     const s=document.getElementById('inv-count'); if(s) s.textContent=`${avail} item${avail!==1?'s':''} in stock`;
   }
   if (currentPage==='craft') {
-    // Update craft item selector options in case new items were added
-    const sel=document.getElementById('craft-sel');
-    if(sel) { const prev=sel.value; sel.innerHTML=craftItemOptgroups(); if(prev) sel.value=prev; }
+    if(craftSubTab==='items') {
+      const el=document.getElementById('items-list'); if(el) el.innerHTML=renderItemsList();
+      const s=document.getElementById('items-count'); if(s) s.textContent=`${state.craftItems.length} item${state.craftItems.length!==1?'s':''} defined`;
+    } else {
+      const sel=document.getElementById('craft-sel');
+      if(sel) { const prev=sel.value; sel.innerHTML=craftItemOptgroups(); if(prev) sel.value=prev; }
+    }
   }
   if (currentPage==='archive') {
     const el=document.getElementById('archive-table'); if(el) el.innerHTML=renderArchiveTable();
@@ -545,8 +554,8 @@ function pageMaterials() {
           <div>
             <div class="field">
               <label class="lbl" id="mat-qty-lbl">Quantity (SCU)</label>
-              <input type="number" id="mat-qty" min="0.001" step="any" placeholder="e.g. 50">
-              <div style="font-size:11px;color:#888;margin-top:4px;" id="mat-qty-hint">Decimals allowed (e.g. 12.5 SCU)</div>
+              <input type="number" id="mat-qty" min="0.01" step="0.01" placeholder="e.g. 50">
+              <div style="font-size:11px;color:#888;margin-top:4px;" id="mat-qty-hint">0.01 SCU increments</div>
             </div>
             <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;color:#555;">System &amp; Location</div>
             <div class="field">
@@ -617,9 +626,9 @@ function updateMatQtyUnit(cat) {
   const u=cat==='Gems'?'UNIT':'SCU';
   const lbl=document.getElementById('mat-qty-lbl'); if(lbl) lbl.textContent=`Quantity (${u})`;
   const hint=document.getElementById('mat-qty-hint');
-  if(hint) hint.textContent=u==='SCU'?'Decimals allowed (e.g. 12.5 SCU)':'Whole amounts only';
+  if(hint) hint.textContent=u==='SCU'?'0.01 SCU increments':'Whole amounts only (1 unit minimum)';
   const inp=document.getElementById('mat-qty');
-  if(inp){ inp.step=u==='SCU'?'any':'1'; inp.min=u==='SCU'?'0.001':'1'; }
+  if(inp){ inp.step=u==='SCU'?'0.01':'1'; inp.min=u==='SCU'?'0.01':'1'; }
 }
 function onSystemChange() {
   const sys=(document.getElementById('mat-system')||{value:''}).value;
@@ -774,7 +783,7 @@ function addReqRow() {
     <select class="req-mat" style="flex:2;margin:0;" onchange="onReqMatChange(this)">
       ${catalogOptgroups()}
     </select>
-    <input type="number" class="req-qty" placeholder="Qty" min="0.001" step="any" style="flex:1;margin:0;">
+    <input type="number" class="req-qty" placeholder="Qty" min="0.01" step="0.01" style="flex:1;margin:0;">
     <span class="req-unit unit-inline" style="min-width:32px;"></span>
     <button class="btn-ghost btn-sm" onclick="this.parentNode.remove()">✕</button>`;
   container.appendChild(div);
@@ -784,7 +793,7 @@ function onReqMatChange(sel) {
   const qtyInp=sel.parentNode.querySelector('.req-qty');
   const u=sel.value?unitFor(sel.value):'';
   if(span) span.textContent=u;
-  if(qtyInp&&u) { qtyInp.step=u==='SCU'?'any':'1'; qtyInp.min=u==='SCU'?'0.001':'1'; }
+  if(qtyInp&&u) { qtyInp.step=u==='SCU'?'0.01':'1'; qtyInp.min=u==='SCU'?'0.01':'1'; }
 }
 
 async function addItem() {
@@ -804,8 +813,7 @@ async function addItem() {
   try {
     await convexMutation('craftItems:add',{name,requirements:reqs,category,userId:u._id,userName:u.username});
     toast('Item saved');
-    // close whichever panel is open
-    ['add-item-panel','def-item-panel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.remove('open'); });
+    const ep=document.getElementById('add-item-panel'); if(ep) ep.classList.remove('open');
     await refreshAll();
   } catch(e){alert(e.message);}
 }
@@ -824,18 +832,33 @@ function craftItemOptgroups() {
   return html;
 }
 
+function setCraftSubTab(tab) {
+  craftSubTab = tab;
+  renderPage();
+}
+
 function pageCraft() {
   const u=state.user;
+  const cs=craftState;
   const iscrafter=u.roles.includes('crafter');
   const isPending=u.roles.includes('crafter_pending');
-  const cs=craftState;
-  return `
-    <div class="page-title">CRAFT</div>
 
-    ${/* ── Define new craftable item (moved from Items tab) ──*/`
-    <div style="margin-bottom:32px;">
-      <button class="btn btn-outline" onclick="togglePanel('def-item-panel')">+ Define New Craftable Item</button>
-      <div id="def-item-panel" class="collapsible" style="margin-top:16px;">
+  const subTabs = `
+    <div class="sub-tabs">
+      <button class="sub-tab${craftSubTab==='craft'?' active':''}" onclick="setCraftSubTab('craft')">Craft</button>
+      <button class="sub-tab${craftSubTab==='items'?' active':''}" onclick="setCraftSubTab('items')">Items</button>
+    </div>`;
+
+  if (craftSubTab === 'items') {
+    return `
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
+        <div>
+          <div class="page-title">CRAFT</div>
+        </div>
+        <button class="btn btn-black" onclick="togglePanel('add-item-panel')">+ Add Item</button>
+      </div>
+      ${subTabs}
+      <div id="add-item-panel" class="collapsible" style="margin-bottom:32px;">
         <div class="panel">
           <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Define Craftable Item</div>
           <div class="grid2" style="max-width:680px;">
@@ -855,12 +878,22 @@ function pageCraft() {
           <button class="btn btn-outline btn-sm" style="margin-bottom:20px;" onclick="addReqRow()">+ Add Requirement</button>
           <div style="display:flex;gap:10px;">
             <button class="btn btn-black" onclick="addItem()">Save Item</button>
-            <button class="btn btn-outline" onclick="togglePanel('def-item-panel')">Cancel</button>
+            <button class="btn btn-outline" onclick="togglePanel('add-item-panel')">Cancel</button>
           </div>
         </div>
       </div>
-    </div>`}
+      <div style="margin-bottom:4px;font-size:13px;color:var(--mid);" id="items-count">${state.craftItems.length} item${state.craftItems.length!==1?'s':''} defined</div>
+      <div class="filter-tabs" style="margin:16px 0 24px;">
+        <button class="filter-tab${itemsFilter==='all'?' active':''}" onclick="setItemsFilter('all')">All</button>
+        ${ITEM_CATEGORIES.map(c=>`<button class="filter-tab${itemsFilter===c.id?' active':''}" onclick="setItemsFilter('${c.id}')">${c.label}</button>`).join('')}
+      </div>
+      <div id="items-list">${renderItemsList()}</div>`;
+  }
 
+  // ── Craft sub-tab ──
+  return `
+    <div class="page-title">CRAFT</div>
+    ${subTabs}
     ${!iscrafter ? `
     <div style="max-width:480px;">
       ${isPending
@@ -868,8 +901,7 @@ function pageCraft() {
         :`<div class="pending-note" style="display:block;background:#f5f5f5;border-left-color:#ccc;color:#555;">You need the Crafter role to craft items. Request access below — an admin will approve it.</div>
         <button class="btn btn-black" style="margin-top:16px;" onclick="requestCrafter()">Request Crafter Access</button>`}
     </div>` : `
-    <hr class="thick">
-    <div class="page-sub" style="margin-bottom:32px;margin-top:8px;">Select an item and configure quality preferences</div>
+    <div class="page-sub" style="margin-bottom:32px;margin-top:-8px;">Select an item and configure quality preferences</div>
     <div class="grid2" style="margin-bottom:0;">
       <div>
         <div class="field">
@@ -882,7 +914,7 @@ function pageCraft() {
           <label class="lbl">Quantity to Craft</label>
           <div style="display:flex;gap:8px;align-items:stretch;">
             <input type="number" id="craft-qty" min="1" step="1" value="${cs.quantity||1}" style="flex:1;margin:0;" oninput="onCraftQtyChange()">
-            <button class="btn-max" id="max-btn" onclick="setMaxCrafts()" title="Set to maximum craftable with current stock and quality settings">↑ MAX</button>
+            <button class="btn-max" id="max-btn" onclick="setMaxCrafts()">↑ MAX</button>
           </div>
         </div>
         <div class="field">
@@ -892,7 +924,7 @@ function pageCraft() {
             <option value="range"${cs.mode==='range'?' selected':''}>Quality Range</option>
           </select>
           <div class="hint-box" id="mode-hint" style="${cs.mode!=='best'?'display:none;':''}">
-            "Best Available" uses materials within 50 quality points of the best in stock. E.g. if best available is 900, materials down to 850 are included.
+            Uses materials within 50 quality points of the best in stock per material.
           </div>
         </div>
         <div id="range-wrap" style="${cs.mode==='range'?'':'display:none;'}">
@@ -1207,7 +1239,7 @@ function togglePanel(id){
   const el=document.getElementById(id); if(!el) return;
   const wasOpen=el.classList.contains('open');
   el.classList.toggle('open');
-  if(!wasOpen&&(id==='add-item-panel'||id==='def-item-panel')){
+  if(!wasOpen&&id==='add-item-panel'){
     const rr=document.getElementById('req-rows'); if(rr){rr.innerHTML='';addReqRow();}
   }
 }
