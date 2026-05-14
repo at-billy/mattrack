@@ -432,6 +432,12 @@ function renderPage() {
 }
 
 // ─── MATERIALS PAGE ───────────────────────────────────────────────────────────
+function matNameOptions(cat) {
+  return `<option value="">Select material…</option>
+    ${SC_CATALOG.filter(m=>m.cat===cat).map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}
+    <option value="__new__">+ Add new type…</option>`;
+}
+
 function pageMaterials() {
   const u=state.user;
   const stock=state.stock.filter(m=>m.status==='available');
@@ -447,31 +453,27 @@ function pageMaterials() {
 
     <div id="add-mat-panel" class="collapsible" style="margin-bottom:32px;">
       <div class="panel">
-        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Add Material to Stock</div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Add Material to Database</div>
         <div class="grid2">
           <div>
             <div class="field">
-              <label class="lbl">Material</label>
-              <select id="mat-name-sel" onchange="onMatSelect()">
-                ${catalogOptgroups('<option value="__new__">+ Add new type…</option>')}
+              <label class="lbl">Category</label>
+              <select id="mat-cat-sel" onchange="onMatCatChange()">
+                <option value="Ores">Ores</option>
+                <option value="Gems">Gems</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="lbl">Material Name</label>
+              <select id="mat-name-sel" onchange="onMatNameChange()">
+                ${matNameOptions('Ores')}
               </select>
             </div>
             <div id="mat-new-wrap" style="display:none;">
               <div class="field">
                 <label class="lbl">New Material Name</label>
-                <input type="text" id="mat-new-name" placeholder="Name">
+                <input type="text" id="mat-new-name" placeholder="Enter name">
               </div>
-              <div class="field">
-                <label class="lbl">Category</label>
-                <select id="mat-new-cat" onchange="onNewCatChange()">
-                  <option value="Ores">Ore — SCU (decimals allowed)</option>
-                  <option value="Gems">Gem — UNIT (whole amounts)</option>
-                </select>
-              </div>
-            </div>
-            <div class="field" id="mat-unit-display" style="display:none;">
-              <label class="lbl">Unit</label>
-              <div style="padding:9px 12px;border:1.5px solid #e0e0e0;font-size:13px;font-weight:700;background:#fafafa;" id="mat-unit-val">—</div>
             </div>
             <div class="field">
               <label class="lbl">Quality (0–1000)</label>
@@ -480,34 +482,38 @@ function pageMaterials() {
           </div>
           <div>
             <div class="field">
-              <label class="lbl">Quantity <span id="mat-qty-unit" class="unit-inline"></span></label>
+              <label class="lbl" id="mat-qty-lbl">Quantity (SCU)</label>
               <input type="number" id="mat-qty" min="0.001" step="any" placeholder="e.g. 50">
+              <div style="font-size:11px;color:#888;margin-top:4px;" id="mat-qty-hint">Decimals allowed (e.g. 12.5 SCU)</div>
             </div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;color:#555;">System &amp; Location</div>
             <div class="field">
-              <label class="lbl">System</label>
               <select id="mat-system" onchange="onSystemChange()">
                 <option value="">Select system…</option>
                 ${Object.keys(SYSTEMS).map(s=>`<option value="${s}">${s}</option>`).join('')}
               </select>
             </div>
             <div class="field">
-              <label class="lbl">Location</label>
               <select id="mat-location">
-                <option value="">Select system first…</option>
+                <option value="">Select location…</option>
               </select>
             </div>
           </div>
         </div>
         <div style="display:flex;gap:10px;">
-          <button class="btn btn-black" onclick="addMaterial()">Add to Stock</button>
+          <button class="btn btn-black" onclick="addMaterial()">Add to Database</button>
           <button class="btn btn-outline" onclick="togglePanel('add-mat-panel')">Cancel</button>
         </div>
       </div>
     </div>
 
-    <div class="search-row">
-      <span style="font-size:10px;font-weight:700;letter-spacing:.1em;">FILTER</span>
-      <input type="text" id="mat-search" placeholder="Search material, location, owner…" oninput="filterMaterials()">
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:24px;">
+      <input type="text" id="mat-search" placeholder="Search name, location, owner…" style="max-width:260px;margin:0;" oninput="filterMaterials()">
+      <select id="mat-type-filter" onchange="filterMaterials()" style="max-width:130px;margin:0;">
+        <option value="all">All types</option>
+        <option value="Ores">Ores</option>
+        <option value="Gems">Gems</option>
+      </select>
       <label class="chk-row" style="margin:0;white-space:nowrap;">
         <input type="checkbox" id="mat-mine" style="width:auto;" onchange="filterMaterials()">
         <span style="font-size:12px;">My entries only</span>
@@ -533,39 +539,25 @@ function renderMatTable(stock) {
     </tr>`).join('')}</tbody></table>`;
 }
 
-function onMatSelect() {
-  const sel=document.getElementById('mat-name-sel');
-  const val=sel?.value;
-  const newWrap=document.getElementById('mat-new-wrap');
-  const unitDisplay=document.getElementById('mat-unit-display');
-  const unitVal=document.getElementById('mat-unit-val');
-  const qtyUnit=document.getElementById('mat-qty-unit');
-  const qtyInp=document.getElementById('mat-qty');
-  if (val==='__new__') {
-    if(newWrap) newWrap.style.display='block';
-    if(unitDisplay) unitDisplay.style.display='none';
-    if(qtyUnit) qtyUnit.textContent='';
-    onNewCatChange();
-  } else if (val) {
-    if(newWrap) newWrap.style.display='none';
-    if(unitDisplay) unitDisplay.style.display='block';
-    const u=unitFor(val);
-    if(unitVal) unitVal.textContent=u;
-    if(qtyUnit) qtyUnit.textContent=u;
-    if(qtyInp) { qtyInp.step=u==='SCU'?'any':'1'; qtyInp.min=u==='SCU'?'0.001':'1'; }
-  } else {
-    if(newWrap) newWrap.style.display='none';
-    if(unitDisplay) unitDisplay.style.display='none';
-    if(qtyUnit) qtyUnit.textContent='';
-  }
+function onMatCatChange() {
+  const cat=(document.getElementById('mat-cat-sel')||{value:'Ores'}).value;
+  const nameSel=document.getElementById('mat-name-sel');
+  if(nameSel) nameSel.innerHTML=matNameOptions(cat);
+  const newWrap=document.getElementById('mat-new-wrap'); if(newWrap) newWrap.style.display='none';
+  updateMatQtyUnit(cat);
 }
-function onNewCatChange() {
-  const cat=(document.getElementById('mat-new-cat')||{value:'Ores'}).value;
-  const qtyUnit=document.getElementById('mat-qty-unit');
-  const qtyInp=document.getElementById('mat-qty');
+function onMatNameChange() {
+  const val=(document.getElementById('mat-name-sel')||{value:''}).value;
+  const newWrap=document.getElementById('mat-new-wrap');
+  if(newWrap) newWrap.style.display=(val==='__new__'?'block':'none');
+}
+function updateMatQtyUnit(cat) {
   const u=cat==='Gems'?'UNIT':'SCU';
-  if(qtyUnit) qtyUnit.textContent=u;
-  if(qtyInp) { qtyInp.step=u==='SCU'?'any':'1'; qtyInp.min=u==='SCU'?'0.001':'1'; }
+  const lbl=document.getElementById('mat-qty-lbl'); if(lbl) lbl.textContent=`Quantity (${u})`;
+  const hint=document.getElementById('mat-qty-hint');
+  if(hint) hint.textContent=u==='SCU'?'Decimals allowed (e.g. 12.5 SCU)':'Whole amounts only';
+  const inp=document.getElementById('mat-qty');
+  if(inp){ inp.step=u==='SCU'?'any':'1'; inp.min=u==='SCU'?'0.001':'1'; }
 }
 function onSystemChange() {
   const sys=(document.getElementById('mat-system')||{value:''}).value;
@@ -576,8 +568,10 @@ function onSystemChange() {
 function filterMaterials() {
   const q=(document.getElementById('mat-search')||{value:''}).value.toLowerCase();
   const mine=(document.getElementById('mat-mine')||{checked:false}).checked;
+  const typeF=(document.getElementById('mat-type-filter')||{value:'all'}).value;
   let stock=state.stock.filter(m=>m.status==='available');
   if(mine) stock=stock.filter(m=>m.ownerId===state.user._id);
+  if(typeF!=='all') stock=stock.filter(m=>m.category===typeF);
   if(q) stock=stock.filter(m=>
     m.materialName.toLowerCase().includes(q)||
     m.location.toLowerCase().includes(q)||
@@ -590,17 +584,17 @@ function filterMaterials() {
 
 async function addMaterial() {
   const u=state.user;
+  const category=(document.getElementById('mat-cat-sel')||{value:'Ores'}).value;
   let name=(document.getElementById('mat-name-sel')||{value:''}).value;
-  let category='', unit='';
+  let unit=category==='Gems'?'UNIT':'SCU';
   if (name==='__new__') {
     name=(document.getElementById('mat-new-name')||{value:''}).value.trim();
-    category=(document.getElementById('mat-new-cat')||{value:'Ores'}).value;
-    unit=category==='Gems'?'UNIT':'SCU';
     if(!name){alert('Enter material name');return;}
+  } else if (!name) {
+    alert('Select a material'); return;
   } else {
     const entry=catLookup(name);
-    if(!entry){alert('Select a material');return;}
-    category=entry.cat; unit=entry.unit;
+    if(entry){ unit=entry.unit; }
   }
   const qual=parseInt((document.getElementById('mat-quality')||{value:''}).value);
   const qty=parseFloat((document.getElementById('mat-qty')||{value:''}).value);
@@ -752,6 +746,19 @@ async function addItem() {
 }
 
 // ─── CRAFT PAGE ───────────────────────────────────────────────────────────────
+function craftItemOptgroups() {
+  const cs=craftState;
+  let html=`<option value="">Choose item…</option>`;
+  ITEM_CATEGORIES.forEach(cat=>{
+    const items=state.craftItems.filter(i=>i.category===cat.id);
+    if(!items.length) return;
+    html+=`<optgroup label="${cat.label}">${items.map(i=>`<option value="${esc(i._id)}"${cs.itemId===i._id?' selected':''}>${esc(i.name)}</option>`).join('')}</optgroup>`;
+  });
+  const uncategorized=state.craftItems.filter(i=>!i.category);
+  if(uncategorized.length) html+=uncategorized.map(i=>`<option value="${esc(i._id)}"${cs.itemId===i._id?' selected':''}>${esc(i.name)}</option>`).join('');
+  return html;
+}
+
 function pageCraft() {
   const u=state.user;
   if(!u.roles.includes('crafter')) return `
@@ -761,19 +768,23 @@ function pageCraft() {
       <button class="btn btn-black" onclick="enableCrafter()">Enable Crafter Role</button>
     </div>`;
   const cs=craftState;
-  const itemOptions=state.craftItems.map(i=>
-    `<option value="${esc(i._id)}"${cs.itemId===i._id?' selected':''}>${esc(i.name)}${i.category?' ('+itemCatLabel(i.category)+')':''}</option>`
-  ).join('');
   return `
-    <div class="page-title" style="margin-bottom:40px;">CRAFT</div>
+    <div class="page-title">CRAFT</div>
+    <div class="page-sub" style="margin-bottom:40px;">Select an item and configure quality preferences</div>
     <div class="grid2" style="margin-bottom:0;">
       <div>
         <div class="field">
           <label class="lbl">Item to Craft</label>
           <select id="craft-sel" onchange="onCraftItemChange()">
-            <option value="">Choose item…</option>
-            ${itemOptions}
+            ${craftItemOptgroups()}
           </select>
+        </div>
+        <div class="field">
+          <label class="lbl">Quantity to Craft</label>
+          <div style="display:flex;gap:8px;align-items:stretch;">
+            <input type="number" id="craft-qty" min="1" step="1" value="${cs.quantity||1}" style="flex:1;margin:0;" oninput="onCraftQtyChange()">
+            <button class="btn-max" id="max-btn" onclick="setMaxCrafts()" title="Set to maximum craftable with current stock and quality settings">↑ MAX</button>
+          </div>
         </div>
         <div class="field">
           <label class="lbl">Quality Mode</label>
@@ -782,7 +793,7 @@ function pageCraft() {
             <option value="range"${cs.mode==='range'?' selected':''}>Quality Range</option>
           </select>
           <div class="hint-box" id="mode-hint" style="${cs.mode!=='best'?'display:none;':''}">
-            <strong>Best Quality</strong> only uses materials with quality ≥ 850 (within 50 of the 900 peak). Switch to <em>Quality Range</em> to include lower-quality stock.
+            "Best Available" uses materials within 50 quality points of the best in stock. E.g. if best available is 900, materials down to 850 are included.
           </div>
         </div>
         <div id="range-wrap" style="${cs.mode==='range'?'':'display:none;'}">
@@ -792,14 +803,6 @@ function pageCraft() {
             <div class="field"><label class="lbl">Max Quality</label>
               <input type="number" id="q-max" min="0" max="1000" placeholder="e.g. 950" value="${cs.mode==='range'?cs.qMax:''}" oninput="schedulePlan()"></div>
           </div>
-        </div>
-        <div class="field">
-          <label class="lbl">Quantity to Craft</label>
-          <div style="display:flex;gap:8px;align-items:stretch;">
-            <input type="number" id="craft-qty" min="1" step="1" value="${cs.quantity||1}" style="max-width:120px;margin:0;" oninput="onCraftQtyChange()">
-            <button class="btn-max" onclick="setMaxCrafts()" title="Calculate and set maximum crafts possible with available materials">MAX</button>
-          </div>
-          <div style="font-size:11px;color:#888;margin-top:5px;" id="craft-qty-hint">Press MAX to auto-fill the highest number of crafts possible with current stock &amp; quality settings.</div>
         </div>
       </div>
       <div id="craft-summary-area">
@@ -842,12 +845,16 @@ function recomputePlan() {
     craftState.qMin=parseInt((document.getElementById('q-min')||{value:'0'}).value)||0;
     craftState.qMax=parseInt((document.getElementById('q-max')||{value:'1000'}).value)||1000;
   } else {
-    craftState.qMin=850; craftState.qMax=1000; // best = within 50 of peak 900
+    craftState.qMin=0; craftState.qMax=1000; // best mode uses per-material threshold
   }
   const qty=Math.max(1,parseInt((document.getElementById('craft-qty')||{value:'1'}).value)||1);
   craftState.quantity=qty;
   craftState.plan=calcPlan(item,state.stock,craftState.mode,craftState.qMin,craftState.qMax,qty);
-  const sa=document.getElementById('craft-summary-area'); if(sa) sa.innerHTML=renderCraftSummary(craftState.plan);
+  // Update MAX button with live count
+  const maxCount=calcMaxCrafts(item,state.stock,craftState.mode,craftState.qMin,craftState.qMax);
+  const maxBtn=document.getElementById('max-btn');
+  if(maxBtn) maxBtn.textContent=maxCount>0?`↑ MAX (${maxCount})`:'↑ MAX';
+  const sa=document.getElementById('craft-summary-area'); if(sa) sa.innerHTML=renderCraftSummary(craftState.plan,maxCount);
   const da=document.getElementById('craft-detail-area'); if(da) da.innerHTML=renderCraftDetail(craftState.plan);
 }
 
@@ -857,8 +864,13 @@ function calcMaxCrafts(item, stock, mode, qMin, qMax) {
   let maxCrafts = Infinity;
   for(const req of item.requirements){
     let pool=stock.filter(m=>m.materialName===req.materialName&&m.status==='available');
-    if(mode==='range') pool=pool.filter(m=>m.quality>=qMin&&m.quality<=qMax);
-    else              pool=pool.filter(m=>m.quality>=850);
+    if(mode==='range') {
+      pool=pool.filter(m=>m.quality>=qMin&&m.quality<=qMax);
+    } else {
+      // best mode: within 50 of the best in this pool
+      const best=pool.length>0?Math.max(...pool.map(m=>m.quality)):0;
+      pool=pool.filter(m=>m.quality>=best-50);
+    }
     const totalAvail=pool.reduce((s,m)=>s+m.quantity,0);
     if(req.quantity>0) maxCrafts=Math.min(maxCrafts, Math.floor(totalAvail/req.quantity));
     else maxCrafts=0;
@@ -869,24 +881,15 @@ function calcMaxCrafts(item, stock, mode, qMin, qMax) {
 function setMaxCrafts() {
   if(!craftState.itemId){ toast('Select an item first.'); return; }
   const item=state.craftItems.find(i=>i._id===craftState.itemId); if(!item) return;
-  // Sync mode settings
   if(craftState.mode==='range'){
     craftState.qMin=parseInt((document.getElementById('q-min')||{value:'0'}).value)||0;
     craftState.qMax=parseInt((document.getElementById('q-max')||{value:'1000'}).value)||1000;
-  } else {
-    craftState.qMin=850; craftState.qMax=1000;
   }
   const max=calcMaxCrafts(item,state.stock,craftState.mode,craftState.qMin,craftState.qMax);
-  const hint=document.getElementById('craft-qty-hint');
-  if(max<=0){
-    toast('Not enough materials for even 1 craft with current quality settings.');
-    if(hint) hint.textContent='No eligible materials found. Try Quality Range mode or lower the min quality.';
-    return;
-  }
+  if(max<=0){ toast('Not enough materials for even 1 craft with current quality settings.'); return; }
   const el=document.getElementById('craft-qty');
   if(el) el.value=max;
   craftState.quantity=max;
-  if(hint) hint.textContent=`MAX: ${max}× — uses all eligible stock within quality settings.`;
   recomputePlan();
 }
 
@@ -895,8 +898,13 @@ function calcPlan(item, stock, mode, qMin, qMax, quantity=1) {
   for(const req of item.requirements){
     const totalNeeded=req.quantity*quantity;
     let pool=stock.filter(m=>m.materialName===req.materialName&&m.status==='available');
-    if(mode==='range') pool=pool.filter(m=>m.quality>=qMin&&m.quality<=qMax);
-    else              pool=pool.filter(m=>m.quality>=850);
+    if(mode==='range') {
+      pool=pool.filter(m=>m.quality>=qMin&&m.quality<=qMax);
+    } else {
+      // best mode: within 50 of the best in this pool
+      const best=pool.length>0?Math.max(...pool.map(m=>m.quality)):0;
+      pool=pool.filter(m=>m.quality>=best-50);
+    }
     pool.sort((a,b)=>b.quality-a.quality);
     let needed=totalNeeded;
     const batches=[];
@@ -919,31 +927,41 @@ function calcPlan(item, stock, mode, qMin, qMax, quantity=1) {
 
 function qualLabel(q){if(q>=900)return'Exceptional';if(q>=750)return'High';if(q>=500)return'Standard';if(q>=250)return'Low';return'Poor';}
 
-function renderCraftSummary(plan){
+function renderCraftSummary(plan, maxCraftable){
   const ok=plan.canCraft;
   const qty=plan.quantity||1;
+  const catLabel=plan.item.category?itemCatLabel(plan.item.category):'';
+  const maxStr=maxCraftable!=null?maxCraftable:calcMaxCrafts(plan.item,state.stock,craftState.mode,craftState.qMin,craftState.qMax);
   return `<div class="craft-box${ok?'':' err'}">
-    ${qty>1?`<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:6px;">${qty}&thinsp;&times;&thinsp;CRAFT</div>`:''}
-    <div style="font-size:22px;font-weight:700;margin-bottom:6px;">${esc(plan.item.name)}</div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:${ok?'#000':'var(--red)'};margin-bottom:${ok?'16px':'0'};">${ok?'CRAFTABLE':'INSUFFICIENT MATERIALS'}</div>
-    ${ok?`<hr class="thin" style="margin:16px 0;">
+    <div style="font-size:22px;font-weight:700;margin-bottom:2px;">${esc(plan.item.name)}</div>
+    ${catLabel?`<div style="font-size:11px;color:#999;margin-bottom:14px;">${esc(catLabel)}</div>`:''}
+    <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:${ok?'#000':'var(--red)'};">${ok?`CRAFTABLE &times;${qty}`:'INSUFFICIENT MATERIALS'}</div>
+    ${ok?`<div style="font-size:12px;color:#999;margin-top:4px;margin-bottom:16px;">Max craftable with current stock: <strong style="color:#000;">${maxStr}</strong></div>`:''}
+    <hr class="thin" style="margin:16px 0;">
     <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#999;margin-bottom:4px;text-transform:uppercase;">Avg. Craft Quality</div>
-    <div class="q-big">${plan.avgQuality}</div>
-    <div style="font-size:11px;color:#999;margin-top:4px;">${qualLabel(plan.avgQuality)}</div>`:''}
+    <div class="q-big">${ok?plan.avgQuality:'—'}</div>
+    ${ok?`<div style="font-size:11px;color:#999;margin-top:4px;">${qualLabel(plan.avgQuality)}</div>`:''}
   </div>`;
+}
+
+function matCatTag(materialName) {
+  const entry=catLookup(materialName);
+  if(!entry) return '';
+  const label=entry.cat==='Ores'?'ORE':'GEM';
+  return `<span style="font-size:10px;font-weight:700;letter-spacing:.06em;border:1.5px solid #000;padding:1px 5px;margin-left:6px;">${label}</span>`;
 }
 
 function renderCraftDetail(plan){
   const qty=plan.quantity||1;
   let html=`<hr class="thick">
   <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px;">
-    Material Requirements${qty>1?` <span style="font-weight:400;color:#999;font-size:11px;">for ${qty}× craft</span>`:''}
+    Material Requirements &mdash; ${qty}&times; ${esc(plan.item.name).toUpperCase()}
   </div>`;
   for(const req of plan.requirements){
     const clr=req.ok?'#000':'var(--red)';
     html+=`<div style="border-bottom:1px solid #e8e8e8;padding:20px 0;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;">
-        <div style="font-size:17px;font-weight:700;">${esc(req.materialName)} <span class="unit-tag">${esc(req.unit)}</span></div>
+        <div style="font-size:17px;font-weight:700;">${esc(req.materialName)}${matCatTag(req.materialName)}</div>
         <div style="font-size:12px;color:${clr};">${req.ok
           ?`${req.fulfilled}&thinsp;/&thinsp;${req.needed} ${esc(req.unit)} &nbsp;&middot;&nbsp; avg quality <strong>${req.avgQuality}</strong>`
           :`${req.fulfilled}&thinsp;/&thinsp;${req.needed} ${esc(req.unit)} available &mdash; short <strong>${Math.round(req.shortfall*100)/100}</strong>`}</div>
