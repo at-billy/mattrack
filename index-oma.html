@@ -5,275 +5,465 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MATTRACK</title>
 <style>
-/* ─── OMA EDITION ─────────────────────────────────────────────────────────────
-   Visual redesign inspired by oma.com: extreme typography, strict black/white/red,
-   no decoration, sticky sliding nav, architectural spacing.
-   All logic identical to index-classic.html — only CSS changes.
-──────────────────────────────────────────────────────────────────────────────*/
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{--red:#e50000;--mid:#888;}
-body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;color:#000;font-size:14px;line-height:1.4;}
+/*
+  ╔═══════════════════════════════════════════════════════════════════╗
+  ║  MATTRACK — OMA EDITION                                           ║
+  ║  Full redesign after oma.com: extreme type, strict B/W/R palette, ║
+  ║  sticky clipping nav, full-invert hovers, architectural spacing.  ║
+  ║  Zero logic changes — CSS only.                                   ║
+  ╚═══════════════════════════════════════════════════════════════════╝
+*/
 
-/* ── STICKY SLIDING NAV ───────────────────────────────────────────────────── */
-/* The OMA effect: inactive tabs are nudged down and faded out.
-   Active tab sits at the top, fully opaque, inverted.
-   Hovering a tab slides it back up to join the active level. */
+/* ─── RESET + ROOT ──────────────────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --red:#e50000;
+  --black:#000;
+  --white:#fff;
+  --rule:#000;          /* all dividing lines */
+  --light-rule:#e0e0e0; /* secondary lines */
+  --mid:#888;
+}
+html{scroll-behavior:auto;}
+body{
+  font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+  background:#fff;color:#000;
+  font-size:14px;line-height:1.4;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ─── THE NAV ───────────────────────────────────────────────────────────────
+   OMA effect: nav bar clips at its own height. Inactive tabs are positioned
+   below the clip boundary — only the very top few pixels peek above the line.
+   The active tab snaps up to full height. Hover slides any tab into view.
+   The result: only what matters is visible; everything else almost disappears.
+──────────────────────────────────────────────────────────────────────────── */
 #nav{
   position:sticky;top:0;z-index:200;
-  display:flex;align-items:stretch;
+  display:flex;
+  align-items:flex-end;   /* items hang from the bottom of the bar */
+  height:52px;
+  overflow:hidden;        /* THE CLIP — this is what creates the slide effect */
   border-bottom:2px solid #000;
   background:#fff;
-  height:54px;
-  overflow:hidden;
 }
 #nav .brand{
-  font-size:20px;font-weight:900;letter-spacing:-0.5px;
+  font-size:17px;font-weight:900;letter-spacing:-.5px;
   padding:0 28px;
+  height:52px;
   display:flex;align-items:center;
   border-right:2px solid #000;
   flex-shrink:0;cursor:pointer;white-space:nowrap;
-  transition:background .15s,color .15s;
+  transition:background .1s,color .1s;
 }
 #nav .brand:hover{background:#000;color:#fff;}
+
+/* Each nav item is taller than the nav bar.
+   By default it's shifted DOWN so only its top peeks above the clip line.
+   Active and hovered items translate back to show the full tab.         */
 .nav-item{
-  font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
-  padding:0 20px;
-  display:flex;align-items:center;
-  cursor:pointer;user-select:none;
-  white-space:nowrap;
-  border-right:1px solid #e8e8e8;
-  /* Slide effect */
-  transform:translateY(7px);
-  opacity:.38;
-  transition:transform .24s cubic-bezier(.16,1,.3,1),opacity .24s ease,background .15s,color .15s;
+  font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  padding:0 22px;
+  height:80px;           /* taller than nav's 52px */
+  display:flex;
+  align-items:flex-start; /* text at the top of the tall item */
+  padding-top:14px;       /* positions text ~14px from item top */
+  cursor:pointer;user-select:none;white-space:nowrap;
+  border-right:1px solid var(--light-rule);
+  flex-shrink:0;
+  /* Start position: item shifted so its text is just below the nav clip     */
+  /* With align-items:flex-start + padding-top:14px, text is at item-y≈14px  */
+  /* translate(+38px): text lands at nav-y≈52px = exactly at the border      */
+  /* → inactive tabs show only the very top edge of their text                */
+  transform:translateY(38px);
+  transition:transform .32s cubic-bezier(.16,1,.3,1),background .12s,color .12s;
 }
 .nav-item:hover{
-  transform:translateY(0);
-  opacity:1;
+  transform:translateY(0);  /* full item visible, text at nav-y≈14px from top */
 }
 .nav-item.active{
   transform:translateY(0);
-  opacity:1;
   background:#000;color:#fff;
-  border-right-color:#000;
+  border-right:1px solid #333;
+  align-items:center;        /* re-center text in full-height visible state */
+  padding-top:0;
 }
 #nav .user-area{
   margin-left:auto;
   display:flex;align-items:center;gap:10px;
-  font-size:11px;padding:0 20px;
-  border-left:1px solid #e0e0e0;
-  flex-shrink:0;
+  font-size:11px;padding:0 24px;
+  border-left:1px solid var(--light-rule);
+  height:52px;flex-shrink:0;
 }
 
-/* ── ROLE TAGS ──────────────────────────────────────────────────────────────*/
-.role-tag{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border:1px solid #000;}
+/* ─── ROLE + STATUS TAGS ───────────────────────────────────────────────── */
+.role-tag{
+  font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  padding:2px 6px;border:1px solid #000;
+}
+.role-tag.admin{background:#000;color:#fff;}
 .role-tag.crafter{border-color:var(--red);color:var(--red);}
-.role-tag.admin{background:#000;color:#fff;border-color:#000;}
 .role-tag.crafter_pending{border-color:#f59e0b;color:#f59e0b;}
-.role-tag.provider{border-color:#ccc;color:#999;}
-.role-tag.logistics{border-color:#0ea5e9;color:#0ea5e9;}
-.role-tag.logistics_pending{border-color:#0ea5e9;color:#0ea5e9;opacity:.6;}
-.role-tag.removed{border-color:#fca5a5;color:#ef4444;}
-.live-dot{width:5px;height:5px;border-radius:50%;background:#000;display:inline-block;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.15;}}
-.live-dot{animation:pulse 2s infinite;}
+.role-tag.provider{border-color:#aaa;color:#888;}
+.role-tag.logistics{border-color:#000;color:#000;}  /* blue → black in OMA */
+.role-tag.logistics_pending{border-color:#888;color:#888;opacity:.7;}
+.role-tag.removed{border-color:var(--red);color:var(--red);}
 
-/* ── PAGE ───────────────────────────────────────────────────────────────────*/
-.page{padding:56px 56px 100px;max-width:1600px;}
-.page-title{font-size:100px;font-weight:900;letter-spacing:-6px;margin-bottom:4px;line-height:.88;}
-.page-sub{font-size:11px;color:var(--mid);margin-bottom:52px;letter-spacing:.06em;text-transform:uppercase;}
-hr.thick{border:none;border-top:2px solid #000;margin:40px 0;}
+/* Live dot: a ticking black square, no colour */
+.live-dot{
+  width:5px;height:5px;
+  background:#000;display:inline-block;
+  /* no border-radius = square dot */
+}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0;}}
+.live-dot{animation:pulse 1.6s infinite;}
+
+/* ─── PAGE SHELL ────────────────────────────────────────────────────────── */
+.page{padding:64px 64px 120px;max-width:none;}
+/* The page title IS the page. Make it graphic. */
+.page-title{
+  font-size:clamp(80px,12vw,200px);
+  font-weight:900;
+  letter-spacing:-0.05em;
+  line-height:.86;
+  margin-bottom:0;
+  text-transform:uppercase;
+}
+.page-sub{
+  font-size:10px;color:var(--mid);
+  margin:18px 0 56px;
+  letter-spacing:.18em;text-transform:uppercase;
+}
+hr.thick{border:none;border-top:2px solid #000;margin:48px 0;}
 hr.thin{border:none;border-top:1px solid #e0e0e0;margin:0;}
 
-/* ── BUTTONS ────────────────────────────────────────────────────────────────*/
+/* ─── BUTTONS ───────────────────────────────────────────────────────────── */
 button{font-family:inherit;cursor:pointer;border:none;outline:none;}
-.btn{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;padding:11px 22px;transition:background .15s,color .15s,border-color .15s;}
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  padding:12px 24px;
+  transition:background .1s,color .1s,border-color .1s;
+}
 .btn-black{background:#000;color:#fff;}
 .btn-black:hover{background:var(--red);}
 .btn-outline{background:#fff;color:#000;border:1.5px solid #000;}
-.btn-outline:hover{background:#000;color:#fff;}
+.btn-outline:hover{background:#000;color:#fff;border-color:#000;}
 .btn-red{background:var(--red);color:#fff;}
 .btn-red:hover{background:#000;}
-.btn-sm{padding:5px 12px;font-size:9px;}
-.btn-ghost{background:none;color:var(--mid);border:1px solid #ddd;padding:5px 12px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;transition:all .15s;}
+.btn-sm{padding:6px 14px;font-size:8px;}
+.btn-ghost{
+  background:none;color:var(--mid);border:1px solid #ccc;
+  padding:6px 14px;font-size:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  transition:all .1s;
+}
 .btn-ghost:hover{border-color:#000;background:#000;color:#fff;}
-.btn-max{background:#000;color:#fff;padding:0 18px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;border:1.5px solid #000;white-space:nowrap;transition:background .15s;}
+.btn-max{
+  height:100%;background:#000;color:#fff;padding:0 22px;
+  font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  border:1.5px solid #000;white-space:nowrap;
+  transition:background .1s;
+}
 .btn-max:hover{background:var(--red);border-color:var(--red);}
 
-/* ── FORMS ──────────────────────────────────────────────────────────────────*/
-label.lbl{display:block;font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin-bottom:7px;color:var(--mid);}
+/* ─── FORMS — underline only, no box ────────────────────────────────────── */
+label.lbl{
+  display:block;font-size:8px;font-weight:700;
+  letter-spacing:.2em;text-transform:uppercase;
+  margin-bottom:10px;color:var(--mid);
+}
 input[type=text],input[type=password],input[type=number],select{
   display:block;width:100%;
-  border:none;border-bottom:1.5px solid #000;
-  padding:10px 0;font-size:14px;font-family:inherit;
-  background:transparent;appearance:none;-webkit-appearance:none;outline:none;
-  transition:border-color .15s;
+  border:none;
+  border-bottom:1.5px solid #000;
+  padding:10px 0;
+  font-size:14px;font-family:inherit;
+  background:transparent;
+  appearance:none;-webkit-appearance:none;outline:none;
+  border-radius:0;
+  transition:border-color .12s;
 }
 input:focus,select:focus{border-bottom-color:var(--red);}
 input::placeholder{color:#ccc;}
-.field{margin-bottom:24px;}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:32px;}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;}
+.field{margin-bottom:28px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:40px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px;}
 
-/* ── PANEL ──────────────────────────────────────────────────────────────────*/
-.panel{border:1.5px solid #000;padding:36px;}
+/* ─── PANEL ─────────────────────────────────────────────────────────────── */
+.panel{border:1.5px solid #000;padding:40px;}
 .collapsible{display:none;}
 .collapsible.open{display:block;}
 
-/* ── TABLES ─────────────────────────────────────────────────────────────────*/
+/* ─── TABLES — full row invert on hover ─────────────────────────────────── */
 table{width:100%;border-collapse:collapse;}
 thead th{
-  font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
-  padding:12px 16px;
+  font-size:8px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+  padding:14px 18px;
   border-top:2px solid #000;border-bottom:2px solid #000;
-  text-align:left;white-space:nowrap;
+  text-align:left;white-space:nowrap;background:#fff;
 }
-tbody td{padding:14px 16px;border-bottom:1px solid #e8e8e8;vertical-align:middle;}
-tbody tr{transition:background .1s;}
-tbody tr:hover{background:#f5f5f5;}
-.empty{padding:80px 0;text-align:center;color:#ccc;font-size:12px;letter-spacing:.1em;text-transform:uppercase;}
+tbody td{
+  padding:16px 18px;
+  border-bottom:1px solid #ebebeb;
+  vertical-align:middle;
+}
+tbody tr{transition:background .08s,color .08s;}
+/* OMA-style: rows invert on hover — black background, white text */
+tbody tr:hover{background:#000;color:#fff;}
+tbody tr:hover .q{background:#fff;color:#000;}
+tbody tr:hover .unit-tag{border-color:#444;color:#aaa;}
+tbody tr:hover .cat-tag{background:#222;color:#bbb;}
+tbody tr:hover .sys-badge{background:#fff;color:#000;}
+tbody tr:hover .loc-display{color:#ccc;}
+tbody tr:hover .btn-ghost,
+tbody tr:hover .btn-outline{border-color:#fff;color:#fff;background:transparent;}
+tbody tr:hover .btn-del{border-color:var(--red);color:var(--red);}
+tbody tr:hover .role-tag{border-color:#fff;color:#fff;}
+tbody tr:hover .role-tag.admin{background:#fff;color:#000;}
+.empty{
+  padding:100px 0;text-align:center;
+  color:#ccc;font-size:9px;letter-spacing:.24em;text-transform:uppercase;
+}
 
-/* ── TAGS ───────────────────────────────────────────────────────────────────*/
-.q{display:inline-block;padding:2px 7px;font-size:10px;font-weight:700;background:#000;color:#fff;}
-.unit-tag{display:inline-block;padding:1px 5px;font-size:9px;font-weight:700;letter-spacing:.08em;border:1px solid #ccc;color:#888;margin-left:4px;}
-.cat-tag{display:inline-block;padding:1px 5px;font-size:9px;font-weight:700;letter-spacing:.08em;background:#f0f0f0;color:#666;}
-.item-cat-tag{display:inline-block;padding:2px 8px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:#000;color:#fff;}
+/* ─── INLINE TAGS ────────────────────────────────────────────────────────── */
+.q{display:inline-block;padding:2px 7px;font-size:9px;font-weight:700;background:#000;color:#fff;transition:background .08s,color .08s;}
+.unit-tag{display:inline-block;padding:1px 5px;font-size:8px;font-weight:700;letter-spacing:.08em;border:1px solid #ccc;color:#888;margin-left:4px;}
+.cat-tag{display:inline-block;padding:1px 5px;font-size:8px;font-weight:700;letter-spacing:.08em;background:#f0f0f0;color:#666;}
+.item-cat-tag{display:inline-block;padding:2px 8px;font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:#000;color:#fff;}
 
-/* ── CRAFT ──────────────────────────────────────────────────────────────────*/
-.craft-box{border:2px solid #000;padding:32px;margin-bottom:36px;}
+/* ─── CRAFT ──────────────────────────────────────────────────────────────── */
+.craft-box{border:2px solid #000;padding:36px;margin-bottom:40px;}
 .craft-box.err{border-color:var(--red);}
-.q-big{font-size:80px;font-weight:900;letter-spacing:-4px;line-height:.88;}
+/* Quality display: large graphic number */
+.q-big{
+  font-size:clamp(72px,10vw,160px);
+  font-weight:900;letter-spacing:-0.05em;line-height:.85;
+}
 
-/* ── LOG BADGES ─────────────────────────────────────────────────────────────*/
-.badge{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:2px 8px;}
+/* ─── LOG BADGES — black/red only, no other colours ────────────────────── */
+.badge{display:inline-block;font-size:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:2px 8px;}
 .badge-crafted{background:var(--red);color:#fff;}
-.badge-material_added{background:#000;color:#fff;}
-.badge-material_removed,.badge-item_created,.badge-item_deleted{background:#555;color:#fff;}
-.badge-material_moved{background:#000;color:#fff;}
-.badge-user_joined{background:#e8e8e8;color:#555;}
+.badge-material_added,.badge-material_moved,.badge-material_removed,
+.badge-item_created,.badge-item_deleted,.badge-item_handed_out,
+.badge-task_created,.badge-task_accepted,.badge-task_completed,
+.badge-crafter_approved,.badge-role_approved,.badge-admin_granted{background:#000;color:#fff;}
 .badge-member_removed{background:var(--red);color:#fff;}
-.badge-task_created,.badge-task_accepted,.badge-task_completed{background:#000;color:#fff;}
-.badge-crafter_approved,.badge-role_approved{background:#000;color:#fff;}
-.badge-crafter_denied,.badge-role_denied{background:#888;color:#fff;}
-.badge-admin_granted{background:#000;color:#fff;}
-.badge-item_handed_out{background:#000;color:#fff;}
+.badge-crafter_denied,.badge-role_denied{background:#555;color:#fff;}
+.badge-user_joined{background:#e8e8e8;color:#555;}
 
-/* ── INVENTORY ──────────────────────────────────────────────────────────────*/
-.inv-quality{font-size:52px;font-weight:900;letter-spacing:-3px;line-height:.88;}
-.inv-row{padding:28px 0;border-bottom:1px solid #e8e8e8;}
+/* ─── INVENTORY CARDS ────────────────────────────────────────────────────── */
+.inv-quality{
+  font-size:clamp(52px,8vw,120px);
+  font-weight:900;letter-spacing:-0.05em;line-height:.86;
+}
+.inv-row{padding:32px 0;border-bottom:1px solid #ebebeb;}
 .inv-row:last-child{border-bottom:none;}
 
-/* ── TASK CARDS ─────────────────────────────────────────────────────────────*/
-.task-card{padding:22px 28px;border:1.5px solid #e0e0e0;margin-bottom:6px;border-left-width:4px;transition:border-color .15s;}
-.task-card:hover{border-color:#000;}
+/* ─── TASK CARDS ─────────────────────────────────────────────────────────── */
+/* Stripped back: all priorities are black-bordered, urgent gets the red stripe */
+.task-card{
+  padding:24px 32px;
+  border:1.5px solid #e0e0e0;margin-bottom:4px;
+  border-left:4px solid transparent;
+  transition:border-color .1s,background .1s;
+}
+.task-card:hover{border-color:#000;background:#fafafa;}
 .task-card.urgent{border-left-color:var(--red);}
-.task-card.high{border-left-color:#f97316;}
-.task-card.normal{border-left-color:#000;}
-.task-card.whenever{border-left-color:#d1d5db;}
-.task-card.completed{opacity:.4;}
-.task-card.cancelled{opacity:.25;}
-.p-badge{display:inline-block;padding:2px 8px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-right:4px;}
+.task-card.high,.task-card.normal{border-left-color:#000;}
+.task-card.whenever{border-left-color:#ccc;}
+.task-card.completed{opacity:.3;}
+.task-card.cancelled{opacity:.18;}
+/* Priority badges: urgent=red, everything else=black */
+.p-badge{display:inline-block;padding:2px 8px;font-size:8px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;margin-right:4px;}
 .p-urgent{background:var(--red);color:#fff;}
-.p-high{background:#f97316;color:#fff;}
-.p-normal{background:#000;color:#fff;}
-.p-whenever{background:#e5e7eb;color:#555;}
-.role-badge{display:inline-block;padding:1px 6px;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid #000;margin-right:3px;}
-.rb-provider{border-color:#ccc;color:#999;}
+.p-high,.p-normal{background:#000;color:#fff;}
+.p-whenever{background:#e8e8e8;color:#555;}
+/* Role badges: all black outlines, no colour mixing */
+.role-badge{display:inline-block;padding:1px 6px;font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1px solid #000;margin-right:3px;}
+.rb-provider{border-color:#bbb;color:#999;}
 .rb-crafter{border-color:var(--red);color:var(--red);}
-.rb-logistics{border-color:#0ea5e9;color:#0ea5e9;}
-.rb-admin{background:#000;color:#fff;border-color:#000;}
-.btn-del{background:none;border:1px solid #fca5a5;color:var(--red);padding:4px 10px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .15s;}
+.rb-logistics,.rb-admin{background:#000;color:#fff;border-color:#000;}
+.btn-del{
+  background:none;border:1px solid #ddd;color:#888;
+  padding:4px 10px;font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  cursor:pointer;transition:all .1s;
+}
 .btn-del:hover{background:var(--red);color:#fff;border-color:var(--red);}
 .pending-note{background:#fffbeb;border-left:2px solid #f59e0b;padding:12px 16px;font-size:12px;color:#92400e;margin-top:10px;line-height:1.6;display:none;}
 
-/* ── AUTH SCREEN ────────────────────────────────────────────────────────────*/
-.center-screen{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px;background:#fff;}
-.auth-box{width:100%;max-width:360px;}
-.auth-logo{font-size:56px;font-weight:900;letter-spacing:-3px;text-align:left;margin-bottom:64px;line-height:.88;}
-.tabs{display:flex;border-bottom:2px solid #000;margin-bottom:36px;}
-.tab-btn{flex:1;padding:14px;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;text-align:center;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;background:none;color:#ccc;transition:all .15s;}
+/* ─── AUTH SCREEN ────────────────────────────────────────────────────────── */
+.center-screen{
+  min-height:100vh;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  padding:40px;background:#fff;
+}
+.auth-box{width:100%;max-width:380px;}
+/* Auth logo: use the same extreme sizing as page titles */
+.auth-logo{
+  font-size:clamp(72px,14vw,160px);
+  font-weight:900;letter-spacing:-0.05em;
+  text-align:left;margin-bottom:80px;line-height:.85;
+}
+.tabs{display:flex;border-bottom:2px solid #000;margin-bottom:40px;}
+.tab-btn{
+  flex:1;padding:16px;
+  font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  text-align:center;cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-2px;
+  background:none;color:#bbb;transition:all .12s;
+}
 .tab-btn.active{border-bottom-color:#000;color:#000;}
-.err-msg{font-size:11px;color:var(--red);margin-bottom:12px;display:none;letter-spacing:.04em;}
+.err-msg{font-size:11px;color:var(--red);margin-bottom:12px;display:none;}
 .chk-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;}
 .chk-row input{width:auto;flex-shrink:0;}
 .chk-row span{font-size:13px;}
 
-/* ── SETUP ──────────────────────────────────────────────────────────────────*/
+/* ─── SETUP ──────────────────────────────────────────────────────────────── */
 .setup-note{font-size:12px;color:#888;margin-top:16px;line-height:1.7;}
 .code-block{background:#f5f5f5;border-left:2px solid #000;padding:10px 14px;font-family:monospace;font-size:12px;margin:8px 0;}
 
-/* ── TOAST + MODAL ──────────────────────────────────────────────────────────*/
-#toast{position:fixed;bottom:24px;right:24px;background:#000;color:#fff;padding:12px 20px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;display:none;z-index:999;}
-#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;align-items:center;justify-content:center;padding:24px;}
+/* ─── TOAST + MODAL ──────────────────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:20px;right:20px;
+  background:#000;color:#fff;
+  padding:12px 22px;font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  display:none;z-index:999;
+}
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;align-items:center;justify-content:center;padding:24px;}
 #modal-overlay.open{display:flex;}
-.modal-box{background:#fff;padding:52px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;border-top:4px solid #000;}
-.modal-title{font-size:32px;font-weight:900;letter-spacing:-1.5px;margin-bottom:32px;line-height:.92;}
-.search-row{display:flex;gap:12px;align-items:center;margin-bottom:28px;}
-.search-row input{max-width:280px;margin:0;}
+.modal-box{
+  background:#fff;
+  padding:64px;
+  width:100%;max-width:560px;max-height:90vh;overflow-y:auto;
+  /* No rounded corners, no shadow — clean block */
+  border-left:4px solid #000;
+}
+.modal-title{
+  font-size:clamp(32px,5vw,56px);
+  font-weight:900;letter-spacing:-0.04em;
+  margin-bottom:40px;line-height:.88;
+}
+.search-row{display:flex;gap:12px;align-items:center;margin-bottom:32px;}
+.search-row input{max-width:300px;margin:0;}
 
-/* ── MISC ───────────────────────────────────────────────────────────────────*/
-.unit-inline{font-size:10px;font-weight:700;color:#999;margin-left:4px;letter-spacing:.08em;}
-.loc-display{font-size:12px;color:#666;}
-.sys-badge{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#333;padding:1px 5px;margin-right:4px;}
-.sys-badge.pyro{background:#c05000;}
-.sys-badge.nyx{background:#005080;}
+/* ─── MISC INLINE ELEMENTS ───────────────────────────────────────────────── */
+.unit-inline{font-size:9px;font-weight:700;color:#999;margin-left:4px;letter-spacing:.1em;}
+.loc-display{font-size:12px;color:#555;transition:color .08s;}
+/* System badges: black=Stanton, red=Pyro, dark=Nyx — no blue */
+.sys-badge{font-size:8px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#000;padding:1px 6px;margin-right:4px;}
+.sys-badge.pyro{background:var(--red);}
+.sys-badge.nyx{background:#444;}
 
-/* ── FILTER + SUB TABS ──────────────────────────────────────────────────────*/
-.filter-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:32px;}
-.filter-tab{padding:6px 16px;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;border:1.5px solid #e0e0e0;background:#fff;color:#999;cursor:pointer;transition:all .15s;}
-.filter-tab.active{border-color:#000;background:#000;color:#fff;}
-.filter-tab:hover:not(.active){border-color:#000;color:#000;}
-.sub-tabs{display:flex;border-bottom:2px solid #000;margin-bottom:44px;}
-.sub-tab{padding:14px 32px 14px 0;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;background:none;color:#aaa;transition:all .15s;}
+/* ─── FILTER TABS — joined, architectural ───────────────────────────────── */
+.filter-tabs{display:flex;gap:0;flex-wrap:wrap;margin-bottom:36px;}
+.filter-tab{
+  padding:8px 18px;
+  font-size:8px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  border:1.5px solid #000;border-right:none;
+  background:#fff;color:#000;cursor:pointer;
+  transition:background .1s,color .1s;
+}
+.filter-tab:last-child{border-right:1.5px solid #000;}
+.filter-tab.active{background:#000;color:#fff;}
+.filter-tab:hover:not(.active){background:#f0f0f0;}
+
+/* Sub-tabs inside craft page */
+.sub-tabs{display:flex;border-bottom:2px solid #000;margin-bottom:52px;}
+.sub-tab{
+  padding:18px 40px 18px 0;
+  font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;
+  background:none;color:#aaa;transition:color .12s;
+}
 .sub-tab.active{border-bottom-color:#000;color:#000;}
 .sub-tab:hover:not(.active){color:#555;}
 
-/* ── HINT BOX ───────────────────────────────────────────────────────────────*/
-.hint-box{background:#f5f5f5;border-left:2px solid #000;padding:12px 16px;font-size:11px;color:#555;margin-top:8px;line-height:1.7;}
+/* ─── HINT BOX ───────────────────────────────────────────────────────────── */
+.hint-box{background:#f5f5f5;border-left:2px solid #000;padding:14px 18px;font-size:11px;color:#555;margin-top:8px;line-height:1.7;}
 .hint-box strong{color:#000;}
 
-/* ── OVERVIEW PAGE ──────────────────────────────────────────────────────────*/
-.ov-wrap{padding:56px 56px 100px;max-width:1600px;}
-.ov-header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:28px;border-bottom:2px solid #000;}
-.ov-title{font-size:100px;font-weight:900;letter-spacing:-6px;line-height:.88;}
-.ov-date{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#999;text-align:right;line-height:2.2;}
-.ov-greeting{font-size:11px;color:#999;margin-top:10px;letter-spacing:.08em;}
-/* Big stat strip */
+/* ─── OVERVIEW PAGE ──────────────────────────────────────────────────────── */
+/* No max-width: let the numbers breathe full viewport width */
+.ov-wrap{padding:0;}
+.ov-header{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  padding:56px 64px 40px;
+  border-bottom:2px solid #000;
+}
+/* The title IS the graphic — let it be huge */
+.ov-title{
+  font-size:clamp(100px,18vw,320px);
+  font-weight:900;letter-spacing:-0.06em;line-height:.84;
+  text-transform:uppercase;
+}
+.ov-date{
+  font-size:9px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+  color:#999;text-align:right;line-height:2.6;
+  padding-bottom:8px;  /* aligns with title baseline */
+}
+.ov-greeting{font-size:10px;color:#888;margin-top:12px;letter-spacing:.12em;}
+
+/* Stats strip: numbers fill the column */
 .ov-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #000;}
-.ov-stat{padding:36px 0;border-right:1px solid #e0e0e0;}
+.ov-stat{
+  padding:40px 0 40px 64px;
+  border-right:1px solid #e0e0e0;
+  cursor:default;
+}
 .ov-stat:last-child{border-right:none;}
-.ov-stat-num{font-size:96px;font-weight:900;letter-spacing:-6px;line-height:.88;margin-bottom:10px;}
+/* Stat number: a raw typographic mass */
+.ov-stat-num{
+  font-size:clamp(72px,10vw,160px);
+  font-weight:900;letter-spacing:-0.06em;line-height:.86;
+  margin-bottom:12px;
+  transition:color .15s;
+}
 .ov-stat-num.red{color:var(--red);}
-.ov-stat-label{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#999;}
-.ov-stat-sub{font-size:11px;color:#bbb;margin-top:5px;}
-/* Body columns */
-.ov-body{display:grid;grid-template-columns:3fr 2fr;border-bottom:2px solid #000;}
-.ov-col{padding:36px 0;}
-.ov-col+.ov-col{padding-left:52px;border-left:1px solid #e0e0e0;}
-.ov-col-head{font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;margin-bottom:24px;padding-bottom:14px;border-bottom:2px solid #000;}
-.ov-entry{display:grid;grid-template-columns:72px 1fr auto;gap:10px;padding:12px 0;border-bottom:1px solid #f0f0f0;align-items:baseline;}
+.ov-stat-label{font-size:8px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:#999;}
+.ov-stat-sub{font-size:10px;color:#bbb;margin-top:6px;}
+
+/* Two-column body */
+.ov-body{
+  display:grid;grid-template-columns:3fr 2fr;
+  border-bottom:2px solid #000;
+}
+.ov-col{padding:40px 64px;}
+.ov-col+.ov-col{border-left:1px solid #e0e0e0;padding-left:48px;}
+.ov-col-head{
+  font-size:8px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;
+  margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid #000;
+}
+.ov-entry{
+  display:grid;grid-template-columns:60px 1fr auto;gap:12px;
+  padding:14px 0;border-bottom:1px solid #f0f0f0;align-items:baseline;
+}
 .ov-entry:last-child{border-bottom:none;}
-.ov-entry-date{font-size:9px;color:#ccc;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;}
+.ov-entry-date{font-size:8px;color:#ccc;font-weight:700;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;}
 .ov-entry-body{font-size:12px;line-height:1.5;}
-.ov-entry-who{font-size:9px;color:#aaa;font-weight:700;letter-spacing:.06em;white-space:nowrap;}
-.ov-task-row{padding:12px 0;border-bottom:1px solid #f0f0f0;}
+.ov-entry-who{font-size:8px;color:#aaa;font-weight:700;letter-spacing:.06em;white-space:nowrap;}
+.ov-task-row{padding:14px 0;border-bottom:1px solid #f0f0f0;}
 .ov-task-row:last-child{border-bottom:none;}
 .ov-task-title{font-size:13px;font-weight:700;margin-bottom:4px;}
 .ov-task-meta{font-size:11px;color:#999;}
-/* Bottom columns */
-.ov-bottom{display:grid;grid-template-columns:3fr 2fr;}
-.ov-empty{color:#ccc;font-size:11px;padding:20px 0;letter-spacing:.06em;text-transform:uppercase;}
 
-/* ── ARCHIVE MONTH GROUPS ───────────────────────────────────────────────────*/
+/* Bottom two-column */
+.ov-bottom{display:grid;grid-template-columns:3fr 2fr;}
+.ov-empty{color:#ccc;font-size:9px;padding:24px 0;letter-spacing:.2em;text-transform:uppercase;}
+
+/* ─── ARCHIVE MONTHS ──────────────────────────────────────────────────────── */
 details.log-month{border-bottom:1px solid #e0e0e0;}
-details.log-month>summary{display:flex;align-items:center;gap:14px;padding:20px 0;cursor:pointer;user-select:none;list-style:none;}
+details.log-month>summary{
+  display:flex;align-items:center;gap:16px;
+  padding:22px 0;cursor:pointer;user-select:none;list-style:none;
+}
 details.log-month>summary::-webkit-details-marker{display:none;}
 details.log-month>summary::marker{display:none;}
-.log-month-arrow{font-size:9px;color:#999;transition:transform .15s;display:inline-block;flex-shrink:0;}
+details.log-month>summary:hover{background:#fafafa;padding-left:8px;transition:padding .15s;}
+.log-month-arrow{font-size:8px;color:#999;transition:transform .15s;display:inline-block;flex-shrink:0;}
 details.log-month[open] .log-month-arrow{transform:rotate(90deg);}
-.log-month-name{font-size:13px;font-weight:700;letter-spacing:.06em;}
-.log-month-count{font-size:11px;color:#aaa;margin-left:auto;}
-details.log-month>div{padding-bottom:28px;}
+.log-month-name{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.log-month-count{font-size:10px;color:#bbb;margin-left:auto;letter-spacing:.06em;}
+details.log-month>div{padding-bottom:32px;}
 </style>
 </head>
 <body>
@@ -749,25 +939,25 @@ function pageOverview() {
     </div>
 
     <div class="ov-stats">
-      <div class="ov-stat" style="padding-right:28px;">
+      <div class="ov-stat">
         <div class="ov-stat-num${matAvail.length===0?' red':''}">${matAvail.length}</div>
         <div class="ov-stat-label">Materials</div>
         <div class="ov-stat-sub">${oreEntries.length} ore &middot; ${gemEntries.length} gem entries</div>
       </div>
-      <div class="ov-stat" style="padding-left:28px;padding-right:28px;">
+      <div class="ov-stat">
         <div class="ov-stat-num">${invAvail.length}</div>
         <div class="ov-stat-label">Inventory</div>
         <div class="ov-stat-sub">${state.inventory.filter(i=>i.status==='handed_out').length} handed out</div>
       </div>
-      <div class="ov-stat" style="padding-left:28px;padding-right:28px;">
+      <div class="ov-stat">
         <div class="ov-stat-num${urgentCnt>0?' red':''}">${openTasks.length}</div>
         <div class="ov-stat-label">Tasks Open</div>
         <div class="ov-stat-sub">${urgentCnt>0?`<span style="color:var(--red);font-weight:700;">${urgentCnt} urgent</span>`:'none urgent'}</div>
       </div>
-      <div class="ov-stat" style="padding-left:28px;">
+      <div class="ov-stat">
         <div class="ov-stat-num">${memberCnt}</div>
         <div class="ov-stat-label">Members</div>
-        <div class="ov-stat-sub">${pendingCnt>0?`<span style="color:#f59e0b;font-weight:700;">${pendingCnt} pending approval</span>`:'all approved'}</div>
+        <div class="ov-stat-sub">${pendingCnt>0?`<span style="color:var(--red);font-weight:700;">${pendingCnt} pending approval</span>`:'all approved'}</div>
       </div>
     </div>
 
@@ -783,7 +973,7 @@ function pageOverview() {
             <div class="ov-entry-who">${esc(e.userName)}</div>
           </div>`).join('')
         : `<div class="ov-empty">No activity yet.</div>`}
-        ${state.archive.length>7?`<div style="padding-top:12px;"><span style="font-size:11px;color:#999;cursor:pointer;text-decoration:underline;" onclick="goTo('archive')">View full log (${state.archive.length} entries) →</span></div>`:''}
+        ${state.archive.length>7?`<div style="padding-top:20px;"><span style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#999;cursor:pointer;" onclick="goTo('archive')">Full log (${state.archive.length} entries) →</span></div>`:''}
       </div>
       <div class="ov-col">
         <div class="ov-col-head">Open Tasks</div>
@@ -799,48 +989,48 @@ function pageOverview() {
           </div>`;
         }).join('')
         : `<div class="ov-empty">No open tasks.</div>`}
-        ${openTasks.length>6?`<div style="padding-top:12px;"><span style="font-size:11px;color:#999;cursor:pointer;text-decoration:underline;" onclick="goTo('tasks')">All tasks (${openTasks.length}) →</span></div>`:''}
+        ${openTasks.length>6?`<div style="padding-top:20px;"><span style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#999;cursor:pointer;" onclick="goTo('tasks')">All tasks (${openTasks.length}) →</span></div>`:''}
       </div>
     </div>
 
     <div class="ov-bottom">
-      <div class="ov-col" style="border-right:1px solid #e0e0e0;padding-right:40px;">
+      <div class="ov-col" style="border-right:1px solid #e0e0e0;">
         <div class="ov-col-head">Stock Breakdown</div>
         ${matAvail.length===0 ? `<div class="ov-empty">No materials in stock.</div>` : `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:32px;">
           <div>
-            <div style="font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;">${oreEntries.length}</div>
-            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-top:4px;">Ore Entries</div>
-            <div style="font-size:11px;color:#bbb;margin-top:2px;">${Math.round(oreQty*100)/100} SCU total</div>
+            <div style="font-size:clamp(48px,6vw,96px);font-weight:900;letter-spacing:-0.05em;line-height:.88;">${oreEntries.length}</div>
+            <div style="font-size:8px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#999;margin-top:8px;">Ore Entries</div>
+            <div style="font-size:11px;color:#bbb;margin-top:4px;">${Math.round(oreQty*100)/100} SCU total</div>
           </div>
           <div>
-            <div style="font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;">${gemEntries.length}</div>
-            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-top:4px;">Gem Entries</div>
-            <div style="font-size:11px;color:#bbb;margin-top:2px;">${gemQty} UNIT total</div>
+            <div style="font-size:clamp(48px,6vw,96px);font-weight:900;letter-spacing:-0.05em;line-height:.88;">${gemEntries.length}</div>
+            <div style="font-size:8px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#999;margin-top:8px;">Gem Entries</div>
+            <div style="font-size:11px;color:#bbb;margin-top:4px;">${gemQty} UNIT total</div>
           </div>
         </div>
         ${topMats.length?`
-        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-bottom:10px;">Top by Quantity</div>
+        <div style="font-size:8px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#999;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #000;">Top by Quantity</div>
         ${topMats.map(([name,qty])=>`
-          <div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid #f5f5f5;">
-            <span style="font-size:13px;font-weight:600;">${esc(name)}</span>
-            <span style="font-size:12px;color:#999;">${Math.round(qty*100)/100} ${unitFor(name)}</span>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid #f0f0f0;">
+            <span style="font-size:14px;font-weight:700;">${esc(name)}</span>
+            <span style="font-size:11px;color:#999;letter-spacing:.04em;">${Math.round(qty*100)/100} ${unitFor(name)}</span>
           </div>`).join('')}`:''}
-        <div style="padding-top:16px;"><span style="font-size:11px;color:#999;cursor:pointer;text-decoration:underline;" onclick="goTo('materials')">All materials →</span></div>`}
+        <div style="padding-top:20px;"><span style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#999;cursor:pointer;" onclick="goTo('materials')">All materials →</span></div>`}
       </div>
-      <div class="ov-col" style="padding-left:40px;">
+      <div class="ov-col">
         <div class="ov-col-head">Inventory</div>
         ${recentCrafted.length===0 ? `<div class="ov-empty">Nothing crafted yet.</div>` : `
-        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-bottom:10px;">Recent Crafted Items</div>
+        <div style="font-size:8px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#999;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #000;">Recent Crafted Items</div>
         ${recentCrafted.map(i=>`
-          <div style="padding:8px 0;border-bottom:1px solid #f5f5f5;">
+          <div style="padding:12px 0;border-bottom:1px solid #f0f0f0;">
             <div style="display:flex;justify-content:space-between;align-items:baseline;">
-              <span style="font-size:13px;font-weight:600;">${esc(i.itemName)}</span>
-              <span style="font-size:11px;color:#999;">${i.status==='available'?`×${i.quantity} available`:'handed out'}</span>
+              <span style="font-size:14px;font-weight:700;">${esc(i.itemName)}</span>
+              <span style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:${i.status==='available'?'#000':'#bbb'};">${i.status==='available'?`×${i.quantity} available`:'handed out'}</span>
             </div>
-            <div style="font-size:11px;color:#bbb;">avg q${i.avgQuality} &middot; ${esc(i.craftedByName)} &middot; ${shortDate(i._creationTime)}</div>
+            <div style="font-size:10px;color:#bbb;margin-top:3px;">avg q${i.avgQuality} &middot; ${esc(i.craftedByName)} &middot; ${shortDate(i._creationTime)}</div>
           </div>`).join('')}
-        <div style="padding-top:16px;"><span style="font-size:11px;color:#999;cursor:pointer;text-decoration:underline;" onclick="goTo('inventory')">Full inventory →</span></div>`}
+        <div style="padding-top:20px;"><span style="font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#999;cursor:pointer;" onclick="goTo('inventory')">Full inventory →</span></div>`}
       </div>
     </div>
 
