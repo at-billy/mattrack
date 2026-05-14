@@ -32,68 +32,61 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 
-/* ─── THE NAV ───────────────────────────────────────────────────────────────
-   OMA effect: nav bar clips at its own height. Inactive tabs are positioned
-   below the clip boundary — only the very top few pixels peek above the line.
-   The active tab snaps up to full height. Hover slides any tab into view.
-   The result: only what matters is visible; everything else almost disappears.
+/* ─── THE NAV — OMA WORD FLOW ───────────────────────────────────────────────
+   All page names displayed simultaneously as massive words, flowing like
+   editorial typography. Active page is underlined. Admin gets the OMA
+   "SEARCH" treatment: outlined/stroke text, no fill.
 ──────────────────────────────────────────────────────────────────────────── */
 #nav{
   position:sticky;top:0;z-index:200;
-  display:flex;
-  align-items:flex-end;   /* items hang from the bottom of the bar */
-  height:52px;
-  overflow:hidden;        /* THE CLIP — this is what creates the slide effect */
-  border-bottom:2px solid #000;
   background:#fff;
+  border-bottom:2px solid #000;
+  padding:10px 0 0;
 }
-#nav .brand{
-  font-size:17px;font-weight:900;letter-spacing:-.5px;
-  padding:0 28px;
-  height:52px;
-  display:flex;align-items:center;
-  border-right:2px solid #000;
-  flex-shrink:0;cursor:pointer;white-space:nowrap;
-  transition:background .1s,color .1s;
-}
-#nav .brand:hover{background:#000;color:#fff;}
-
-/* Each nav item is taller than the nav bar.
-   By default it's shifted DOWN so only its top peeks above the clip line.
-   Active and hovered items translate back to show the full tab.         */
-.nav-item{
-  font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
-  padding:0 22px;
-  height:80px;           /* taller than nav's 52px */
+.nav-words{
   display:flex;
-  align-items:flex-start; /* text at the top of the tall item */
-  padding-top:14px;       /* positions text ~14px from item top */
-  cursor:pointer;user-select:none;white-space:nowrap;
-  border-right:1px solid var(--light-rule);
-  flex-shrink:0;
-  /* Start position: item shifted so its text is just below the nav clip     */
-  /* With align-items:flex-start + padding-top:14px, text is at item-y≈14px  */
-  /* translate(+38px): text lands at nav-y≈52px = exactly at the border      */
-  /* → inactive tabs show only the very top edge of their text                */
-  transform:translateY(38px);
-  transition:transform .32s cubic-bezier(.16,1,.3,1),background .12s,color .12s;
+  flex-wrap:wrap;
+  align-items:baseline;
+  line-height:1;
 }
-.nav-item:hover{
-  transform:translateY(0);  /* full item visible, text at nav-y≈14px from top */
+.nav-word{
+  font-size:clamp(38px,6vw,100px);
+  font-weight:900;
+  letter-spacing:-0.04em;
+  text-transform:uppercase;
+  cursor:pointer;
+  user-select:none;
+  white-space:nowrap;
+  padding-right:0.28em;
+  padding-bottom:8px;
+  line-height:1;
+  color:#000;
+  transition:opacity .12s;
 }
-.nav-item.active{
-  transform:translateY(0);
-  background:#000;color:#fff;
-  border-right:1px solid #333;
-  align-items:center;        /* re-center text in full-height visible state */
-  padding-top:0;
+.nav-word:hover{opacity:.45;}
+.nav-word.active{
+  text-decoration:underline;
+  text-decoration-thickness:3px;
+  text-underline-offset:8px;
+  opacity:1;
 }
-#nav .user-area{
-  margin-left:auto;
-  display:flex;align-items:center;gap:10px;
-  font-size:11px;padding:0 24px;
-  border-left:1px solid var(--light-rule);
-  height:52px;flex-shrink:0;
+/* ADMIN = outlined stroke, like OMA's SEARCH */
+.nav-word.nav-util{
+  -webkit-text-stroke:2.5px #000;
+  color:transparent;
+}
+.nav-word.nav-util:hover{opacity:.55;}
+.nav-word.nav-util.active{
+  color:#000;
+  -webkit-text-stroke:0;
+}
+.nav-user-bar{
+  border-top:1px solid #e0e0e0;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  font-size:11px;
+  padding:6px 0 8px;
 }
 
 /* ─── ROLE + STATUS TAGS ───────────────────────────────────────────────── */
@@ -119,20 +112,22 @@ body{
 .live-dot{animation:pulse 1.6s infinite;}
 
 /* ─── PAGE SHELL ────────────────────────────────────────────────────────── */
-.page{padding:64px 64px 120px;max-width:none;}
-/* The page title IS the page. Make it graphic. */
+.page{padding:48px 64px 120px;max-width:none;}
+/* Page title: small section label — nav already carries the big type */
 .page-title{
-  font-size:clamp(80px,12vw,200px);
-  font-weight:900;
-  letter-spacing:-0.05em;
-  line-height:.86;
-  margin-bottom:0;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.28em;
+  line-height:1;
   text-transform:uppercase;
+  color:#aaa;
+  margin-bottom:4px;
+  display:none; /* nav underline makes this redundant — hide entirely */
 }
 .page-sub{
-  font-size:10px;color:var(--mid);
-  margin:18px 0 56px;
-  letter-spacing:.18em;text-transform:uppercase;
+  font-size:11px;color:var(--mid);
+  margin:0 0 32px;
+  letter-spacing:.14em;text-transform:uppercase;
 }
 hr.thick{border:none;border-top:2px solid #000;margin:48px 0;}
 hr.thin{border:none;border-top:1px solid #e0e0e0;margin:0;}
@@ -383,25 +378,24 @@ tbody tr:hover .role-tag.admin{background:#fff;color:#000;}
 .hint-box strong{color:#000;}
 
 /* ─── OVERVIEW PAGE ──────────────────────────────────────────────────────── */
-/* No max-width: let the numbers breathe full viewport width */
 .ov-wrap{padding:0;}
 .ov-header{
   display:flex;justify-content:space-between;align-items:flex-end;
-  padding:56px 64px 40px;
+  padding:48px 64px 36px;
   border-bottom:2px solid #000;
 }
-/* The title IS the graphic — let it be huge */
+/* Date as the graphic headline — OMA uses editorial numbers/dates as art */
 .ov-title{
-  font-size:clamp(100px,18vw,320px);
-  font-weight:900;letter-spacing:-0.06em;line-height:.84;
+  font-size:clamp(64px,10vw,160px);
+  font-weight:900;letter-spacing:-0.05em;line-height:.86;
   text-transform:uppercase;
 }
 .ov-date{
   font-size:9px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
-  color:#999;text-align:right;line-height:2.6;
-  padding-bottom:8px;  /* aligns with title baseline */
+  color:#999;text-align:right;line-height:2.4;
+  padding-bottom:6px;
 }
-.ov-greeting{font-size:10px;color:#888;margin-top:12px;letter-spacing:.12em;}
+.ov-greeting{font-size:10px;color:#888;margin-top:10px;letter-spacing:.1em;}
 
 /* Stats strip: numbers fill the column */
 .ov-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #000;}
@@ -847,13 +841,19 @@ function hasAdmin() { return state.allUsers.some(u=>(u.roles||[]).includes('admi
 
 function renderNav() {
   const u=state.user; if(!u) return;
-  const tabs=[['overview','Overview'],['materials','Materials'],['craft','Craft'],['inventory','Inventory'],['tasks','Tasks'],['archive','Log']];
-  if(isAdmin(u)) tabs.push(['admin','Admin']);
+  // 'overview' maps to brand label MATTRACK — both brand identity and home tab
+  const tabs=[['overview','MATTRACK'],['materials','MATERIALS'],['craft','CRAFT'],['inventory','INVENTORY'],['tasks','TASKS'],['archive','LOG']];
+  if(isAdmin(u)) tabs.push(['admin','ADMIN']);
   const noAdmin=!hasAdmin();
   document.getElementById('nav').innerHTML=`
-    <div class="brand" onclick="goTo('overview')" style="cursor:pointer;">MATTRACK</div>
-    ${tabs.map(([id,lbl])=>`<div class="nav-item${currentPage===id?' active':''}" onclick="goTo('${id}')">${lbl}</div>`).join('')}
-    <div class="user-area">
+    <div class="nav-words">
+      ${tabs.map(([id,lbl])=>{
+        const active=currentPage===id;
+        const util=id==='admin';
+        return `<span class="nav-word${active?' active':''}${util?' nav-util':''}" onclick="goTo('${id}')">${lbl}</span>`;
+      }).join('')}
+    </div>
+    <div class="nav-user-bar">
       <span class="live-dot"></span>
       <span style="font-weight:700;">${esc(u.username)}</span>
       ${u.roles.map(r=>roleTagHtml(r)).join('')}
@@ -928,14 +928,18 @@ function pageOverview() {
     return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
   }
 
+  // Date as a typographic mass — day + month in huge type, year small
+  const dayMonth = now.toLocaleDateString('en-GB',{day:'numeric',month:'long'}).toUpperCase();
+  const yearStr  = now.getFullYear();
+
   return `<div class="ov-wrap">
 
     <div class="ov-header">
       <div>
-        <div class="ov-title">OVERVIEW</div>
-        <div class="ov-greeting">Welcome back, ${esc(u.username)} &nbsp;${u.roles.map(r=>roleTagHtml(r)).join('')}</div>
+        <div class="ov-title">${dayMonth}</div>
+        <div class="ov-greeting">${yearStr} &nbsp;&middot;&nbsp; Welcome back, ${esc(u.username)} &nbsp;${u.roles.map(r=>roleTagHtml(r)).join('')}</div>
       </div>
-      <div class="ov-date">${dateStr}<br>${timeStr}</div>
+      <div class="ov-date">${timeStr}<br><span style="font-size:8px;letter-spacing:.18em;">${now.toLocaleDateString('en-GB',{weekday:'long'}).toUpperCase()}</span></div>
     </div>
 
     <div class="ov-stats">
