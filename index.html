@@ -152,6 +152,16 @@ tbody tr:hover{background:#fafafa;}
 
 .hint-box{background:#f5f5f5;border-left:3px solid #000;padding:10px 14px;font-size:11px;color:#555;margin-top:8px;line-height:1.7;}
 .hint-box strong{color:#000;}
+/* Archive month groups */
+details.log-month{border-bottom:1px solid #e0e0e0;}
+details.log-month>summary{display:flex;align-items:center;gap:12px;padding:16px 0;cursor:pointer;user-select:none;list-style:none;}
+details.log-month>summary::-webkit-details-marker{display:none;}
+details.log-month>summary::marker{display:none;}
+.log-month-arrow{font-size:9px;color:#999;transition:transform .15s;display:inline-block;flex-shrink:0;}
+details.log-month[open] .log-month-arrow{transform:rotate(90deg);}
+.log-month-name{font-size:13px;font-weight:700;letter-spacing:.04em;}
+.log-month-count{font-size:11px;color:#aaa;margin-left:auto;}
+details.log-month>div{padding-bottom:24px;}
 </style>
 </head>
 <body>
@@ -363,7 +373,10 @@ function updateLiveView() {
     }
   }
   if (currentPage==='archive') {
-    const el=document.getElementById('archive-table'); if(el) el.innerHTML=renderArchiveTable();
+    // Re-render grouped archive; preserve open/closed state of months
+    const openMonths=new Set([...document.querySelectorAll('details.log-month[open]')].map(d=>d.dataset.key));
+    const el=document.getElementById('archive-table');
+    if(el) el.innerHTML=renderArchiveTable(openMonths);
     const s=document.getElementById('archive-count'); if(s) s.textContent=`${state.archive.length} action${state.archive.length!==1?'s':''} recorded`;
   }
   if (currentPage==='craft' && craftState.itemId) recomputePlan();
@@ -1239,13 +1252,47 @@ function pageArchive(){
     <div class="page-sub" id="archive-count">${state.archive.length} action${state.archive.length!==1?'s':''} recorded</div>
     <div id="archive-table">${renderArchiveTable()}</div>`;
 }
-function renderArchiveTable(){
+
+function renderArchiveTable(openMonths){
   if(!state.archive.length) return `<div class="empty">No actions logged yet.</div>`;
+
+  const groups = {};
+  const now = new Date();
+  const currentKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  for(const e of state.archive){
+    const d = new Date(e._creationTime);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if(!groups[key]){
+      groups[key] = {
+        label: d.toLocaleDateString('en-GB',{month:'long',year:'numeric'}),
+        entries: []
+      };
+    }
+    groups[key].entries.push(e);
+  }
+
+  return Object.keys(groups).sort().reverse().map(key=>{
+    const {label,entries} = groups[key];
+    // Open if: current month, OR was manually opened before re-poll
+    const isOpen = key===currentKey || (openMonths&&openMonths.has(key));
+    return `<details class="log-month"${isOpen?' open':''} data-key="${key}">
+      <summary>
+        <span class="log-month-arrow">▶</span>
+        <span class="log-month-name">${label}</span>
+        <span class="log-month-count">${entries.length} entr${entries.length===1?'y':'ies'}</span>
+      </summary>
+      <div>${renderMonthRows(entries)}</div>
+    </details>`;
+  }).join('');
+}
+
+function renderMonthRows(entries){
   const admin=isAdmin(state.user);
   const labels={crafted:'Crafted',material_added:'Added',material_removed:'Removed',material_moved:'Moved',item_created:'New Item',item_deleted:'Deleted Item',item_handed_out:'Handed Out',user_joined:'Joined',role_approved:'Role Approved',role_denied:'Role Denied',crafter_approved:'Crafter Approved',crafter_denied:'Crafter Denied',admin_granted:'Admin Granted',member_removed:'Member Removed',task_created:'Task Created',task_accepted:'Task Accepted',task_completed:'Task Completed'};
   return `<table>
     <thead><tr><th>Date</th><th>Action</th><th>User</th><th>Details</th>${admin?'<th></th>':''}</tr></thead>
-    <tbody>${state.archive.map(e=>`<tr>
+    <tbody>${entries.map(e=>`<tr>
       <td style="font-size:11px;color:#999;white-space:nowrap;">${fmtDT(e._creationTime)}</td>
       <td><span class="badge badge-${e.type}">${labels[e.type]||e.type}</span></td>
       <td style="font-weight:600;font-size:13px;">${esc(e.userName)}</td>
