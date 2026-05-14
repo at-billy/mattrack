@@ -152,6 +152,34 @@ tbody tr:hover{background:#fafafa;}
 
 .hint-box{background:#f5f5f5;border-left:3px solid #000;padding:10px 14px;font-size:11px;color:#555;margin-top:8px;line-height:1.7;}
 .hint-box strong{color:#000;}
+/* Overview / landing page */
+.ov-wrap{padding:40px 40px 80px;max-width:1400px;}
+.ov-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:0;padding-bottom:20px;border-bottom:2px solid #000;}
+.ov-title{font-size:52px;font-weight:900;letter-spacing:-2px;line-height:1;}
+.ov-date{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;text-align:right;line-height:1.8;}
+.ov-greeting{font-size:12px;color:#999;margin-top:6px;letter-spacing:.06em;}
+.ov-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #000;}
+.ov-stat{padding:28px 0;border-right:1px solid #e0e0e0;}
+.ov-stat:last-child{border-right:none;}
+.ov-stat-num{font-size:64px;font-weight:900;letter-spacing:-3px;line-height:1;margin-bottom:6px;}
+.ov-stat-num.red{color:var(--red);}
+.ov-stat-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#999;}
+.ov-stat-sub{font-size:11px;color:#bbb;margin-top:3px;letter-spacing:.04em;}
+.ov-body{display:grid;grid-template-columns:3fr 2fr;gap:0;border-bottom:2px solid #000;}
+.ov-col{padding:28px 0;}
+.ov-col+.ov-col{padding-left:40px;border-left:1px solid #e0e0e0;}
+.ov-col-head{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #000;}
+.ov-entry{display:grid;grid-template-columns:80px 1fr auto;gap:8px;padding:10px 0;border-bottom:1px solid #f0f0f0;align-items:baseline;}
+.ov-entry:last-child{border-bottom:none;}
+.ov-entry-date{font-size:10px;color:#bbb;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;}
+.ov-entry-body{font-size:12px;line-height:1.5;}
+.ov-entry-who{font-size:10px;color:#999;font-weight:700;letter-spacing:.04em;white-space:nowrap;}
+.ov-task-row{padding:10px 0;border-bottom:1px solid #f0f0f0;}
+.ov-task-row:last-child{border-bottom:none;}
+.ov-task-title{font-size:13px;font-weight:600;margin-bottom:3px;}
+.ov-task-meta{font-size:11px;color:#999;}
+.ov-bottom{display:grid;grid-template-columns:3fr 2fr;gap:0;}
+.ov-empty{color:#bbb;font-size:12px;padding:16px 0;}
 /* Archive month groups */
 details.log-month{border-bottom:1px solid #e0e0e0;}
 details.log-month>summary{display:flex;align-items:center;gap:12px;padding:16px 0;cursor:pointer;user-select:none;list-style:none;}
@@ -262,7 +290,7 @@ function itemCatLabel(id) {
 
 // ─── CONFIG / STATE ───────────────────────────────────────────────────────────
 let CONVEX_URL = localStorage.getItem('mattrack_url') || 'https://focused-snake-268.convex.cloud';
-let currentPage = 'materials';
+let currentPage = 'overview';
 const state = { user: null, stock: [], craftItems: [], archive: [], allUsers: [], inventory: [], tasks: [] };
 let tasksFilter = 'open';
 let craftState = { itemId: null, mode: 'best', qMin: 850, qMax: 1000, quantity: 1, plan: null };
@@ -385,6 +413,10 @@ function updateLiveView() {
   }
   if (currentPage==='tasks') {
     const el=document.getElementById('tasks-list'); if(el) el.innerHTML=renderTasksList();
+  }
+  if (currentPage==='overview') {
+    const pw=document.getElementById('page-wrap');
+    if(pw) pw.innerHTML=`<div class="page" style="padding:0;">${pageOverview()}</div>`;
   }
   // Sync nav for role changes (e.g. crafter approved)
   renderNav();
@@ -535,11 +567,11 @@ function hasAdmin() { return state.allUsers.some(u=>(u.roles||[]).includes('admi
 
 function renderNav() {
   const u=state.user; if(!u) return;
-  const tabs=[['materials','Materials'],['craft','Craft'],['inventory','Inventory'],['tasks','Tasks'],['archive','Log']];
+  const tabs=[['overview','Overview'],['materials','Materials'],['craft','Craft'],['inventory','Inventory'],['tasks','Tasks'],['archive','Log']];
   if(isAdmin(u)) tabs.push(['admin','Admin']);
   const noAdmin=!hasAdmin();
   document.getElementById('nav').innerHTML=`
-    <div class="brand">MATTRACK</div>
+    <div class="brand" onclick="goTo('overview')" style="cursor:pointer;">MATTRACK</div>
     ${tabs.map(([id,lbl])=>`<div class="nav-item${currentPage===id?' active':''}" onclick="goTo('${id}')">${lbl}</div>`).join('')}
     <div class="user-area">
       <span class="live-dot"></span>
@@ -550,9 +582,179 @@ function renderNav() {
     </div>`;
 }
 function renderPage() {
-  const pages={materials:pageMaterials,craft:pageCraft,inventory:pageInventory,tasks:pageTasks,archive:pageArchive,admin:pageAdmin};
+  const pages={overview:pageOverview,materials:pageMaterials,craft:pageCraft,inventory:pageInventory,tasks:pageTasks,archive:pageArchive,admin:pageAdmin};
   const pw=document.getElementById('page-wrap');
-  if(pw) pw.innerHTML=`<div class="page">${(pages[currentPage]||pageMaterials)()}</div>`;
+  const isFullWidth = currentPage==='overview';
+  if(pw) pw.innerHTML=`<div class="page"${isFullWidth?' style="padding:0;"':''}>${(pages[currentPage]||pageOverview)()}</div>`;
+}
+
+// ─── OVERVIEW PAGE ────────────────────────────────────────────────────────────
+function pageOverview() {
+  const u = state.user;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const timeStr = now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+
+  // Stats
+  const matAvail   = state.stock.filter(m=>m.status==='available');
+  const invAvail   = state.inventory.filter(i=>i.status==='available');
+  const openTasks  = state.tasks.filter(t=>t.status==='open');
+  const urgentCnt  = openTasks.filter(t=>t.priority==='urgent').length;
+  const memberCnt  = state.allUsers.filter(u=>!u.roles.includes('removed')).length;
+  const pendingCnt = state.allUsers.filter(u=>u.roles.some(r=>r.endsWith('_pending'))).length;
+
+  // Recent log (last 7)
+  const recentLog = state.archive.slice(0,7);
+
+  // Open tasks sorted by priority
+  const prioOrder = {urgent:0,high:1,normal:2,whenever:3};
+  const topTasks = openTasks.slice().sort((a,b)=>(prioOrder[a.priority]??2)-(prioOrder[b.priority]??2)).slice(0,6);
+
+  // Stock breakdown
+  const oreEntries = matAvail.filter(m=>m.category==='Ores');
+  const gemEntries = matAvail.filter(m=>m.category==='Gems');
+  const oreQty     = oreEntries.reduce((s,m)=>s+m.quantity,0);
+  const gemQty     = gemEntries.reduce((s,m)=>s+m.quantity,0);
+
+  // Top materials by total quantity
+  const byName = {};
+  matAvail.forEach(m=>{ byName[m.materialName]=(byName[m.materialName]||0)+m.quantity; });
+  const topMats = Object.entries(byName).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  // Inventory breakdown
+  const recentCrafted = state.inventory.slice().sort((a,b)=>b._creationTime-a._creationTime).slice(0,5);
+
+  // Log entry formatting (compact)
+  const logLabels = {crafted:'Crafted',material_added:'Added',material_removed:'Removed',material_moved:'Moved',item_created:'Item Def.',item_deleted:'Deleted',item_handed_out:'Handed Out',user_joined:'Joined',role_approved:'Approved',role_denied:'Denied',admin_granted:'Admin',member_removed:'Removed',task_created:'Task',task_accepted:'Accepted',task_completed:'Completed'};
+  function fmtLogCompact(e) {
+    const d=e.details||{};
+    switch(e.type){
+      case 'material_added':   return `${esc(d.materialName)} &times;${d.quantity} ${esc(d.unit||'')} &middot; q${d.quality} &middot; ${esc(d.location||'')}`;
+      case 'material_removed': return `${esc(d.materialName)} &times;${d.quantity} ${esc(d.unit||'')}`;
+      case 'material_moved':   return `${esc(d.materialName)} &rarr; ${esc(d.toLocation||'')}`;
+      case 'crafted':          return `${esc(d.itemName)} &middot; avg q${d.avgQuality}`;
+      case 'item_created':     return esc(d.itemName||'');
+      case 'item_handed_out':  return `${esc(d.itemName)}${d.quantity>1?` &times;${d.quantity}`:''} &rarr; ${esc(d.handedOutTo||'')}`;
+      case 'user_joined':      return `Roles: ${(d.roles||[]).join(', ')}`;
+      case 'role_approved':    return `${esc(d.targetUsername)} &rarr; ${esc(d.role||'')}`;
+      case 'task_created':     return esc(d.title||'');
+      case 'task_accepted':    return esc(d.title||'');
+      case 'task_completed':   return esc(d.title||'');
+      default: return '';
+    }
+  }
+  function shortDate(ts) {
+    const d=new Date(ts);
+    return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  }
+
+  return `<div class="ov-wrap">
+
+    <div class="ov-header">
+      <div>
+        <div class="ov-title">OVERVIEW</div>
+        <div class="ov-greeting">Welcome back, ${esc(u.username)} &nbsp;${u.roles.map(r=>roleTagHtml(r)).join('')}</div>
+      </div>
+      <div class="ov-date">${dateStr}<br>${timeStr}</div>
+    </div>
+
+    <div class="ov-stats">
+      <div class="ov-stat" style="padding-right:28px;">
+        <div class="ov-stat-num${matAvail.length===0?' red':''}">${matAvail.length}</div>
+        <div class="ov-stat-label">Materials</div>
+        <div class="ov-stat-sub">${oreEntries.length} ore &middot; ${gemEntries.length} gem entries</div>
+      </div>
+      <div class="ov-stat" style="padding-left:28px;padding-right:28px;">
+        <div class="ov-stat-num">${invAvail.length}</div>
+        <div class="ov-stat-label">Inventory</div>
+        <div class="ov-stat-sub">${state.inventory.filter(i=>i.status==='handed_out').length} handed out</div>
+      </div>
+      <div class="ov-stat" style="padding-left:28px;padding-right:28px;">
+        <div class="ov-stat-num${urgentCnt>0?' red':''}">${openTasks.length}</div>
+        <div class="ov-stat-label">Tasks Open</div>
+        <div class="ov-stat-sub">${urgentCnt>0?`<span style="color:var(--red);font-weight:700;">${urgentCnt} urgent</span>`:'none urgent'}</div>
+      </div>
+      <div class="ov-stat" style="padding-left:28px;">
+        <div class="ov-stat-num">${memberCnt}</div>
+        <div class="ov-stat-label">Members</div>
+        <div class="ov-stat-sub">${pendingCnt>0?`<span style="color:#f59e0b;font-weight:700;">${pendingCnt} pending approval</span>`:'all approved'}</div>
+      </div>
+    </div>
+
+    <div class="ov-body">
+      <div class="ov-col">
+        <div class="ov-col-head">Recent Activity</div>
+        ${recentLog.length ? recentLog.map(e=>`
+          <div class="ov-entry">
+            <div class="ov-entry-date">${shortDate(e._creationTime)}</div>
+            <div class="ov-entry-body">
+              <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-right:8px;color:#000;">${logLabels[e.type]||e.type}</span>${fmtLogCompact(e)}
+            </div>
+            <div class="ov-entry-who">${esc(e.userName)}</div>
+          </div>`).join('')
+        : `<div class="ov-empty">No activity yet.</div>`}
+        ${state.archive.length>7?`<div style="padding-top:12px;"><span style="font-size:11px;color:#999;cursor:pointer;text-decoration:underline;" onclick="goTo('archive')">View full log (${state.archive.length} entries) →</span></div>`:''}
+      </div>
+      <div class="ov-col">
+        <div class="ov-col-head">Open Tasks</div>
+        ${topTasks.length ? topTasks.map(t=>{
+          const pb=TASK_PRIORITIES.find(p=>p.id===t.priority)||TASK_PRIORITIES[2];
+          const myRole=u.roles.some(r=>t.targetRoles.includes(r));
+          const accepted=t.acceptees.length;
+          return `<div class="ov-task-row">
+            <div class="ov-task-title">
+              <span class="p-badge ${pb.cls}" style="font-size:9px;padding:1px 5px;margin-right:6px;">${pb.label}</span>${esc(t.title)}
+            </div>
+            <div class="ov-task-meta">${taskTypeDesc(t)} &middot; ${accepted}/${t.slots} accepted</div>
+          </div>`;
+        }).join('')
+        : `<div class="ov-empty">No open tasks.</div>`}
+        ${openTasks.length>6?`<div style="padding-top:12px;"><span style="font-size:11px;color:#999;cursor:pointer;text-decoration:underline;" onclick="goTo('tasks')">All tasks (${openTasks.length}) →</span></div>`:''}
+      </div>
+    </div>
+
+    <div class="ov-bottom">
+      <div class="ov-col" style="border-right:1px solid #e0e0e0;padding-right:40px;">
+        <div class="ov-col-head">Stock Breakdown</div>
+        ${matAvail.length===0 ? `<div class="ov-empty">No materials in stock.</div>` : `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px;">
+          <div>
+            <div style="font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;">${oreEntries.length}</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-top:4px;">Ore Entries</div>
+            <div style="font-size:11px;color:#bbb;margin-top:2px;">${Math.round(oreQty*100)/100} SCU total</div>
+          </div>
+          <div>
+            <div style="font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;">${gemEntries.length}</div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-top:4px;">Gem Entries</div>
+            <div style="font-size:11px;color:#bbb;margin-top:2px;">${gemQty} UNIT total</div>
+          </div>
+        </div>
+        ${topMats.length?`
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-bottom:10px;">Top by Quantity</div>
+        ${topMats.map(([name,qty])=>`
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid #f5f5f5;">
+            <span style="font-size:13px;font-weight:600;">${esc(name)}</span>
+            <span style="font-size:12px;color:#999;">${Math.round(qty*100)/100} ${unitFor(name)}</span>
+          </div>`).join('')}`:''}
+        <div style="padding-top:16px;"><span style="font-size:11px;color:#999;cursor:pointer;text-decoration:underline;" onclick="goTo('materials')">All materials →</span></div>`}
+      </div>
+      <div class="ov-col" style="padding-left:40px;">
+        <div class="ov-col-head">Inventory</div>
+        ${recentCrafted.length===0 ? `<div class="ov-empty">Nothing crafted yet.</div>` : `
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-bottom:10px;">Recent Crafted Items</div>
+        ${recentCrafted.map(i=>`
+          <div style="padding:8px 0;border-bottom:1px solid #f5f5f5;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-size:13px;font-weight:600;">${esc(i.itemName)}</span>
+              <span style="font-size:11px;color:#999;">${i.status==='available'?`×${i.quantity} available`:'handed out'}</span>
+            </div>
+            <div style="font-size:11px;color:#bbb;">avg q${i.avgQuality} &middot; ${esc(i.craftedByName)} &middot; ${shortDate(i._creationTime)}</div>
+          </div>`).join('')}
+        <div style="padding-top:16px;"><span style="font-size:11px;color:#999;cursor:pointer;text-decoration:underline;" onclick="goTo('inventory')">Full inventory →</span></div>`}
+      </div>
+    </div>
+
+  </div>`;
 }
 
 // ─── MATERIALS PAGE ───────────────────────────────────────────────────────────
