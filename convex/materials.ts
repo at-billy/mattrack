@@ -126,6 +126,61 @@ export const remove = mutation({
   },
 });
 
+export const move = mutation({
+  args: {
+    id: v.id("materialStock"),
+    userId: v.id("users"),
+    toSystem: v.string(),
+    toLocation: v.string(),
+    partialQty: v.optional(v.number()),
+  },
+  handler: async (ctx, { id, userId, toSystem, toLocation, partialQty }) => {
+    const item = await ctx.db.get(id);
+    if (!item) throw new Error("Not found");
+    const actor = await ctx.db.get(userId);
+    const isAdmin = actor?.roles.includes("admin") ?? false;
+    if (item.ownerId !== userId && !isAdmin) throw new Error("Not authorized");
+
+    const movedQty = (partialQty && partialQty < item.quantity) ? partialQty : item.quantity;
+
+    if (movedQty < item.quantity) {
+      // Partial move: reduce original, create new entry at new location
+      await ctx.db.patch(id, { quantity: item.quantity - movedQty });
+      await ctx.db.insert("materialStock", {
+        materialName: item.materialName,
+        category: item.category,
+        unit: item.unit,
+        quality: item.quality,
+        quantity: movedQty,
+        system: toSystem,
+        location: toLocation,
+        ownerId: item.ownerId,
+        ownerName: item.ownerName,
+        status: "available",
+      });
+    } else {
+      // Move all
+      await ctx.db.patch(id, { system: toSystem, location: toLocation });
+    }
+
+    await ctx.db.insert("archive", {
+      type: "material_moved",
+      userId,
+      userName: actor!.username,
+      details: {
+        materialName: item.materialName,
+        quantity: movedQty,
+        unit: item.unit,
+        quality: item.quality,
+        fromSystem: item.system,
+        fromLocation: item.location,
+        toSystem,
+        toLocation,
+      },
+    });
+  },
+});
+
 export const executeCraft = mutation({
   args: {
     batches: v.array(

@@ -8,7 +8,7 @@ export const authenticate = query({
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))
       .first();
-    if (!user || user.passwordHash !== passwordHash) return null;
+    if (!user || user.passwordHash !== passwordHash || user.roles.includes('removed')) return null;
     return { _id: user._id, username: user.username, roles: user.roles };
   },
 });
@@ -107,6 +107,25 @@ export const denyCrafter = mutation({
     await ctx.db.patch(targetUserId, { roles: newRoles });
     await ctx.db.insert("archive", {
       type: "crafter_denied",
+      userId: adminId,
+      userName: admin.username,
+      details: { targetUsername: target.username },
+    });
+  },
+});
+
+// Admin removes a member (marks as removed, blocks login)
+export const removeMember = mutation({
+  args: { adminId: v.id("users"), targetUserId: v.id("users") },
+  handler: async (ctx, { adminId, targetUserId }) => {
+    const admin = await ctx.db.get(adminId);
+    if (!admin?.roles.includes("admin")) throw new Error("Not authorized");
+    if (adminId === targetUserId) throw new Error("Cannot remove yourself");
+    const target = await ctx.db.get(targetUserId);
+    if (!target) throw new Error("User not found");
+    await ctx.db.patch(targetUserId, { roles: ["removed"] });
+    await ctx.db.insert("archive", {
+      type: "member_removed",
       userId: adminId,
       userName: admin.username,
       details: { targetUsername: target.username },

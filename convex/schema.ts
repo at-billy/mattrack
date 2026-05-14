@@ -37,6 +37,33 @@ export default defineSchema({
     createdByName: v.string(),
   }),
 
+  tasks: defineTable({
+    title: v.string(),
+    type: v.string(), // "gather" | "craft" | "deliver" | "other"
+    description: v.optional(v.string()),
+    materialName: v.optional(v.string()),
+    itemName: v.optional(v.string()),
+    quantity: v.optional(v.number()),
+    unit: v.optional(v.string()),
+    qualityMin: v.optional(v.number()),
+    qualityMax: v.optional(v.number()),
+    fromSystem: v.optional(v.string()),
+    fromLocation: v.optional(v.string()),
+    toSystem: v.optional(v.string()),
+    toLocation: v.optional(v.string()),
+    priority: v.string(), // "urgent" | "high" | "normal" | "whenever"
+    targetRoles: v.array(v.string()),
+    slots: v.number(),
+    status: v.string(), // "open" | "completed" | "cancelled"
+    createdBy: v.id("users"),
+    createdByName: v.string(),
+    acceptees: v.array(v.object({
+      userId: v.id("users"),
+      userName: v.string(),
+      status: v.string(), // "accepted" | "completed"
+    })),
+  }).index("by_status", ["status"]),
+
   craftedInventory: defineTable({
     itemName: v.string(),
     itemId: v.optional(v.id("craftItems")),
