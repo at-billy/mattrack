@@ -75,44 +75,45 @@ export const claimBootstrapAdmin = mutation({
   },
 });
 
-// Admin approves a crafter_pending user → removes crafter_pending, adds crafter
-export const approveCrafter = mutation({
-  args: { adminId: v.id("users"), targetUserId: v.id("users") },
-  handler: async (ctx, { adminId, targetUserId }) => {
+// Generic: approve any pending role (pendingRole → fullRole)
+export const approveRole = mutation({
+  args: { adminId: v.id("users"), targetUserId: v.id("users"), pendingRole: v.string(), fullRole: v.string() },
+  handler: async (ctx, { adminId, targetUserId, pendingRole, fullRole }) => {
     const admin = await ctx.db.get(adminId);
     if (!admin || !admin.roles.includes("admin")) throw new Error("Not authorized");
     const target = await ctx.db.get(targetUserId);
     if (!target) throw new Error("User not found");
-    const newRoles = target.roles.filter(r => r !== "crafter_pending");
-    if (!newRoles.includes("crafter")) newRoles.push("crafter");
+    const newRoles = target.roles.filter(r => r !== pendingRole);
+    if (!newRoles.includes(fullRole)) newRoles.push(fullRole);
     await ctx.db.patch(targetUserId, { roles: newRoles });
     await ctx.db.insert("archive", {
-      type: "crafter_approved",
+      type: "role_approved",
       userId: adminId,
       userName: admin.username,
-      details: { targetUsername: target.username },
+      details: { targetUsername: target.username, role: fullRole },
     });
   },
 });
 
-// Admin denies a crafter_pending user → removes crafter_pending role
-export const denyCrafter = mutation({
-  args: { adminId: v.id("users"), targetUserId: v.id("users") },
-  handler: async (ctx, { adminId, targetUserId }) => {
+// Generic: deny any pending role application
+export const denyRole = mutation({
+  args: { adminId: v.id("users"), targetUserId: v.id("users"), pendingRole: v.string() },
+  handler: async (ctx, { adminId, targetUserId, pendingRole }) => {
     const admin = await ctx.db.get(adminId);
     if (!admin || !admin.roles.includes("admin")) throw new Error("Not authorized");
     const target = await ctx.db.get(targetUserId);
     if (!target) throw new Error("User not found");
-    const newRoles = target.roles.filter(r => r !== "crafter_pending");
+    const newRoles = target.roles.filter(r => r !== pendingRole);
     await ctx.db.patch(targetUserId, { roles: newRoles });
     await ctx.db.insert("archive", {
-      type: "crafter_denied",
+      type: "role_denied",
       userId: adminId,
       userName: admin.username,
-      details: { targetUsername: target.username },
+      details: { targetUsername: target.username, role: pendingRole },
     });
   },
 });
+
 
 // Admin removes a member (marks as removed, blocks login)
 export const removeMember = mutation({

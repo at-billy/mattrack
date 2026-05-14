@@ -21,6 +21,7 @@ body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;col
 .role-tag.crafter_pending{border-color:#f59e0b;color:#f59e0b;}
 .role-tag.provider{border-color:#bbb;color:#999;}
 .role-tag.logistics{border-color:#0ea5e9;color:#0ea5e9;}
+.role-tag.logistics_pending{border-color:#0ea5e9;color:#0ea5e9;opacity:.6;}
 .role-tag.removed{border-color:#fca5a5;color:#ef4444;background:#fff5f5;}
 .live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
@@ -82,8 +83,8 @@ tbody tr:hover{background:#fafafa;}
 .badge-user_joined{background:#e8e8e8;color:#555;}
 .badge-member_removed{background:#ef4444;color:#fff;}
 .badge-task_created,.badge-task_accepted,.badge-task_completed{background:#7c3aed;color:#fff;}
-.badge-crafter_approved{background:#16a34a;color:#fff;}
-.badge-crafter_denied{background:#888;color:#fff;}
+.badge-crafter_approved,.badge-role_approved{background:#16a34a;color:#fff;}
+.badge-crafter_denied,.badge-role_denied{background:#888;color:#fff;}
 .badge-admin_granted{background:#000;color:#fff;}
 .badge-item_handed_out{background:#0ea5e9;color:#fff;}
 .inv-quality{font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;}
@@ -446,7 +447,10 @@ function showAuth(tab='signin') {
             <div class="pending-note" id="crafter-pending-note">
               ⏳ <strong>Approval required</strong> — Crafter access is granted by an admin. Once approved you'll gain Crafter access.
             </div>
-            <label class="chk-row"><input type="checkbox" id="su-logi"><span>Logistics — transport and deliver materials</span></label>
+            <label class="chk-row"><input type="checkbox" id="su-logi" onchange="toggleLogisticsNote()"><span>Logistics — transport and deliver materials</span></label>
+            <div class="pending-note" id="logistics-pending-note" style="display:none;">
+              ⏳ <strong>Approval required</strong> — Logistics access is granted by an admin. Once approved you'll gain Logistics access.
+            </div>
           </div>
           <div class="err-msg" id="su-err"></div>
           <button class="btn btn-black" style="width:100%;justify-content:center;" onclick="doSignUp()">Create Account</button>
@@ -476,6 +480,11 @@ function toggleCrafterNote() {
   const note=document.getElementById('crafter-pending-note');
   if(note) note.style.display=chk.checked?'block':'none';
 }
+function toggleLogisticsNote() {
+  const chk=(document.getElementById('su-logi')||{checked:false});
+  const note=document.getElementById('logistics-pending-note');
+  if(note) note.style.display=chk.checked?'block':'none';
+}
 
 async function doSignUp() {
   const username=(document.getElementById('su-user')||{value:''}).value.trim();
@@ -487,7 +496,7 @@ async function doSignUp() {
   if(!isProv&&!isCraft&&!isLogi){showErr('su-err','Select at least one role');return;}
   try {
     const ph=await hashPwd(password);
-    const roles=[...(isProv?['provider']:[]),...(isCraft?['crafter_pending']:[]),...(isLogi?['logistics']:[])];
+    const roles=[...(isProv?['provider']:[]),...(isCraft?['crafter_pending']:[]),...(isLogi?['logistics_pending']:[])];
     const user=await convexMutation('users:signUp',{username,passwordHash:ph,roles});
     await convexMutation('archive:addLog',{type:'user_joined',userId:user._id,userName:username,details:{roles}});
     state.user=user; localStorage.setItem('mattrack_uid',user._id); showApp();
@@ -504,8 +513,8 @@ function showApp() {
   renderNav(); renderPage(); startPolling();
 }
 function roleTagHtml(role) {
-  const labels={'provider':'Provider','crafter':'Crafter','crafter_pending':'Pending','admin':'Admin','logistics':'Logistics','removed':'Removed'};
-  const cls={'crafter':' crafter','admin':' admin','crafter_pending':' crafter_pending','provider':' provider','logistics':' logistics','removed':' removed'};
+  const labels={'provider':'Provider','crafter':'Crafter','crafter_pending':'Crafter?','admin':'Admin','logistics':'Logistics','logistics_pending':'Logistics?','removed':'Removed'};
+  const cls={'crafter':' crafter','admin':' admin','crafter_pending':' crafter_pending','provider':' provider','logistics':' logistics','logistics_pending':' logistics_pending','removed':' removed'};
   return `<span class="role-tag${cls[role]||''}">${labels[role]||role}</span>`;
 }
 function isAdmin(u) { return u && (u.roles||[]).includes('admin'); }
@@ -1233,7 +1242,7 @@ function pageArchive(){
 function renderArchiveTable(){
   if(!state.archive.length) return `<div class="empty">No actions logged yet.</div>`;
   const admin=isAdmin(state.user);
-  const labels={crafted:'Crafted',material_added:'Added',material_removed:'Removed',material_moved:'Moved',item_created:'New Item',item_deleted:'Deleted Item',item_handed_out:'Handed Out',user_joined:'Joined',crafter_approved:'Crafter Approved',crafter_denied:'Crafter Denied',admin_granted:'Admin Granted',member_removed:'Member Removed',task_created:'Task Created',task_accepted:'Task Accepted',task_completed:'Task Completed'};
+  const labels={crafted:'Crafted',material_added:'Added',material_removed:'Removed',material_moved:'Moved',item_created:'New Item',item_deleted:'Deleted Item',item_handed_out:'Handed Out',user_joined:'Joined',role_approved:'Role Approved',role_denied:'Role Denied',crafter_approved:'Crafter Approved',crafter_denied:'Crafter Denied',admin_granted:'Admin Granted',member_removed:'Member Removed',task_created:'Task Created',task_accepted:'Task Accepted',task_completed:'Task Completed'};
   return `<table>
     <thead><tr><th>Date</th><th>Action</th><th>User</th><th>Details</th>${admin?'<th></th>':''}</tr></thead>
     <tbody>${state.archive.map(e=>`<tr>
@@ -1260,6 +1269,8 @@ function fmtArchiveDetails(e){
       return `${esc(d.itemName)}`;
     case 'user_joined':
       return `Roles: ${(d.roles||[]).join(', ')}`;
+    case 'role_approved':    return `Approved <strong>${esc(d.targetUsername)}</strong> as ${esc(d.role||'?')}`;
+    case 'role_denied':      return `Denied <strong>${esc(d.targetUsername)}</strong> ${esc(d.role||'?')} request`;
     case 'crafter_approved': return `Approved <strong>${esc(d.targetUsername)}</strong> as Crafter`;
     case 'crafter_denied':   return `Denied <strong>${esc(d.targetUsername)}</strong> crafter request`;
     case 'admin_granted':    return `Granted admin to <strong>${esc(d.targetUsername)}</strong>`;
@@ -1533,7 +1544,8 @@ function pageAdmin() {
 
 function renderAdminContent() {
   const u=state.user;
-  const pending=state.allUsers.filter(m=>m.roles.includes('crafter_pending'));
+  const PENDING_ROLES=[{pending:'crafter_pending',full:'crafter',label:'Crafter'},{pending:'logistics_pending',full:'logistics',label:'Logistics'}];
+  const pending=state.allUsers.filter(m=>PENDING_ROLES.some(r=>m.roles.includes(r.pending)));
   const members=state.allUsers.filter(m=>m._id!==u._id);
   return `
     ${pending.length?`
@@ -1541,13 +1553,17 @@ function renderAdminContent() {
       <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000;">
         Pending Crafter Applications <span style="background:var(--red);color:#fff;padding:1px 8px;font-size:11px;margin-left:8px;">${pending.length}</span>
       </div>
-      ${pending.map(m=>`
+      ${pending.map(m=>{
+        const pendingRoles=PENDING_ROLES.filter(r=>m.roles.includes(r.pending));
+        return pendingRoles.map(pr=>`
         <div style="display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid #e8e8e8;">
           <div style="font-weight:700;font-size:15px;flex:1;">${esc(m.username)}</div>
-          <div style="font-size:11px;color:#999;">${m.roles.filter(r=>r!=='crafter_pending').join(', ')||'—'}</div>
-          <button class="btn btn-black btn-sm" onclick="adminApproveCrafter('${esc(m._id)}','${esc(m.username)}')">✓ Approve</button>
-          <button class="btn btn-outline btn-sm" onclick="adminDenyCrafter('${esc(m._id)}','${esc(m.username)}')">✕ Deny</button>
-        </div>`).join('')}
+          <div style="font-size:12px;color:#555;">requesting <strong>${pr.label}</strong> role</div>
+          <div style="font-size:11px;color:#999;">${m.roles.filter(r=>r!==pr.pending).join(', ')||'—'}</div>
+          <button class="btn btn-black btn-sm" onclick="adminApproveRole('${esc(m._id)}','${esc(m.username)}','${pr.pending}','${pr.full}')">✓ Approve</button>
+          <button class="btn btn-outline btn-sm" onclick="adminDenyRole('${esc(m._id)}','${esc(m.username)}','${pr.pending}')">✕ Deny</button>
+        </div>`).join('');
+      }).join('')}
     </div>`:''}
 
     <div>
@@ -1566,19 +1582,20 @@ function renderAdminContent() {
     </div>`;
 }
 
-async function adminApproveCrafter(targetId, targetName) {
-  if(!confirm(`Approve ${targetName} as a Crafter?`)) return;
+async function adminApproveRole(targetId, targetName, pendingRole, fullRole) {
+  const label=fullRole.charAt(0).toUpperCase()+fullRole.slice(1);
+  if(!confirm(`Approve ${targetName} as ${label}?`)) return;
   try {
-    await convexMutation('users:approveCrafter',{adminId:state.user._id,targetUserId:targetId});
-    toast(`${targetName} approved as Crafter`);
+    await convexMutation('users:approveRole',{adminId:state.user._id,targetUserId:targetId,pendingRole,fullRole});
+    toast(`${targetName} approved as ${label}`);
     await refreshAll();
   } catch(e){alert(e.message);}
 }
 
-async function adminDenyCrafter(targetId, targetName) {
-  if(!confirm(`Deny ${targetName}'s crafter application?`)) return;
+async function adminDenyRole(targetId, targetName, pendingRole) {
+  if(!confirm(`Deny ${targetName}'s ${pendingRole.replace('_pending','')} application?`)) return;
   try {
-    await convexMutation('users:denyCrafter',{adminId:state.user._id,targetUserId:targetId});
+    await convexMutation('users:denyRole',{adminId:state.user._id,targetUserId:targetId,pendingRole});
     toast(`${targetName}'s application denied`);
     await refreshAll();
   } catch(e){alert(e.message);}
