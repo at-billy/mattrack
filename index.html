@@ -9,7 +9,6 @@
 :root{--red:#e50000;--mid:#999;}
 body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;color:#000;font-size:14px;line-height:1.4;}
 
-/* NAV */
 #nav{display:flex;align-items:baseline;border-bottom:2px solid #000;padding:0 40px;flex-wrap:wrap;}
 #nav .brand{font-size:30px;font-weight:900;letter-spacing:-1px;padding:18px 40px 18px 0;}
 .nav-item{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:22px 18px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;user-select:none;}
@@ -18,17 +17,16 @@ body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;col
 #nav .user-area{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12px;padding:0 0 0 20px;}
 .role-tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border:1px solid #000;}
 .role-tag.crafter{border-color:var(--red);color:var(--red);}
-.live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;margin-right:4px;animation:pulse 2s infinite;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.live-dot{animation:pulse 2s infinite;}
 
-/* LAYOUT */
 .page{padding:40px 40px 80px;max-width:1400px;}
 .page-title{font-size:52px;font-weight:900;letter-spacing:-2px;margin-bottom:6px;line-height:1;}
 .page-sub{font-size:13px;color:var(--mid);margin-bottom:40px;}
 hr.thick{border:none;border-top:2px solid #000;margin:32px 0;}
 hr.thin{border:none;border-top:1px solid #e0e0e0;margin:0;}
 
-/* BUTTONS */
 button{font-family:inherit;cursor:pointer;border:none;outline:none;}
 .btn{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:9px 18px;}
 .btn-black{background:#000;color:#fff;}
@@ -40,44 +38,43 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none;}
 .btn-sm{padding:5px 10px;font-size:10px;}
 .btn-ghost{background:none;color:var(--mid);border:1px solid #ddd;padding:5px 10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
 .btn-ghost:hover{border-color:#000;color:#000;}
+.btn-max{background:#000;color:#fff;padding:0 16px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1.5px solid #000;white-space:nowrap;}
+.btn-max:hover{background:#333;}
 
-/* FORMS */
 label.lbl{display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;color:#555;}
-input[type=text],input[type=password],input[type=email],input[type=number],select,textarea{
+input[type=text],input[type=password],input[type=number],select{
   display:block;width:100%;border:1.5px solid #000;padding:9px 12px;font-size:13px;font-family:inherit;background:#fff;appearance:none;-webkit-appearance:none;outline:none;}
-input:focus,select:focus,textarea:focus{border-color:var(--red);}
+input:focus,select:focus{border-color:var(--red);}
 input::placeholder{color:#bbb;}
 .field{margin-bottom:16px;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
 
-/* PANEL */
 .panel{border:1.5px solid #000;padding:28px;}
 .collapsible{display:none;}
 .collapsible.open{display:block;}
 
-/* TABLE */
 table{width:100%;border-collapse:collapse;}
 thead th{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:8px 12px;border-bottom:2px solid #000;text-align:left;white-space:nowrap;}
-tbody td{padding:11px 12px;border-bottom:1px solid #e8e8e8;vertical-align:top;}
+tbody td{padding:11px 12px;border-bottom:1px solid #e8e8e8;vertical-align:middle;}
 tbody tr:hover{background:#fafafa;}
 .empty{padding:60px 0;text-align:center;color:var(--mid);font-size:13px;}
 
-/* QUALITY */
 .q{display:inline-block;padding:2px 7px;font-size:11px;font-weight:700;background:#000;color:#fff;}
+.unit-tag{display:inline-block;padding:1px 5px;font-size:10px;font-weight:700;letter-spacing:.06em;border:1px solid #ccc;color:#666;margin-left:4px;}
+.cat-tag{display:inline-block;padding:1px 5px;font-size:10px;font-weight:700;letter-spacing:.06em;background:#f0f0f0;color:#555;}
+.item-cat-tag{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#000;color:#fff;}
 
-/* CRAFT */
 .craft-box{border:2px solid #000;padding:24px;margin-bottom:32px;}
 .craft-box.err{border-color:var(--red);}
 .q-big{font-size:52px;font-weight:900;letter-spacing:-2px;line-height:1;}
 
-/* LOG BADGES */
 .badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;}
 .badge-crafted{background:var(--red);color:#fff;}
 .badge-material_added{background:#000;color:#fff;}
 .badge-material_removed,.badge-item_created{background:#888;color:#fff;}
 .badge-user_joined{background:#e8e8e8;color:#555;}
 
-/* AUTH / SETUP */
 .center-screen{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px;}
 .auth-box{width:100%;max-width:380px;}
 .auth-logo{font-size:40px;font-weight:900;letter-spacing:-2px;text-align:center;margin-bottom:48px;}
@@ -89,16 +86,26 @@ tbody tr:hover{background:#fafafa;}
 .chk-row input{width:auto;flex-shrink:0;}
 .chk-row span{font-size:13px;}
 
-/* SETUP */
-.setup-note{font-size:12px;color:#888;margin-top:8px;line-height:1.6;}
-.code-block{background:#f5f5f5;border:1px solid #ddd;padding:10px 14px;font-family:monospace;font-size:12px;margin:12px 0;}
+.setup-note{font-size:12px;color:#888;margin-top:16px;line-height:1.7;}
+.code-block{background:#f5f5f5;border:1px solid #ddd;padding:8px 12px;font-family:monospace;font-size:12px;margin:8px 0;}
 
-/* TOAST */
 #toast{position:fixed;bottom:28px;right:28px;background:#000;color:#fff;padding:12px 20px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:none;z-index:999;}
-
-/* SEARCH */
 .search-row{display:flex;gap:12px;align-items:center;margin-bottom:24px;}
-.search-row input{max-width:280px;margin:0;}
+.search-row input{max-width:260px;margin:0;}
+
+.unit-inline{font-size:11px;font-weight:700;color:#888;margin-left:4px;}
+.loc-display{font-size:12px;color:#555;}
+.sys-badge{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#333;padding:1px 5px;margin-right:4px;}
+.sys-badge.pyro{background:#c05000;}
+.sys-badge.nyx{background:#005080;}
+
+.filter-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;}
+.filter-tab{padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1.5px solid #ddd;background:#fff;color:#888;cursor:pointer;}
+.filter-tab.active{border-color:#000;background:#000;color:#fff;}
+.filter-tab:hover:not(.active){border-color:#999;color:#000;}
+
+.hint-box{background:#f5f5f5;border-left:3px solid #000;padding:10px 14px;font-size:11px;color:#555;margin-top:8px;line-height:1.7;}
+.hint-box strong{color:#000;}
 </style>
 </head>
 <body>
@@ -107,20 +114,108 @@ tbody tr:hover{background:#fafafa;}
 <div id="toast"></div>
 
 <script>
-// ─── CONFIG / STATE ──────────────────────────────────────────────────────────
+// ─── STATIC DATA ─────────────────────────────────────────────────────────────
+const SC_CATALOG = [
+  // Ores — SCU (decimals allowed)
+  { cat:'Ores', name:'Agricium',      unit:'SCU' },
+  { cat:'Ores', name:'Aluminium',     unit:'SCU' },
+  { cat:'Ores', name:'Aslarite',      unit:'SCU' },
+  { cat:'Ores', name:'Beryl',         unit:'SCU' },
+  { cat:'Ores', name:'Bexalite',      unit:'SCU' },
+  { cat:'Ores', name:'Borase',        unit:'SCU' },
+  { cat:'Ores', name:'Copper',        unit:'SCU' },
+  { cat:'Ores', name:'Corundum',      unit:'SCU' },
+  { cat:'Ores', name:'Gold',          unit:'SCU' },
+  { cat:'Ores', name:'Hephaestanite', unit:'SCU' },
+  { cat:'Ores', name:'Ice',           unit:'SCU' },
+  { cat:'Ores', name:'Iron',          unit:'SCU' },
+  { cat:'Ores', name:'Laranite',      unit:'SCU' },
+  { cat:'Ores', name:'Lindinium',     unit:'SCU' },
+  { cat:'Ores', name:'Ouratite',      unit:'SCU' },
+  { cat:'Ores', name:'Quantainium',   unit:'SCU' },
+  { cat:'Ores', name:'Quartz',        unit:'SCU' },
+  { cat:'Ores', name:'Riccite',       unit:'SCU' },
+  { cat:'Ores', name:'Savrilium',     unit:'SCU' },
+  { cat:'Ores', name:'Silicon',       unit:'SCU' },
+  { cat:'Ores', name:'Stileron',      unit:'SCU' },
+  { cat:'Ores', name:'Taranite',      unit:'SCU' },
+  { cat:'Ores', name:'Tin',           unit:'SCU' },
+  { cat:'Ores', name:'Titanium',      unit:'SCU' },
+  { cat:'Ores', name:'Torite',        unit:'SCU' },
+  { cat:'Ores', name:'Tungsten',      unit:'SCU' },
+  // Gems — UNIT (whole amounts)
+  { cat:'Gems', name:'Aphorite',      unit:'UNIT' },
+  { cat:'Gems', name:'Beradom',       unit:'UNIT' },
+  { cat:'Gems', name:'Carinite',      unit:'UNIT' },
+  { cat:'Gems', name:'Carinite Pure', unit:'UNIT' },
+  { cat:'Gems', name:'Dolivine',      unit:'UNIT' },
+  { cat:'Gems', name:'Feynmaline',    unit:'UNIT' },
+  { cat:'Gems', name:'Glacosite',     unit:'UNIT' },
+  { cat:'Gems', name:'Hadanite',      unit:'UNIT' },
+  { cat:'Gems', name:'Jaclium',       unit:'UNIT' },
+  { cat:'Gems', name:'Janalite',      unit:'UNIT' },
+  { cat:'Gems', name:'Sadaryx',       unit:'UNIT' },
+  { cat:'Gems', name:'Saldynium',     unit:'UNIT' },
+];
+
+const ITEM_CATEGORIES = [
+  { id:'fps_armour',     label:'FPS Armour' },
+  { id:'fps_weapon',     label:'FPS Weapon' },
+  { id:'ship_component', label:'Ship Component' },
+  { id:'ship_weapon',    label:'Ship Weapon' },
+];
+
+const SYSTEMS = {
+  Stanton: [
+    'Area 18','Lorville','Orison','New Babbage',
+    'Everus Harbor','Baijini Point','Port Tressler','Grim Hex','Seraphim Station',
+    'ARC-L1 Wide Forest Station','ARC-L2 Lively Pathway Station',
+    'ARC-L3 Modern Express Station','ARC-L4 Faint Glen Station','ARC-L5 Yellow Core Station',
+    'CRU-L1 Ambitious Dream Station','CRU-L4 Shallow Fields Station','CRU-L5 Beautiful Glen Station',
+    'HUR-L1 Green Glade Station','HUR-L2 Faithful Dream Station',
+    'HUR-L3 Thundering Express Station','HUR-L4 Melodic Fields Station','HUR-L5 High Course Station',
+    'MIC-L1 Shallow Frontier Station','MIC-L2 Long Forest Station',
+    'MIC-L3 Endless Odyssey Station','MIC-L4 Red Crossroads Station','MIC-L5 Modern Icarus Station',
+    'Nyx Gateway (Stanton side)','Pyro Gateway (Stanton side)',
+  ],
+  Pyro: [
+    'Ruin Station','Checkmate Station','Orbituary','Patch City',
+    'Endgame','Gaslight',"Rat's Nest",'Dudley & Daughters',
+    'Megumi Refueling',"Rod's Fuel 'n Supplies",'Starlight Service Station',
+    'Stanton Gateway (Pyro side)','Nyx Gateway (Pyro side)',
+  ],
+  Nyx: [
+    'Levski',
+    "People's Service Station Alpha","People's Service Station Delta",
+    "People's Service Station Lambda","People's Service Station Theta",
+    'Pyro Gateway (Nyx side)','Stanton Gateway (Nyx side)',
+  ],
+};
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function catLookup(name) { return SC_CATALOG.find(m => m.name === name) || null; }
+function unitFor(name)   { return catLookup(name)?.unit || 'UNIT'; }
+function sysBadge(sys) {
+  const cls = sys ? sys.toLowerCase() : '';
+  return `<span class="sys-badge ${cls}">${esc(sys)}</span>`;
+}
+function itemCatLabel(id) {
+  return ITEM_CATEGORIES.find(c => c.id === id)?.label || id || '—';
+}
+
+// ─── CONFIG / STATE ───────────────────────────────────────────────────────────
 let CONVEX_URL = localStorage.getItem('mattrack_url') || '';
 let currentPage = 'materials';
-const state = { user: null, stock: [], craftItems: [], archive: [], catalog: [] };
-let craftState = { itemId: null, mode: 'best', qMin: 0, qMax: 1000, plan: null };
+const state = { user: null, stock: [], craftItems: [], archive: [] };
+let craftState = { itemId: null, mode: 'best', qMin: 850, qMax: 1000, quantity: 1, plan: null };
+let itemsFilter = 'all';
 let pollTimer = null;
-let _reqCount = 0;
 
-// ─── CONVEX HTTP HELPERS ─────────────────────────────────────────────────────
+// ─── CONVEX HTTP HELPERS ──────────────────────────────────────────────────────
 async function convexQuery(path, args = {}) {
   const r = await fetch(`${CONVEX_URL}/api/query`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path, args, format: 'json' }),
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ path, args, format:'json' }),
   });
   const d = await r.json();
   if (d.status !== 'success') throw new Error(d.errorMessage || 'Query failed');
@@ -128,99 +223,90 @@ async function convexQuery(path, args = {}) {
 }
 async function convexMutation(path, args = {}) {
   const r = await fetch(`${CONVEX_URL}/api/mutation`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path, args, format: 'json' }),
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ path, args, format:'json' }),
   });
   const d = await r.json();
   if (d.status !== 'success') throw new Error(d.errorMessage || 'Mutation failed');
   return d.value;
 }
 
-// ─── UTILS ───────────────────────────────────────────────────────────────────
+// ─── UTILS ────────────────────────────────────────────────────────────────────
 async function hashPwd(pw) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw + '|mattrack_v1'));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw+'|mattrack_v1'));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const fmtDate = d => new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
 const fmtDT   = d => new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
 function toast(msg, dur=2800) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.style.display='block';
-  clearTimeout(t._t); t._t = setTimeout(()=>t.style.display='none', dur);
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.display='block';
+  clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',dur);
 }
-function showErr(id, msg) {
-  const el = document.getElementById(id);
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
+function showErr(id, msg) { const el=document.getElementById(id); if(el){el.textContent=msg;el.style.display='block';} }
+
+// ─── CATALOG SELECT HTML ──────────────────────────────────────────────────────
+function catalogOptgroups(extraOption = '') {
+  const cats = [...new Set(SC_CATALOG.map(m => m.cat))];
+  return `<option value="">Select material…</option>
+    ${cats.map(cat => `<optgroup label="${cat}">
+      ${SC_CATALOG.filter(m=>m.cat===cat).map(m=>
+        `<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}
+    </optgroup>`).join('')}
+    ${extraOption}`;
 }
 
-// ─── POLLING / DATA ──────────────────────────────────────────────────────────
-async function refreshAll(silent = false) {
+// ─── LOCATION SELECT HTML ─────────────────────────────────────────────────────
+function locationOptions(system) {
+  const locs = SYSTEMS[system] || [];
+  return `<option value="">Select location…</option>${locs.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join('')}`;
+}
+
+// ─── POLLING / DATA ───────────────────────────────────────────────────────────
+async function refreshAll(silent=false) {
   try {
-    const [stock, items, archive, catalog] = await Promise.all([
+    const [stock, items, archive] = await Promise.all([
       convexQuery('materials:getAvailable'),
       convexQuery('craftItems:getAll'),
       convexQuery('archive:getAll'),
-      convexQuery('materials:getCatalog'),
     ]);
-    state.stock      = stock      || [];
-    state.craftItems = items      || [];
-    state.archive    = archive    || [];
-    state.catalog    = (catalog   || []).map(c => c.name).sort();
+    state.stock      = stock  || [];
+    state.craftItems = items  || [];
+    state.archive    = archive|| [];
     updateLiveView();
-  } catch(e) {
-    if (!silent) console.warn('Refresh error:', e.message);
-  }
+  } catch(e) { if(!silent) console.warn('Refresh:', e.message); }
 }
-function startPolling() {
-  refreshAll();
-  pollTimer = setInterval(() => refreshAll(true), 5000);
-  document.getElementById('live-dot')?.setAttribute('title','Live — syncing every 5s');
-}
-function stopPolling() { if (pollTimer) clearInterval(pollTimer); }
+function startPolling() { refreshAll(); pollTimer=setInterval(()=>refreshAll(true),5000); }
+function stopPolling()  { if(pollTimer) clearInterval(pollTimer); }
 
 function updateLiveView() {
-  // Targeted DOM updates so open forms aren't disrupted
-  if (currentPage === 'materials') {
-    const t = document.getElementById('mat-table');
-    const s = document.getElementById('mat-count');
-    const av = state.stock.filter(m => m.status === 'available');
-    if (t) t.innerHTML = renderMatTable(av);
-    if (s) s.textContent = `${av.length} entr${av.length===1?'y':'ies'} in stock`;
+  if (currentPage==='materials') {
+    const av=state.stock.filter(m=>m.status==='available');
+    const t=document.getElementById('mat-table'); if(t) t.innerHTML=renderMatTable(av);
+    const s=document.getElementById('mat-count'); if(s) s.textContent=`${av.length} entr${av.length===1?'y':'ies'} in stock`;
   }
-  if (currentPage === 'items') {
-    const el = document.getElementById('items-list');
-    if (el) el.innerHTML = renderItemsList();
-    const s = document.getElementById('items-count');
-    if (s) s.textContent = `${state.craftItems.length} item${state.craftItems.length!==1?'s':''} defined`;
+  if (currentPage==='items') {
+    const el=document.getElementById('items-list'); if(el) el.innerHTML=renderItemsList();
+    const s=document.getElementById('items-count'); if(s) s.textContent=`${state.craftItems.length} item${state.craftItems.length!==1?'s':''} defined`;
   }
-  if (currentPage === 'archive') {
-    const el = document.getElementById('archive-table');
-    if (el) el.innerHTML = renderArchiveTable();
+  if (currentPage==='archive') {
+    const el=document.getElementById('archive-table'); if(el) el.innerHTML=renderArchiveTable();
   }
-  if (currentPage === 'craft' && craftState.itemId) {
-    recomputePlan();
-  }
+  if (currentPage==='craft' && craftState.itemId) recomputePlan();
 }
 
-// ─── ROUTER ──────────────────────────────────────────────────────────────────
-function goTo(tab) {
-  currentPage = tab;
-  renderNav();
-  renderPage();
-}
+// ─── ROUTER ───────────────────────────────────────────────────────────────────
+function goTo(tab) { currentPage=tab; renderNav(); renderPage(); }
 
-// ─── SETUP SCREEN ────────────────────────────────────────────────────────────
+// ─── SETUP ────────────────────────────────────────────────────────────────────
 function showSetup() {
   stopPolling();
   document.getElementById('root').innerHTML = `
     <div class="center-screen">
       <div class="auth-box" style="max-width:480px;">
         <div class="auth-logo">MATTRACK</div>
-        <div style="font-size:13px;color:#555;margin-bottom:24px;text-align:center;">
-          Connect to your Convex backend to get started.
-        </div>
+        <div style="font-size:13px;color:#555;margin-bottom:24px;text-align:center;">Connect to your Convex backend.</div>
         <div class="field">
           <label class="lbl">Convex Deployment URL</label>
           <input type="text" id="setup-url" placeholder="https://happy-animal-123.convex.cloud" value="${esc(CONVEX_URL)}">
@@ -229,41 +315,30 @@ function showSetup() {
         <button class="btn btn-black" style="width:100%;justify-content:center;" onclick="saveSetup()">Connect</button>
         <div class="setup-note">
           <strong>How to get your URL:</strong><br>
-          1. In the <code>material-tracker/</code> folder, run:<br>
+          1. In the <code>material-tracker/</code> folder run:<br>
           <div class="code-block">npm install &amp;&amp; npx convex dev</div>
-          2. Log in to Convex, create a project.<br>
-          3. Copy the URL shown as <strong>CONVEX_URL</strong> — looks like:<br>
-          <div class="code-block">https://happy-animal-123.convex.cloud</div>
-          4. Paste it above and click Connect.
+          2. Copy the <strong>CONVEX_URL</strong> shown in the terminal.<br>
+          3. Paste it above and click Connect.
         </div>
       </div>
     </div>`;
-  document.getElementById('setup-url').addEventListener('keydown', e => { if(e.key==='Enter') saveSetup(); });
+  document.getElementById('setup-url').addEventListener('keydown', e=>{ if(e.key==='Enter') saveSetup(); });
 }
 
 async function saveSetup() {
-  const url = document.getElementById('setup-url').value.trim().replace(/\/$/, '');
-  if (!url.startsWith('https://')) { showErr('setup-err', 'URL must start with https://'); return; }
-  // Quick connectivity check
+  const url = document.getElementById('setup-url').value.trim().replace(/\/$/,'');
+  if (!url.startsWith('https://')) { showErr('setup-err','URL must start with https://'); return; }
   try {
-    document.getElementById('setup-err').style.display = 'none';
-    await fetch(`${url}/api/query`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: 'materials:getCatalog', args: {}, format: 'json' }),
-    });
-    CONVEX_URL = url;
-    localStorage.setItem('mattrack_url', url);
-    // Seed default catalog
+    document.getElementById('setup-err').style.display='none';
+    await fetch(`${url}/api/query`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:'materials:getCatalog',args:{},format:'json'})});
+    CONVEX_URL=url; localStorage.setItem('mattrack_url',url);
     await convexMutation('materials:seedCatalog');
     showAuth();
-  } catch(e) {
-    showErr('setup-err', 'Could not connect. Check the URL and try again.');
-  }
+  } catch(e) { showErr('setup-err','Could not connect. Check the URL.'); }
 }
 
-// ─── AUTH ────────────────────────────────────────────────────────────────────
-function showAuth(tab = 'signin') {
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function showAuth(tab='signin') {
   stopPolling();
   document.getElementById('root').innerHTML = `
     <div class="center-screen">
@@ -273,7 +348,7 @@ function showAuth(tab = 'signin') {
           <button class="tab-btn${tab==='signin'?' active':''}" onclick="showAuth('signin')">Sign In</button>
           <button class="tab-btn${tab==='signup'?' active':''}" onclick="showAuth('signup')">Sign Up</button>
         </div>
-        ${tab === 'signin' ? `
+        ${tab==='signin'?`
           <div class="field"><label class="lbl">Username</label><input id="si-user" type="text" autocomplete="username" placeholder="username"></div>
           <div class="field"><label class="lbl">Password</label><input id="si-pass" type="password" autocomplete="current-password" placeholder="password"></div>
           <div class="err-msg" id="si-err"></div>
@@ -281,107 +356,86 @@ function showAuth(tab = 'signin') {
           <div style="margin-top:12px;font-size:11px;color:#999;text-align:center;">
             Wrong URL? <span style="cursor:pointer;text-decoration:underline;" onclick="showSetup()">Change setup</span>
           </div>
-        ` : `
+        `:`
           <div class="field"><label class="lbl">Username</label><input id="su-user" type="text" placeholder="choose a username"></div>
-          <div class="field"><label class="lbl">Email</label><input id="su-email" type="email" placeholder="your@email.com"></div>
           <div class="field"><label class="lbl">Password</label><input id="su-pass" type="password" placeholder="create a password"></div>
           <div class="field">
             <label class="lbl">Roles</label>
-            <label class="chk-row"><input type="checkbox" id="su-prov" checked><span>Material Provider</span></label>
-            <label class="chk-row"><input type="checkbox" id="su-craft"><span>Crafter</span></label>
+            <label class="chk-row"><input type="checkbox" id="su-prov" checked><span>Material Provider — add &amp; manage stock</span></label>
+            <label class="chk-row"><input type="checkbox" id="su-craft"><span>Crafter — use materials to craft items</span></label>
           </div>
           <div class="err-msg" id="su-err"></div>
           <button class="btn btn-black" style="width:100%;justify-content:center;" onclick="doSignUp()">Create Account</button>
         `}
       </div>
     </div>`;
-  // Enter key
-  setTimeout(() => {
-    const pass = document.getElementById(tab==='signin'?'si-pass':'su-pass');
-    if (pass) pass.addEventListener('keydown', e => { if(e.key==='Enter') tab==='signin'?doSignIn():doSignUp(); });
-  }, 0);
+  setTimeout(()=>{
+    const p=document.getElementById(tab==='signin'?'si-pass':'su-pass');
+    if(p) p.addEventListener('keydown',e=>{if(e.key==='Enter') tab==='signin'?doSignIn():doSignUp();});
+  },0);
 }
 
 async function doSignIn() {
-  const username = (document.getElementById('si-user')||{value:''}).value.trim();
-  const password = (document.getElementById('si-pass')||{value:''}).value;
-  if (!username||!password) { showErr('si-err','Fill in all fields'); return; }
+  const username=(document.getElementById('si-user')||{value:''}).value.trim();
+  const password=(document.getElementById('si-pass')||{value:''}).value;
+  if(!username||!password){showErr('si-err','Fill in all fields');return;}
   try {
-    const ph = await hashPwd(password);
-    const user = await convexQuery('users:authenticate', { username, passwordHash: ph });
-    if (!user) { showErr('si-err','Invalid username or password'); return; }
-    state.user = user;
-    localStorage.setItem('mattrack_uid', user._id);
-    showApp();
-  } catch(e) { showErr('si-err', e.message); }
+    const ph=await hashPwd(password);
+    const user=await convexQuery('users:authenticate',{username,passwordHash:ph});
+    if(!user){showErr('si-err','Invalid username or password');return;}
+    state.user=user; localStorage.setItem('mattrack_uid',user._id); showApp();
+  } catch(e){showErr('si-err',e.message);}
 }
 
 async function doSignUp() {
-  const username = (document.getElementById('su-user')||{value:''}).value.trim();
-  const email    = (document.getElementById('su-email')||{value:''}).value.trim();
-  const password = (document.getElementById('su-pass')||{value:''}).value;
-  const isProv   = (document.getElementById('su-prov')||{checked:true}).checked;
-  const isCraft  = (document.getElementById('su-craft')||{checked:false}).checked;
-  if (!username||!email||!password) { showErr('su-err','Fill in all fields'); return; }
-  if (!isProv&&!isCraft) { showErr('su-err','Select at least one role'); return; }
+  const username=(document.getElementById('su-user')||{value:''}).value.trim();
+  const password=(document.getElementById('su-pass')||{value:''}).value;
+  const isProv=(document.getElementById('su-prov')||{checked:true}).checked;
+  const isCraft=(document.getElementById('su-craft')||{checked:false}).checked;
+  if(!username||!password){showErr('su-err','Fill in all fields');return;}
+  if(!isProv&&!isCraft){showErr('su-err','Select at least one role');return;}
   try {
-    const ph    = await hashPwd(password);
-    const roles = [...(isProv?['provider']:[]),...(isCraft?['crafter']:[])];
-    const user  = await convexMutation('users:signUp', { username, email, passwordHash: ph, roles });
-    await convexMutation('archive:addLog', { type:'user_joined', userId:user._id, userName:username, details:{roles} });
-    state.user = user;
-    localStorage.setItem('mattrack_uid', user._id);
-    showApp();
-  } catch(e) {
-    const msg = e.message.includes('USERNAME_TAKEN') ? 'Username already taken' : e.message;
-    showErr('su-err', msg);
+    const ph=await hashPwd(password);
+    const roles=[...(isProv?['provider']:[]),...(isCraft?['crafter']:[])];
+    const user=await convexMutation('users:signUp',{username,passwordHash:ph,roles});
+    await convexMutation('archive:addLog',{type:'user_joined',userId:user._id,userName:username,details:{roles}});
+    state.user=user; localStorage.setItem('mattrack_uid',user._id); showApp();
+  } catch(e){
+    showErr('su-err',e.message.includes('USERNAME_TAKEN')?'Username already taken':e.message);
   }
 }
 
-async function doLogout() {
-  stopPolling();
-  state.user = null;
-  localStorage.removeItem('mattrack_uid');
-  showAuth();
-}
+async function doLogout() { stopPolling(); state.user=null; localStorage.removeItem('mattrack_uid'); showAuth(); }
 
-// ─── APP SHELL ───────────────────────────────────────────────────────────────
+// ─── APP SHELL ────────────────────────────────────────────────────────────────
 function showApp() {
-  document.getElementById('root').innerHTML = `
-    <div id="nav"></div>
-    <div id="page-wrap"></div>`;
-  renderNav();
-  renderPage();
-  startPolling();
+  document.getElementById('root').innerHTML=`<div id="nav"></div><div id="page-wrap"></div>`;
+  renderNav(); renderPage(); startPolling();
 }
-
 function renderNav() {
-  const u = state.user;
-  if (!u) return;
-  const tabs = [['materials','Materials'],['craft','Craft'],['items','Items'],['archive','Log']];
-  document.getElementById('nav').innerHTML = `
+  const u=state.user; if(!u) return;
+  const tabs=[['materials','Materials'],['craft','Craft'],['items','Items'],['archive','Log']];
+  document.getElementById('nav').innerHTML=`
     <div class="brand">MATTRACK</div>
     ${tabs.map(([id,lbl])=>`<div class="nav-item${currentPage===id?' active':''}" onclick="goTo('${id}')">${lbl}</div>`).join('')}
     <div class="user-area">
-      <span class="live-dot" id="live-dot"></span>
+      <span class="live-dot"></span>
       <span style="font-weight:700;">${esc(u.username)}</span>
       ${u.roles.map(r=>`<span class="role-tag${r==='crafter'?' crafter':''}">${r}</span>`).join('')}
       <button class="btn-ghost" onclick="doLogout()">Sign out</button>
     </div>`;
 }
-
 function renderPage() {
-  const pages = { materials: pageMaterials, craft: pageCraft, items: pageItems, archive: pageArchive };
-  const pw = document.getElementById('page-wrap');
-  if (pw) pw.innerHTML = `<div class="page">${(pages[currentPage]||pageMaterials)()}</div>`;
-  attachPageEvents();
+  const pages={materials:pageMaterials,craft:pageCraft,items:pageItems,archive:pageArchive};
+  const pw=document.getElementById('page-wrap');
+  if(pw) pw.innerHTML=`<div class="page">${(pages[currentPage]||pageMaterials)()}</div>`;
 }
 
-// ─── MATERIALS PAGE ──────────────────────────────────────────────────────────
+// ─── MATERIALS PAGE ───────────────────────────────────────────────────────────
 function pageMaterials() {
-  const u = state.user;
-  const stock = state.stock.filter(m => m.status === 'available');
-  const isProv = u.roles.includes('provider');
+  const u=state.user;
+  const stock=state.stock.filter(m=>m.status==='available');
+  const isProv=u.roles.includes('provider');
   return `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
       <div>
@@ -393,20 +447,31 @@ function pageMaterials() {
 
     <div id="add-mat-panel" class="collapsible" style="margin-bottom:32px;">
       <div class="panel">
-        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Add Material</div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Add Material to Stock</div>
         <div class="grid2">
           <div>
             <div class="field">
-              <label class="lbl">Material Name</label>
-              <select id="mat-name-sel" onchange="onMatNameChange()">
-                <option value="">Select material…</option>
-                ${state.catalog.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}
-                <option value="__new__">+ Add new type…</option>
+              <label class="lbl">Material</label>
+              <select id="mat-name-sel" onchange="onMatSelect()">
+                ${catalogOptgroups('<option value="__new__">+ Add new type…</option>')}
               </select>
             </div>
-            <div class="field" id="mat-new-field" style="display:none;">
-              <label class="lbl">New Material Name</label>
-              <input type="text" id="mat-new-name" placeholder="Enter name">
+            <div id="mat-new-wrap" style="display:none;">
+              <div class="field">
+                <label class="lbl">New Material Name</label>
+                <input type="text" id="mat-new-name" placeholder="Name">
+              </div>
+              <div class="field">
+                <label class="lbl">Category</label>
+                <select id="mat-new-cat" onchange="onNewCatChange()">
+                  <option value="Ores">Ore — SCU (decimals allowed)</option>
+                  <option value="Gems">Gem — UNIT (whole amounts)</option>
+                </select>
+              </div>
+            </div>
+            <div class="field" id="mat-unit-display" style="display:none;">
+              <label class="lbl">Unit</label>
+              <div style="padding:9px 12px;border:1.5px solid #e0e0e0;font-size:13px;font-weight:700;background:#fafafa;" id="mat-unit-val">—</div>
             </div>
             <div class="field">
               <label class="lbl">Quality (0–1000)</label>
@@ -415,17 +480,26 @@ function pageMaterials() {
           </div>
           <div>
             <div class="field">
-              <label class="lbl">Quantity</label>
-              <input type="number" id="mat-qty" min="1" placeholder="e.g. 50">
+              <label class="lbl">Quantity <span id="mat-qty-unit" class="unit-inline"></span></label>
+              <input type="number" id="mat-qty" min="0.001" step="any" placeholder="e.g. 50">
             </div>
             <div class="field">
-              <label class="lbl">Storage Location</label>
-              <input type="text" id="mat-loc" placeholder="e.g. Shelf A3, Warehouse B">
+              <label class="lbl">System</label>
+              <select id="mat-system" onchange="onSystemChange()">
+                <option value="">Select system…</option>
+                ${Object.keys(SYSTEMS).map(s=>`<option value="${s}">${s}</option>`).join('')}
+              </select>
+            </div>
+            <div class="field">
+              <label class="lbl">Location</label>
+              <select id="mat-location">
+                <option value="">Select system first…</option>
+              </select>
             </div>
           </div>
         </div>
         <div style="display:flex;gap:10px;">
-          <button class="btn btn-black" onclick="addMaterial()">Add to Database</button>
+          <button class="btn btn-black" onclick="addMaterial()">Add to Stock</button>
           <button class="btn btn-outline" onclick="togglePanel('add-mat-panel')">Cancel</button>
         </div>
       </div>
@@ -433,7 +507,7 @@ function pageMaterials() {
 
     <div class="search-row">
       <span style="font-size:10px;font-weight:700;letter-spacing:.1em;">FILTER</span>
-      <input type="text" id="mat-search" placeholder="Search name, location, owner…" oninput="filterMaterials()">
+      <input type="text" id="mat-search" placeholder="Search material, location, owner…" oninput="filterMaterials()">
       <label class="chk-row" style="margin:0;white-space:nowrap;">
         <input type="checkbox" id="mat-mine" style="width:auto;" onchange="filterMaterials()">
         <span style="font-size:12px;">My entries only</span>
@@ -444,66 +518,118 @@ function pageMaterials() {
 
 function renderMatTable(stock) {
   if (!stock.length) return `<div class="empty">No materials in stock yet.</div>`;
-  const u = state.user;
+  const u=state.user;
   return `<table>
-    <thead><tr><th>Material</th><th>Quality</th><th>Quantity</th><th>Location</th><th>Owner</th><th>Added</th><th></th></tr></thead>
+    <thead><tr><th>Material</th><th>Category</th><th>Quality</th><th>Qty</th><th>Location</th><th>Owner</th><th>Added</th><th></th></tr></thead>
     <tbody>${stock.map(m=>`<tr>
       <td style="font-weight:600;">${esc(m.materialName)}</td>
+      <td><span class="cat-tag">${esc(m.category)}</span></td>
       <td><span class="q">${m.quality}</span></td>
-      <td>${m.quantity}</td>
-      <td style="color:#555;font-size:12px;">${esc(m.location)}</td>
+      <td>${m.quantity}<span class="unit-inline">${esc(m.unit)}</span></td>
+      <td class="loc-display">${sysBadge(m.system)}${esc(m.location)}</td>
       <td style="font-size:12px;">${esc(m.ownerName)}${m.ownerId===u._id?' <span style="color:#bbb;">(you)</span>':''}</td>
       <td style="font-size:11px;color:#999;">${fmtDate(m._creationTime)}</td>
       <td>${m.ownerId===u._id?`<button class="btn-ghost btn-sm" onclick="removeMaterial('${esc(m._id)}')">Remove</button>`:''}</td>
     </tr>`).join('')}</tbody></table>`;
 }
 
+function onMatSelect() {
+  const sel=document.getElementById('mat-name-sel');
+  const val=sel?.value;
+  const newWrap=document.getElementById('mat-new-wrap');
+  const unitDisplay=document.getElementById('mat-unit-display');
+  const unitVal=document.getElementById('mat-unit-val');
+  const qtyUnit=document.getElementById('mat-qty-unit');
+  const qtyInp=document.getElementById('mat-qty');
+  if (val==='__new__') {
+    if(newWrap) newWrap.style.display='block';
+    if(unitDisplay) unitDisplay.style.display='none';
+    if(qtyUnit) qtyUnit.textContent='';
+    onNewCatChange();
+  } else if (val) {
+    if(newWrap) newWrap.style.display='none';
+    if(unitDisplay) unitDisplay.style.display='block';
+    const u=unitFor(val);
+    if(unitVal) unitVal.textContent=u;
+    if(qtyUnit) qtyUnit.textContent=u;
+    if(qtyInp) { qtyInp.step=u==='SCU'?'any':'1'; qtyInp.min=u==='SCU'?'0.001':'1'; }
+  } else {
+    if(newWrap) newWrap.style.display='none';
+    if(unitDisplay) unitDisplay.style.display='none';
+    if(qtyUnit) qtyUnit.textContent='';
+  }
+}
+function onNewCatChange() {
+  const cat=(document.getElementById('mat-new-cat')||{value:'Ores'}).value;
+  const qtyUnit=document.getElementById('mat-qty-unit');
+  const qtyInp=document.getElementById('mat-qty');
+  const u=cat==='Gems'?'UNIT':'SCU';
+  if(qtyUnit) qtyUnit.textContent=u;
+  if(qtyInp) { qtyInp.step=u==='SCU'?'any':'1'; qtyInp.min=u==='SCU'?'0.001':'1'; }
+}
+function onSystemChange() {
+  const sys=(document.getElementById('mat-system')||{value:''}).value;
+  const locSel=document.getElementById('mat-location');
+  if(locSel) locSel.innerHTML=sys?locationOptions(sys):'<option value="">Select system first…</option>';
+}
+
 function filterMaterials() {
-  const q    = (document.getElementById('mat-search')||{value:''}).value.toLowerCase();
-  const mine = (document.getElementById('mat-mine')||{checked:false}).checked;
-  let stock  = state.stock.filter(m => m.status === 'available');
-  if (mine) stock = stock.filter(m => m.ownerId === state.user._id);
-  if (q)    stock = stock.filter(m =>
-    m.materialName.toLowerCase().includes(q) ||
-    m.location.toLowerCase().includes(q) ||
-    m.ownerName.toLowerCase().includes(q));
-  const el = document.getElementById('mat-table');
-  if (el) el.innerHTML = renderMatTable(stock);
+  const q=(document.getElementById('mat-search')||{value:''}).value.toLowerCase();
+  const mine=(document.getElementById('mat-mine')||{checked:false}).checked;
+  let stock=state.stock.filter(m=>m.status==='available');
+  if(mine) stock=stock.filter(m=>m.ownerId===state.user._id);
+  if(q) stock=stock.filter(m=>
+    m.materialName.toLowerCase().includes(q)||
+    m.location.toLowerCase().includes(q)||
+    m.system.toLowerCase().includes(q)||
+    m.ownerName.toLowerCase().includes(q)||
+    m.category.toLowerCase().includes(q));
+  const el=document.getElementById('mat-table');
+  if(el) el.innerHTML=renderMatTable(stock);
 }
 
 async function addMaterial() {
-  const u = state.user;
-  let name = (document.getElementById('mat-name-sel')||{value:''}).value;
-  const qual = parseInt((document.getElementById('mat-quality')||{value:''}).value);
-  const qty  = parseInt((document.getElementById('mat-qty')||{value:''}).value);
-  const loc  = (document.getElementById('mat-loc')||{value:''}).value.trim();
-  if (name === '__new__') {
-    name = (document.getElementById('mat-new-name')||{value:''}).value.trim();
-    if (!name) { alert('Enter material name'); return; }
+  const u=state.user;
+  let name=(document.getElementById('mat-name-sel')||{value:''}).value;
+  let category='', unit='';
+  if (name==='__new__') {
+    name=(document.getElementById('mat-new-name')||{value:''}).value.trim();
+    category=(document.getElementById('mat-new-cat')||{value:'Ores'}).value;
+    unit=category==='Gems'?'UNIT':'SCU';
+    if(!name){alert('Enter material name');return;}
+  } else {
+    const entry=catLookup(name);
+    if(!entry){alert('Select a material');return;}
+    category=entry.cat; unit=entry.unit;
   }
-  if (!name||isNaN(qual)||isNaN(qty)||!loc) { alert('Fill in all fields'); return; }
-  if (qual < 0 || qual > 1000) { alert('Quality must be 0–1000'); return; }
-  if (qty < 1) { alert('Quantity must be at least 1'); return; }
+  const qual=parseInt((document.getElementById('mat-quality')||{value:''}).value);
+  const qty=parseFloat((document.getElementById('mat-qty')||{value:''}).value);
+  const system=(document.getElementById('mat-system')||{value:''}).value;
+  const location=(document.getElementById('mat-location')||{value:''}).value;
+  if(!name||isNaN(qual)||isNaN(qty)||!system||!location){alert('Fill in all fields');return;}
+  if(qual<0||qual>1000){alert('Quality must be 0–1000');return;}
+  if(qty<=0){alert('Quantity must be greater than 0');return;}
   try {
-    if (name && !(state.catalog.includes(name))) await convexMutation('materials:addToCatalog', { name });
-    await convexMutation('materials:add', { materialName:name, quality:qual, quantity:qty, location:loc, ownerId:u._id, ownerName:u.username });
-    await convexMutation('archive:addLog', { type:'material_added', userId:u._id, userName:u.username, details:{ materialName:name, quality:qual, quantity:qty, location:loc } });
+    if(!SC_CATALOG.find(m=>m.name===name))
+      await convexMutation('materials:addToCatalog',{name,category,unit});
+    await convexMutation('materials:add',{materialName:name,category,unit,quality:qual,quantity:qty,system,location,ownerId:u._id,ownerName:u.username});
+    await convexMutation('archive:addLog',{type:'material_added',userId:u._id,userName:u.username,details:{materialName:name,category,unit,quality:qual,quantity:qty,system,location}});
     toast('Material added');
     togglePanel('add-mat-panel');
     await refreshAll();
-  } catch(e) { alert(e.message); }
+  } catch(e){alert(e.message);}
 }
 
 async function removeMaterial(id) {
-  if (!confirm('Remove this material from the database?')) return;
+  if(!confirm('Remove this material from stock?')) return;
   try {
-    await convexMutation('materials:remove', { id, userId: state.user._id });
+    await convexMutation('materials:remove',{id,userId:state.user._id});
     toast('Removed');
     await refreshAll();
-  } catch(e) { alert(e.message); }
+  } catch(e){alert(e.message);}
 }
 
-// ─── ITEMS PAGE ──────────────────────────────────────────────────────────────
+// ─── ITEMS PAGE ───────────────────────────────────────────────────────────────
 function pageItems() {
   return `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
@@ -517,9 +643,17 @@ function pageItems() {
     <div id="add-item-panel" class="collapsible" style="margin-bottom:32px;">
       <div class="panel">
         <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Define Craftable Item</div>
-        <div class="field" style="max-width:420px;">
-          <label class="lbl">Item Name</label>
-          <input type="text" id="item-name-inp" placeholder="e.g. Carbon Frame, Steel Housing…">
+        <div class="grid2" style="max-width:680px;">
+          <div class="field">
+            <label class="lbl">Item Name</label>
+            <input type="text" id="item-name-inp" placeholder="e.g. Quantum Drive Component…">
+          </div>
+          <div class="field">
+            <label class="lbl">Category</label>
+            <select id="item-cat-sel">
+              ${ITEM_CATEGORIES.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}
+            </select>
+          </div>
         </div>
         <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:20px 0 12px;">Required Materials</div>
         <div id="req-rows"></div>
@@ -531,18 +665,39 @@ function pageItems() {
       </div>
     </div>
 
+    <div class="filter-tabs">
+      <button class="filter-tab${itemsFilter==='all'?' active':''}" onclick="setItemsFilter('all')">All</button>
+      ${ITEM_CATEGORIES.map(c=>`<button class="filter-tab${itemsFilter===c.id?' active':''}" onclick="setItemsFilter('${c.id}')">${c.label}</button>`).join('')}
+    </div>
     <div id="items-list">${renderItemsList()}</div>`;
 }
 
+function setItemsFilter(f) {
+  itemsFilter=f;
+  document.querySelectorAll('.filter-tab').forEach(btn=>{
+    const match=btn.textContent.trim();
+    const isActive=(f==='all'&&match==='All')||ITEM_CATEGORIES.some(c=>c.id===f&&c.label===match);
+    btn.classList.toggle('active',isActive);
+  });
+  const el=document.getElementById('items-list'); if(el) el.innerHTML=renderItemsList();
+}
+
 function renderItemsList() {
-  if (!state.craftItems.length) return `<div class="empty">No craftable items defined. Add your first above.</div>`;
-  return state.craftItems.map(item => `
+  let items=state.craftItems;
+  if(itemsFilter!=='all') items=items.filter(i=>i.category===itemsFilter);
+  if(!items.length) return `<div class="empty">No craftable items defined${itemsFilter!=='all'?' in this category':''}.</div>`;
+  return items.map(item=>`
     <div style="border-bottom:1px solid #e8e8e8;padding:24px 0;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
-          <div style="font-size:20px;font-weight:700;margin-bottom:12px;">${esc(item.name)}</div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            ${item.category?`<span class="item-cat-tag">${esc(itemCatLabel(item.category))}</span>`:''}
+            <span style="font-size:20px;font-weight:700;">${esc(item.name)}</span>
+          </div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
-            ${item.requirements.map(r=>`<span style="font-size:12px;padding:4px 12px;border:1px solid #000;">${esc(r.materialName)} &times; ${r.quantity}</span>`).join('')}
+            ${item.requirements.map(r=>`<span style="font-size:12px;padding:4px 12px;border:1px solid #000;">
+              ${esc(r.materialName)} &times; ${r.quantity}<span class="unit-inline">${esc(r.unit)}</span>
+            </span>`).join('')}
           </div>
         </div>
         <div style="text-align:right;font-size:11px;color:#999;flex-shrink:0;margin-left:24px;">
@@ -553,52 +708,62 @@ function renderItemsList() {
 }
 
 function addReqRow() {
-  const container = document.getElementById('req-rows');
-  if (!container) return;
-  const div = document.createElement('div');
-  div.className = 'req-row';
-  div.style.cssText = 'display:flex;gap:10px;margin-bottom:8px;align-items:center;';
-  div.innerHTML = `
-    <select class="req-mat" style="flex:2;margin:0;">
-      <option value="">Select material…</option>
-      ${state.catalog.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}
+  const container=document.getElementById('req-rows'); if(!container) return;
+  const div=document.createElement('div');
+  div.className='req-row';
+  div.style.cssText='display:flex;gap:10px;margin-bottom:8px;align-items:center;';
+  div.innerHTML=`
+    <select class="req-mat" style="flex:2;margin:0;" onchange="onReqMatChange(this)">
+      ${catalogOptgroups()}
     </select>
-    <input type="number" class="req-qty" placeholder="Qty" min="1" style="flex:1;margin:0;">
+    <input type="number" class="req-qty" placeholder="Qty" min="0.001" step="any" style="flex:1;margin:0;">
+    <span class="req-unit unit-inline" style="min-width:32px;"></span>
     <button class="btn-ghost btn-sm" onclick="this.parentNode.remove()">✕</button>`;
   container.appendChild(div);
 }
+function onReqMatChange(sel) {
+  const span=sel.parentNode.querySelector('.req-unit');
+  const qtyInp=sel.parentNode.querySelector('.req-qty');
+  const u=sel.value?unitFor(sel.value):'';
+  if(span) span.textContent=u;
+  if(qtyInp&&u) { qtyInp.step=u==='SCU'?'any':'1'; qtyInp.min=u==='SCU'?'0.001':'1'; }
+}
 
 async function addItem() {
-  const u    = state.user;
-  const name = (document.getElementById('item-name-inp')||{value:''}).value.trim();
-  if (!name) { alert('Enter item name'); return; }
-  const rows = document.querySelectorAll('.req-row');
-  const reqs = [];
-  rows.forEach(r => {
-    const mat = r.querySelector('.req-mat')?.value;
-    const qty = parseInt(r.querySelector('.req-qty')?.value);
-    if (mat && !isNaN(qty) && qty > 0) reqs.push({ materialName: mat, quantity: qty });
+  const u=state.user;
+  const name=(document.getElementById('item-name-inp')||{value:''}).value.trim();
+  const category=(document.getElementById('item-cat-sel')||{value:''}).value;
+  if(!name){alert('Enter item name');return;}
+  if(!category){alert('Select a category');return;}
+  const rows=document.querySelectorAll('.req-row');
+  const reqs=[];
+  rows.forEach(r=>{
+    const mat=r.querySelector('.req-mat')?.value;
+    const qty=parseFloat(r.querySelector('.req-qty')?.value);
+    if(mat&&!isNaN(qty)&&qty>0) reqs.push({materialName:mat,quantity:qty,unit:unitFor(mat)});
   });
-  if (!reqs.length) { alert('Add at least one material requirement'); return; }
+  if(!reqs.length){alert('Add at least one requirement');return;}
   try {
-    await convexMutation('craftItems:add', { name, requirements: reqs, userId: u._id, userName: u.username });
+    await convexMutation('craftItems:add',{name,requirements:reqs,category,userId:u._id,userName:u.username});
     toast('Item saved');
     togglePanel('add-item-panel');
     await refreshAll();
-  } catch(e) { alert(e.message); }
+  } catch(e){alert(e.message);}
 }
 
-// ─── CRAFT PAGE ──────────────────────────────────────────────────────────────
+// ─── CRAFT PAGE ───────────────────────────────────────────────────────────────
 function pageCraft() {
-  const u = state.user;
-  if (!u.roles.includes('crafter')) return `
+  const u=state.user;
+  if(!u.roles.includes('crafter')) return `
     <div class="page-title">CRAFT</div>
     <div style="margin-top:24px;max-width:480px;">
       <p style="color:#555;margin-bottom:20px;">Your account doesn't have the Crafter role.</p>
       <button class="btn btn-black" onclick="enableCrafter()">Enable Crafter Role</button>
     </div>`;
-
-  const cs = craftState;
+  const cs=craftState;
+  const itemOptions=state.craftItems.map(i=>
+    `<option value="${esc(i._id)}"${cs.itemId===i._id?' selected':''}>${esc(i.name)}${i.category?' ('+itemCatLabel(i.category)+')':''}</option>`
+  ).join('');
   return `
     <div class="page-title" style="margin-bottom:40px;">CRAFT</div>
     <div class="grid2" style="margin-bottom:0;">
@@ -607,7 +772,7 @@ function pageCraft() {
           <label class="lbl">Item to Craft</label>
           <select id="craft-sel" onchange="onCraftItemChange()">
             <option value="">Choose item…</option>
-            ${state.craftItems.map(i=>`<option value="${esc(i._id)}"${cs.itemId===i._id?' selected':''}>${esc(i.name)}</option>`).join('')}
+            ${itemOptions}
           </select>
         </div>
         <div class="field">
@@ -616,172 +781,231 @@ function pageCraft() {
             <option value="best"${cs.mode==='best'?' selected':''}>Best Available Quality</option>
             <option value="range"${cs.mode==='range'?' selected':''}>Quality Range</option>
           </select>
+          <div class="hint-box" id="mode-hint" style="${cs.mode!=='best'?'display:none;':''}">
+            <strong>Best Quality</strong> only uses materials with quality ≥ 850 (within 50 of the 900 peak). Switch to <em>Quality Range</em> to include lower-quality stock.
+          </div>
         </div>
         <div id="range-wrap" style="${cs.mode==='range'?'':'display:none;'}">
           <div class="grid2" style="gap:12px;">
             <div class="field"><label class="lbl">Min Quality</label>
-              <input type="number" id="q-min" min="0" max="1000" placeholder="e.g. 700" value="${cs.qMin||''}" oninput="schedulePlan()"></div>
+              <input type="number" id="q-min" min="0" max="1000" placeholder="e.g. 700" value="${cs.mode==='range'?cs.qMin:''}" oninput="schedulePlan()"></div>
             <div class="field"><label class="lbl">Max Quality</label>
-              <input type="number" id="q-max" min="0" max="1000" placeholder="e.g. 950" value="${cs.qMax||''}" oninput="schedulePlan()"></div>
+              <input type="number" id="q-max" min="0" max="1000" placeholder="e.g. 950" value="${cs.mode==='range'?cs.qMax:''}" oninput="schedulePlan()"></div>
           </div>
+        </div>
+        <div class="field">
+          <label class="lbl">Quantity to Craft</label>
+          <div style="display:flex;gap:8px;align-items:stretch;">
+            <input type="number" id="craft-qty" min="1" step="1" value="${cs.quantity||1}" style="max-width:120px;margin:0;" oninput="onCraftQtyChange()">
+            <button class="btn-max" onclick="setMaxCrafts()" title="Calculate and set maximum crafts possible with available materials">MAX</button>
+          </div>
+          <div style="font-size:11px;color:#888;margin-top:5px;" id="craft-qty-hint">Press MAX to auto-fill the highest number of crafts possible with current stock &amp; quality settings.</div>
         </div>
       </div>
       <div id="craft-summary-area">
-        ${cs.plan ? renderCraftSummary(cs.plan) : `<div style="padding:32px;border:1px solid #e8e8e8;text-align:center;color:#bbb;font-size:13px;">Select an item to see crafting details.</div>`}
+        ${cs.plan?renderCraftSummary(cs.plan):`<div style="padding:32px;border:1px solid #e8e8e8;text-align:center;color:#bbb;font-size:13px;">Select an item to see crafting details.</div>`}
       </div>
     </div>
-    <div id="craft-detail-area" style="margin-top:32px;">
-      ${cs.plan ? renderCraftDetail(cs.plan) : ''}
-    </div>`;
+    <div id="craft-detail-area" style="margin-top:32px;">${cs.plan?renderCraftDetail(cs.plan):''}</div>`;
 }
 
 async function enableCrafter() {
   try {
-    await convexMutation('users:addRole', { userId: state.user._id, role: 'crafter' });
+    await convexMutation('users:addRole',{userId:state.user._id,role:'crafter'});
     state.user.roles.push('crafter');
-    localStorage.setItem('mattrack_uid', state.user._id); // refresh on next load
     toast('Crafter role enabled');
-    renderNav();
-    renderPage();
-  } catch(e) { alert(e.message); }
+    renderNav(); renderPage();
+  } catch(e){alert(e.message);}
 }
 
 function onCraftItemChange() {
-  craftState.itemId = (document.getElementById('craft-sel')||{value:''}).value || null;
+  craftState.itemId=(document.getElementById('craft-sel')||{value:''}).value||null;
+  recomputePlan();
+}
+function onCraftQtyChange() {
+  craftState.quantity=Math.max(1,parseInt((document.getElementById('craft-qty')||{value:'1'}).value)||1);
   recomputePlan();
 }
 function onModeChange() {
-  craftState.mode = (document.getElementById('mode-sel')||{value:'best'}).value;
-  const rw = document.getElementById('range-wrap');
-  if (rw) rw.style.display = craftState.mode === 'range' ? 'block' : 'none';
+  craftState.mode=(document.getElementById('mode-sel')||{value:'best'}).value;
+  const rw=document.getElementById('range-wrap');   if(rw) rw.style.display=craftState.mode==='range'?'block':'none';
+  const hint=document.getElementById('mode-hint');  if(hint) hint.style.display=craftState.mode==='best'?'block':'none';
   recomputePlan();
 }
-let _planTimer = null;
-function schedulePlan() { clearTimeout(_planTimer); _planTimer = setTimeout(recomputePlan, 300); }
+let _planTimer=null;
+function schedulePlan(){ clearTimeout(_planTimer); _planTimer=setTimeout(recomputePlan,300); }
 
 function recomputePlan() {
-  if (!craftState.itemId) return;
-  const item = state.craftItems.find(i => i._id === craftState.itemId);
-  if (!item) return;
-  if (craftState.mode === 'range') {
-    craftState.qMin = parseInt((document.getElementById('q-min')||{value:'0'}).value) || 0;
-    craftState.qMax = parseInt((document.getElementById('q-max')||{value:'1000'}).value) || 1000;
-  } else { craftState.qMin = 0; craftState.qMax = 1000; }
-  craftState.plan = calcPlan(item, state.stock, craftState.mode, craftState.qMin, craftState.qMax);
-  const sa = document.getElementById('craft-summary-area');
-  const da = document.getElementById('craft-detail-area');
-  if (sa) sa.innerHTML = renderCraftSummary(craftState.plan);
-  if (da) da.innerHTML = renderCraftDetail(craftState.plan);
+  if(!craftState.itemId) return;
+  const item=state.craftItems.find(i=>i._id===craftState.itemId); if(!item) return;
+  if(craftState.mode==='range'){
+    craftState.qMin=parseInt((document.getElementById('q-min')||{value:'0'}).value)||0;
+    craftState.qMax=parseInt((document.getElementById('q-max')||{value:'1000'}).value)||1000;
+  } else {
+    craftState.qMin=850; craftState.qMax=1000; // best = within 50 of peak 900
+  }
+  const qty=Math.max(1,parseInt((document.getElementById('craft-qty')||{value:'1'}).value)||1);
+  craftState.quantity=qty;
+  craftState.plan=calcPlan(item,state.stock,craftState.mode,craftState.qMin,craftState.qMax,qty);
+  const sa=document.getElementById('craft-summary-area'); if(sa) sa.innerHTML=renderCraftSummary(craftState.plan);
+  const da=document.getElementById('craft-detail-area'); if(da) da.innerHTML=renderCraftDetail(craftState.plan);
 }
 
-function calcPlan(item, stock, mode, qMin, qMax) {
-  const plan = { item, canCraft: true, requirements: [], avgQuality: 0, _qSum: 0, _qUsed: 0 };
-  for (const req of item.requirements) {
-    let pool = stock.filter(m => m.materialName === req.materialName && m.status === 'available');
-    if (mode === 'range') pool = pool.filter(m => m.quality >= qMin && m.quality <= qMax);
-    pool.sort((a, b) => b.quality - a.quality);
-    let needed = req.quantity;
-    const batches = [];
-    let qSum = 0;
-    for (const b of pool) {
-      if (needed <= 0) break;
-      const use = Math.min(needed, b.quantity);
-      batches.push({ stockId: b._id, materialName: b.materialName, quality: b.quality, quantityUse: use, quantityAvail: b.quantity, location: b.location, ownerName: b.ownerName, ownerId: b.ownerId });
-      qSum += b.quality * use;
-      needed -= use;
-    }
-    const fulfilled = req.quantity - needed;
-    const avgQ = fulfilled > 0 ? Math.round(qSum / fulfilled) : 0;
-    plan.requirements.push({ materialName: req.materialName, needed: req.quantity, fulfilled, shortfall: needed, batches, avgQuality: avgQ, ok: needed === 0 });
-    if (needed > 0) plan.canCraft = false;
-    plan._qSum  += qSum;
-    plan._qUsed += fulfilled;
+// Calculate max complete crafts available with current quality filter
+function calcMaxCrafts(item, stock, mode, qMin, qMax) {
+  if(!item.requirements.length) return 0;
+  let maxCrafts = Infinity;
+  for(const req of item.requirements){
+    let pool=stock.filter(m=>m.materialName===req.materialName&&m.status==='available');
+    if(mode==='range') pool=pool.filter(m=>m.quality>=qMin&&m.quality<=qMax);
+    else              pool=pool.filter(m=>m.quality>=850);
+    const totalAvail=pool.reduce((s,m)=>s+m.quantity,0);
+    if(req.quantity>0) maxCrafts=Math.min(maxCrafts, Math.floor(totalAvail/req.quantity));
+    else maxCrafts=0;
   }
-  plan.avgQuality = plan._qUsed > 0 ? Math.round(plan._qSum / plan._qUsed) : 0;
+  return maxCrafts===Infinity?0:Math.max(0,maxCrafts);
+}
+
+function setMaxCrafts() {
+  if(!craftState.itemId){ toast('Select an item first.'); return; }
+  const item=state.craftItems.find(i=>i._id===craftState.itemId); if(!item) return;
+  // Sync mode settings
+  if(craftState.mode==='range'){
+    craftState.qMin=parseInt((document.getElementById('q-min')||{value:'0'}).value)||0;
+    craftState.qMax=parseInt((document.getElementById('q-max')||{value:'1000'}).value)||1000;
+  } else {
+    craftState.qMin=850; craftState.qMax=1000;
+  }
+  const max=calcMaxCrafts(item,state.stock,craftState.mode,craftState.qMin,craftState.qMax);
+  const hint=document.getElementById('craft-qty-hint');
+  if(max<=0){
+    toast('Not enough materials for even 1 craft with current quality settings.');
+    if(hint) hint.textContent='No eligible materials found. Try Quality Range mode or lower the min quality.';
+    return;
+  }
+  const el=document.getElementById('craft-qty');
+  if(el) el.value=max;
+  craftState.quantity=max;
+  if(hint) hint.textContent=`MAX: ${max}× — uses all eligible stock within quality settings.`;
+  recomputePlan();
+}
+
+function calcPlan(item, stock, mode, qMin, qMax, quantity=1) {
+  const plan={item,quantity,canCraft:true,requirements:[],avgQuality:0,_qSum:0,_qUsed:0};
+  for(const req of item.requirements){
+    const totalNeeded=req.quantity*quantity;
+    let pool=stock.filter(m=>m.materialName===req.materialName&&m.status==='available');
+    if(mode==='range') pool=pool.filter(m=>m.quality>=qMin&&m.quality<=qMax);
+    else              pool=pool.filter(m=>m.quality>=850);
+    pool.sort((a,b)=>b.quality-a.quality);
+    let needed=totalNeeded;
+    const batches=[];
+    let qSum=0;
+    for(const b of pool){
+      if(needed<=0) break;
+      const use=Math.min(needed,b.quantity);
+      batches.push({stockId:b._id,materialName:b.materialName,unit:b.unit,quality:b.quality,quantityUse:use,quantityAvail:b.quantity,system:b.system,location:b.location,ownerName:b.ownerName,ownerId:b.ownerId});
+      qSum+=b.quality*use; needed-=use;
+    }
+    const fulfilled=totalNeeded-needed;
+    const avgQ=fulfilled>0?Math.round(qSum/fulfilled):0;
+    plan.requirements.push({materialName:req.materialName,unit:req.unit,needed:totalNeeded,fulfilled,shortfall:needed,batches,avgQuality:avgQ,ok:needed<=0.0001});
+    if(needed>0.0001) plan.canCraft=false;
+    plan._qSum+=qSum; plan._qUsed+=fulfilled;
+  }
+  plan.avgQuality=plan._qUsed>0?Math.round(plan._qSum/plan._qUsed):0;
   return plan;
 }
 
-function qualLabel(q) { if(q>=900)return'Exceptional';if(q>=750)return'High';if(q>=500)return'Standard';if(q>=250)return'Low';return'Poor'; }
+function qualLabel(q){if(q>=900)return'Exceptional';if(q>=750)return'High';if(q>=500)return'Standard';if(q>=250)return'Low';return'Poor';}
 
-function renderCraftSummary(plan) {
-  const ok = plan.canCraft;
+function renderCraftSummary(plan){
+  const ok=plan.canCraft;
+  const qty=plan.quantity||1;
   return `<div class="craft-box${ok?'':' err'}">
+    ${qty>1?`<div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:6px;">${qty}&thinsp;&times;&thinsp;CRAFT</div>`:''}
     <div style="font-size:22px;font-weight:700;margin-bottom:6px;">${esc(plan.item.name)}</div>
     <div style="font-size:11px;font-weight:700;letter-spacing:.1em;color:${ok?'#000':'var(--red)'};margin-bottom:${ok?'16px':'0'};">${ok?'CRAFTABLE':'INSUFFICIENT MATERIALS'}</div>
-    ${ok?`<hr class="thin" style="margin:16px 0;"><div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#999;margin-bottom:4px;text-transform:uppercase;">Avg. Craft Quality</div>
+    ${ok?`<hr class="thin" style="margin:16px 0;">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#999;margin-bottom:4px;text-transform:uppercase;">Avg. Craft Quality</div>
     <div class="q-big">${plan.avgQuality}</div>
     <div style="font-size:11px;color:#999;margin-top:4px;">${qualLabel(plan.avgQuality)}</div>`:''}
   </div>`;
 }
 
-function renderCraftDetail(plan) {
-  let html = `<hr class="thick"><div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px;">Material Requirements</div>`;
-  for (const req of plan.requirements) {
-    const clr = req.ok ? '#000' : 'var(--red)';
-    html += `<div style="border-bottom:1px solid #e8e8e8;padding:20px 0;">
+function renderCraftDetail(plan){
+  const qty=plan.quantity||1;
+  let html=`<hr class="thick">
+  <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px;">
+    Material Requirements${qty>1?` <span style="font-weight:400;color:#999;font-size:11px;">for ${qty}× craft</span>`:''}
+  </div>`;
+  for(const req of plan.requirements){
+    const clr=req.ok?'#000':'var(--red)';
+    html+=`<div style="border-bottom:1px solid #e8e8e8;padding:20px 0;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;">
-        <div style="font-size:17px;font-weight:700;">${esc(req.materialName)}</div>
+        <div style="font-size:17px;font-weight:700;">${esc(req.materialName)} <span class="unit-tag">${esc(req.unit)}</span></div>
         <div style="font-size:12px;color:${clr};">${req.ok
-          ? `${req.fulfilled}&thinsp;/&thinsp;${req.needed} &nbsp;&middot;&nbsp; avg quality <strong>${req.avgQuality}</strong>`
-          : `${req.fulfilled}&thinsp;/&thinsp;${req.needed} available &mdash; short <strong>${req.shortfall}</strong>`}</div>
+          ?`${req.fulfilled}&thinsp;/&thinsp;${req.needed} ${esc(req.unit)} &nbsp;&middot;&nbsp; avg quality <strong>${req.avgQuality}</strong>`
+          :`${req.fulfilled}&thinsp;/&thinsp;${req.needed} ${esc(req.unit)} available &mdash; short <strong>${Math.round(req.shortfall*100)/100}</strong>`}</div>
       </div>`;
-    if (req.batches.length) {
-      html += `<table style="font-size:12px;">
-        <thead><tr><th>Quality</th><th>Use</th><th>Available</th><th>Location</th><th>Owner</th></tr></thead>
+    if(req.batches.length){
+      html+=`<table style="font-size:12px;">
+        <thead><tr><th>Quality</th><th>Use</th><th>Available</th><th>System</th><th>Location</th><th>Owner</th></tr></thead>
         <tbody>${req.batches.map(b=>`<tr>
           <td><span class="q">${b.quality}</span></td>
-          <td style="font-weight:600;">${b.quantityUse}</td>
+          <td style="font-weight:600;">${b.quantityUse} <span class="unit-inline">${esc(b.unit)}</span></td>
           <td style="color:#999;">${b.quantityAvail} total</td>
+          <td>${sysBadge(b.system)}</td>
           <td style="color:#555;">${esc(b.location)}</td>
           <td>${esc(b.ownerName)}</td>
         </tr>`).join('')}</tbody></table>`;
     } else {
-      html += `<div style="font-size:12px;color:var(--red);">No suitable materials found.</div>`;
+      html+=`<div style="font-size:12px;color:var(--red);">No suitable materials found in stock.</div>`;
     }
-    html += `</div>`;
+    html+=`</div>`;
   }
-  if (plan.canCraft) {
-    html += `<div style="margin-top:28px;padding-top:24px;border-top:1px solid #000;">
-      <button class="btn btn-red" onclick="executeCraft()">Mark Materials as Used for Crafting</button>
-      <div style="font-size:11px;color:#999;margin-top:8px;">Consumes the listed materials and records this in the log.</div>
+  if(plan.canCraft){
+    html+=`<div style="margin-top:28px;padding-top:24px;border-top:1px solid #000;">
+      <button class="btn btn-red" onclick="executeCraft()">Mark Materials as Used${qty>1?` (${qty}× craft)`:''}
+      </button>
+      <div style="font-size:11px;color:#999;margin-top:8px;">Consumes the listed materials and records this craft in the log.</div>
     </div>`;
   }
   return html;
 }
 
-async function executeCraft() {
-  const plan = craftState.plan;
-  if (!plan || !plan.canCraft) return;
-  if (!confirm(`Confirm crafting "${plan.item.name}"?\n\nThe listed materials will be consumed.`)) return;
-  const u = state.user;
-  const batches = plan.requirements.flatMap(r => r.batches.map(b => ({ stockId: b.stockId, quantityUse: b.quantityUse })));
-  const materialsDetail = plan.requirements.flatMap(r => r.batches.map(b => ({
-    materialName: b.materialName, quality: b.quality, quantityUsed: b.quantityUse,
-    location: b.location, ownerName: b.ownerName,
+async function executeCraft(){
+  const plan=craftState.plan; if(!plan||!plan.canCraft) return;
+  const qty=plan.quantity||1;
+  if(!confirm(`Confirm crafting ${qty>1?qty+'× ':''}"${plan.item.name}"?\n\nThe listed materials will be consumed.`)) return;
+  const u=state.user;
+  const batches=plan.requirements.flatMap(r=>r.batches.map(b=>({stockId:b.stockId,quantityUse:b.quantityUse})));
+  const materialsDetail=plan.requirements.flatMap(r=>r.batches.map(b=>({
+    materialName:b.materialName,unit:b.unit,quality:b.quality,quantityUsed:b.quantityUse,
+    system:b.system,location:b.location,ownerName:b.ownerName,
   })));
   try {
-    await convexMutation('materials:executeCraft', {
-      batches, itemName: plan.item.name, avgQuality: plan.avgQuality,
-      userId: u._id, userName: u.username, materialsDetail,
+    await convexMutation('materials:executeCraft',{
+      batches,itemName:plan.item.name,avgQuality:plan.avgQuality,
+      userId:u._id,userName:u.username,materialsDetail,
     });
-    craftState = { itemId: null, mode: 'best', qMin: 0, qMax: 1000, plan: null };
+    craftState={itemId:null,mode:'best',qMin:850,qMax:1000,quantity:1,plan:null};
     toast('Crafted! Materials logged.');
     await refreshAll();
     goTo('archive');
-  } catch(e) { alert(e.message); }
+  } catch(e){alert(e.message);}
 }
 
-// ─── ARCHIVE PAGE ────────────────────────────────────────────────────────────
-function pageArchive() {
+// ─── ARCHIVE PAGE ─────────────────────────────────────────────────────────────
+function pageArchive(){
   return `
     <div class="page-title">LOG</div>
     <div class="page-sub">${state.archive.length} action${state.archive.length!==1?'s':''} recorded</div>
     <div id="archive-table">${renderArchiveTable()}</div>`;
 }
-
-function renderArchiveTable() {
-  if (!state.archive.length) return `<div class="empty">No actions logged yet.</div>`;
-  const labels = { crafted:'Crafted', material_added:'Added', material_removed:'Removed', item_created:'New Item', user_joined:'Joined' };
+function renderArchiveTable(){
+  if(!state.archive.length) return `<div class="empty">No actions logged yet.</div>`;
+  const labels={crafted:'Crafted',material_added:'Added',material_removed:'Removed',item_created:'New Item',user_joined:'Joined'};
   return `<table>
     <thead><tr><th>Date</th><th>Action</th><th>User</th><th>Details</th></tr></thead>
     <tbody>${state.archive.map(e=>`<tr>
@@ -791,61 +1015,46 @@ function renderArchiveTable() {
       <td style="font-size:12px;color:#555;">${fmtArchiveDetails(e)}</td>
     </tr>`).join('')}</tbody></table>`;
 }
-
-function fmtArchiveDetails(e) {
-  const d = e.details || {};
-  switch(e.type) {
+function fmtArchiveDetails(e){
+  const d=e.details||{};
+  switch(e.type){
     case 'material_added':
-      return `${esc(d.materialName)} &middot; qty ${d.quantity} &middot; quality ${d.quality} &middot; ${esc(d.location)}`;
+      return `${esc(d.materialName)} &middot; ${d.quantity} ${esc(d.unit||'')} &middot; q${d.quality} &middot; ${sysBadge(d.system)}${esc(d.location)}`;
     case 'material_removed':
-      return `${esc(d.materialName)} &middot; qty ${d.quantity} &middot; ${esc(d.location)}`;
+      return `${esc(d.materialName)} &middot; ${d.quantity} ${esc(d.unit||'')} &middot; ${sysBadge(d.system)}${esc(d.location)}`;
     case 'crafted':
-      const lines = (d.materialsUsed||[]).map(m=>`${esc(m.materialName)} &times;${m.quantityUsed} (q${m.quality}, ${esc(m.ownerName)}, ${esc(m.location)})`).join(' &nbsp;|&nbsp; ');
+      const lines=(d.materialsUsed||[]).map(m=>`${esc(m.materialName)} &times;${m.quantityUsed}${esc(m.unit||'')} (q${m.quality}, ${esc(m.ownerName)}, ${sysBadge(m.system)}${esc(m.location)})`).join(' | ');
       return `<strong>${esc(d.itemName)}</strong> &middot; avg q${d.avgQuality}<br><span style="font-size:11px;color:#aaa;">${lines}</span>`;
     case 'item_created':
-      return `${esc(d.itemName)} &middot; ${(d.requirements||[]).map(r=>`${esc(r.materialName)}&times;${r.quantity}`).join(', ')}`;
+      return `${esc(d.itemName)} &middot; ${(d.requirements||[]).map(r=>`${esc(r.materialName)}&times;${r.quantity}${esc(r.unit||'')}`).join(', ')}`;
     case 'user_joined':
       return `Roles: ${(d.roles||[]).join(', ')}`;
-    default:
-      return JSON.stringify(d);
+    default: return JSON.stringify(d);
   }
 }
 
-// ─── SHARED HELPERS ──────────────────────────────────────────────────────────
-function togglePanel(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const wasOpen = el.classList.contains('open');
+// ─── SHARED HELPERS ───────────────────────────────────────────────────────────
+function togglePanel(id){
+  const el=document.getElementById(id); if(!el) return;
+  const wasOpen=el.classList.contains('open');
   el.classList.toggle('open');
-  if (!wasOpen && id === 'add-item-panel') {
-    _reqCount = 0;
-    const rr = document.getElementById('req-rows');
-    if (rr) { rr.innerHTML = ''; addReqRow(); }
+  if(!wasOpen&&id==='add-item-panel'){
+    const rr=document.getElementById('req-rows'); if(rr){rr.innerHTML='';addReqRow();}
   }
 }
 
-function onMatNameChange() {
-  const sel = document.getElementById('mat-name-sel');
-  const fg  = document.getElementById('mat-new-field');
-  if (sel && fg) fg.style.display = sel.value === '__new__' ? 'block' : 'none';
-}
-
-function attachPageEvents() { /* hooks for keyboard nav etc — extended as needed */ }
-
-// ─── INIT ────────────────────────────────────────────────────────────────────
-async function init() {
-  if (!CONVEX_URL) { showSetup(); return; }
-  // Try to restore session
-  const uid = localStorage.getItem('mattrack_uid');
-  if (uid) {
-    try {
-      const user = await convexQuery('users:getById', { userId: uid });
-      if (user) { state.user = user; showApp(); return; }
-    } catch(e) { /* fall through to auth */ }
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+async function init(){
+  if(!CONVEX_URL){showSetup();return;}
+  const uid=localStorage.getItem('mattrack_uid');
+  if(uid){
+    try{
+      const user=await convexQuery('users:getById',{userId:uid});
+      if(user){state.user=user;showApp();return;}
+    }catch(e){/* fall through */}
   }
   showAuth();
 }
-
 init();
 </script>
 </body>

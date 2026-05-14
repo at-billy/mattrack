@@ -2,13 +2,48 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 const DEFAULT_CATALOG = [
-  "Aluminum", "Steel", "Copper", "Titanium", "Carbon Fiber",
-  "Oak Wood", "Pine Wood", "Walnut Wood", "Bamboo",
-  "Granite", "Marble", "Ceramic", "Borosilicate Glass",
-  "Cotton Fiber", "Kevlar", "Epoxy Resin", "Polyurethane", "Silicone",
-  "Lithium", "Zinc", "Nickel", "Cobalt",
-  "Leather", "Canvas", "Brass", "Bronze",
-  "Polycarbonate", "Nylon", "PVC", "Acrylic", "Foam", "Cork",
+  // Ores — SCU
+  { name: "Agricium",      category: "Ores", unit: "SCU" },
+  { name: "Aluminium",     category: "Ores", unit: "SCU" },
+  { name: "Aslarite",      category: "Ores", unit: "SCU" },
+  { name: "Beryl",         category: "Ores", unit: "SCU" },
+  { name: "Bexalite",      category: "Ores", unit: "SCU" },
+  { name: "Borase",        category: "Ores", unit: "SCU" },
+  { name: "Copper",        category: "Ores", unit: "SCU" },
+  { name: "Corundum",      category: "Ores", unit: "SCU" },
+  { name: "Gold",          category: "Ores", unit: "SCU" },
+  { name: "Hephaestanite", category: "Ores", unit: "SCU" },
+  { name: "Ice",           category: "Ores", unit: "SCU" },
+  { name: "Iron",          category: "Ores", unit: "SCU" },
+  { name: "Laranite",      category: "Ores", unit: "SCU" },
+  { name: "Lindinium",     category: "Ores", unit: "SCU" },
+  { name: "Ouratite",      category: "Ores", unit: "SCU" },
+  { name: "Quantainium",   category: "Ores", unit: "SCU" },
+  { name: "Quartz",        category: "Ores", unit: "SCU" },
+  { name: "Riccite",       category: "Ores", unit: "SCU" },
+  { name: "Savrilium",     category: "Ores", unit: "SCU" },
+  { name: "Silicon",       category: "Ores", unit: "SCU" },
+  { name: "Stileron",      category: "Ores", unit: "SCU" },
+  { name: "Taranite",      category: "Ores", unit: "SCU" },
+  { name: "Tin",           category: "Ores", unit: "SCU" },
+  { name: "Titanium",      category: "Ores", unit: "SCU" },
+  { name: "Torite",        category: "Ores", unit: "SCU" },
+  { name: "Tungsten",      category: "Ores", unit: "SCU" },
+  // Vehicle Mining — SCU
+  { name: "Beradom",       category: "Vehicle Mining", unit: "SCU" },
+  { name: "Carinite",      category: "Vehicle Mining", unit: "SCU" },
+  { name: "Feynmaline",    category: "Vehicle Mining", unit: "SCU" },
+  { name: "Glacosite",     category: "Vehicle Mining", unit: "SCU" },
+  // FPS Mining — UNIT (gems)
+  { name: "Aphorite",      category: "FPS Mining", unit: "UNIT" },
+  { name: "Carinite",      category: "FPS Mining", unit: "UNIT" },
+  { name: "Carinite Pure", category: "FPS Mining", unit: "UNIT" },
+  { name: "Dolivine",      category: "FPS Mining", unit: "UNIT" },
+  { name: "Hadanite",      category: "FPS Mining", unit: "UNIT" },
+  { name: "Jaclium",       category: "FPS Mining", unit: "UNIT" },
+  { name: "Janalite",      category: "FPS Mining", unit: "UNIT" },
+  { name: "Sadaryx",       category: "FPS Mining", unit: "UNIT" },
+  { name: "Saldynium",     category: "FPS Mining", unit: "UNIT" },
 ];
 
 export const getCatalog = query({
@@ -23,20 +58,20 @@ export const seedCatalog = mutation({
   handler: async (ctx) => {
     const existing = await ctx.db.query("materialCatalog").first();
     if (existing) return;
-    for (const name of DEFAULT_CATALOG) {
-      await ctx.db.insert("materialCatalog", { name });
+    for (const entry of DEFAULT_CATALOG) {
+      await ctx.db.insert("materialCatalog", entry);
     }
   },
 });
 
 export const addToCatalog = mutation({
-  args: { name: v.string() },
-  handler: async (ctx, { name }) => {
+  args: { name: v.string(), category: v.string(), unit: v.string() },
+  handler: async (ctx, args) => {
     const exists = await ctx.db
       .query("materialCatalog")
-      .withIndex("by_name", (q) => q.eq("name", name))
+      .withIndex("by_name", (q) => q.eq("name", args.name))
       .first();
-    if (!exists) await ctx.db.insert("materialCatalog", { name });
+    if (!exists) await ctx.db.insert("materialCatalog", args);
   },
 });
 
@@ -53,8 +88,11 @@ export const getAvailable = query({
 export const add = mutation({
   args: {
     materialName: v.string(),
+    category: v.string(),
+    unit: v.string(),
     quality: v.number(),
     quantity: v.number(),
+    system: v.string(),
     location: v.string(),
     ownerId: v.id("users"),
     ownerName: v.string(),
@@ -75,7 +113,13 @@ export const remove = mutation({
       type: "material_removed",
       userId,
       userName: item.ownerName,
-      details: { materialName: item.materialName, quantity: item.quantity, location: item.location },
+      details: {
+        materialName: item.materialName,
+        unit: item.unit,
+        quantity: item.quantity,
+        system: item.system,
+        location: item.location,
+      },
     });
   },
 });
@@ -92,8 +136,10 @@ export const executeCraft = mutation({
     materialsDetail: v.array(
       v.object({
         materialName: v.string(),
+        unit: v.string(),
         quality: v.number(),
         quantityUsed: v.number(),
+        system: v.string(),
         location: v.string(),
         ownerName: v.string(),
       })

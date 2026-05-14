@@ -9,7 +9,7 @@ export const authenticate = query({
       .withIndex("by_username", (q) => q.eq("username", username))
       .first();
     if (!user || user.passwordHash !== passwordHash) return null;
-    return { _id: user._id, username: user.username, email: user.email, roles: user.roles };
+    return { _id: user._id, username: user.username, roles: user.roles };
   },
 });
 
@@ -18,14 +18,13 @@ export const getById = query({
   handler: async (ctx, { userId }) => {
     const user = await ctx.db.get(userId);
     if (!user) return null;
-    return { _id: user._id, username: user.username, email: user.email, roles: user.roles };
+    return { _id: user._id, username: user.username, roles: user.roles };
   },
 });
 
 export const signUp = mutation({
   args: {
     username: v.string(),
-    email: v.string(),
     passwordHash: v.string(),
     roles: v.array(v.string()),
   },
@@ -37,7 +36,7 @@ export const signUp = mutation({
     if (existing) throw new Error("USERNAME_TAKEN");
     const id = await ctx.db.insert("users", args);
     const user = await ctx.db.get(id);
-    return { _id: user!._id, username: user!.username, email: user!.email, roles: user!.roles };
+    return { _id: user!._id, username: user!.username, roles: user!.roles };
   },
 });
 

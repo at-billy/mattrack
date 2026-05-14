@@ -11,15 +11,17 @@ export const getAll = query({
 export const add = mutation({
   args: {
     name: v.string(),
+    category: v.optional(v.string()),
     requirements: v.array(
-      v.object({ materialName: v.string(), quantity: v.number() })
+      v.object({ materialName: v.string(), quantity: v.number(), unit: v.string() })
     ),
     userId: v.id("users"),
     userName: v.string(),
   },
-  handler: async (ctx, { name, requirements, userId, userName }) => {
+  handler: async (ctx, { name, category, requirements, userId, userName }) => {
     const id = await ctx.db.insert("craftItems", {
       name,
+      category,
       requirements,
       createdBy: userId,
       createdByName: userName,
@@ -28,7 +30,7 @@ export const add = mutation({
       type: "item_created",
       userId,
       userName,
-      details: { itemName: name, requirements },
+      details: { itemName: name, category, requirements },
     });
     return id;
   },
