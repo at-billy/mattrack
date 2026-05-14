@@ -1748,6 +1748,7 @@ function taskTypeDesc(t) {
     case 'craft':   {
       let s=`Craft <strong>${esc(t.itemName||'?')}</strong>`;
       if(t.quantity) s+=` &times;${t.quantity}`;
+      if(t.qualityMin||t.qualityMax) s+=` &middot; quality ${t.qualityMin||0}–${t.qualityMax||1000}`;
       return s; }
     case 'deliver': {
       let s=`Deliver`;
@@ -1913,7 +1914,11 @@ function renderCTTypeFields(type) {
           ${state.craftItems.map(i=>`<option value="${esc(i.name)}">${esc(i.name)}</option>`).join('')}
         </select>
       </div>
-      <div class="field"><label class="lbl">Quantity</label><input type="number" id="ct-qty" min="1" step="1" placeholder="e.g. 5" style="max-width:120px;"></div>`;
+      <div class="field"><label class="lbl">Quantity</label><input type="number" id="ct-qty" min="1" step="1" placeholder="e.g. 5" style="max-width:120px;"></div>
+      <div class="grid2" style="gap:12px;">
+        <div class="field"><label class="lbl">Min Quality (opt)</label><input type="number" id="ct-qmin" min="0" max="1000" placeholder="0"></div>
+        <div class="field"><label class="lbl">Max Quality (opt)</label><input type="number" id="ct-qmax" min="0" max="1000" placeholder="1000"></div>
+      </div>`;
     case 'deliver': return `
       <div class="field"><label class="lbl">What (material/item name)</label><input type="text" id="ct-deliver-what" placeholder="e.g. Iron, P6-LR Sniper Rifle"></div>
       <div class="grid2" style="gap:12px;">
@@ -1978,6 +1983,10 @@ async function confirmCreateTask() {
     if(!args.itemName){alert('Select an item');return;}
     const q=parseInt((document.getElementById('ct-qty')||{value:''}).value);
     if(!isNaN(q)&&q>0) args.quantity=q;
+    const qmin=parseInt((document.getElementById('ct-qmin')||{value:''}).value);
+    const qmax=parseInt((document.getElementById('ct-qmax')||{value:''}).value);
+    if(!isNaN(qmin)&&qmin>0) args.qualityMin=qmin;
+    if(!isNaN(qmax)&&qmax>0) args.qualityMax=qmax;
   } else if(type==='deliver'){
     args.materialName=(document.getElementById('ct-deliver-what')||{value:''}).value.trim();
     const q=parseFloat((document.getElementById('ct-qty')||{value:''}).value);
