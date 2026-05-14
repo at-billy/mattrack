@@ -32,61 +32,71 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 
-/* ─── THE NAV — OMA WORD FLOW ───────────────────────────────────────────────
-   All page names displayed simultaneously as massive words, flowing like
-   editorial typography. Active page is underlined. Admin gets the OMA
-   "SEARCH" treatment: outlined/stroke text, no fill.
+/* ─── THE NAV — exact OMA.com two-row structure ──────────────────────────────
+   Row 1 (.oma-nav):     main words  — clamp(28px,5vw,72px) weight 900 -1px
+   Row 2 (.oma-sub-nav): sub pages   — clamp(18px,3vw,42px) weight 900 -0.5px
+   Active sub-item: border-bottom 3px solid #000 (template pattern exactly).
+   ADMIN / utility items: -webkit-text-stroke outline, like OMA's "SEARCH".
 ──────────────────────────────────────────────────────────────────────────── */
 #nav{
   position:sticky;top:0;z-index:200;
   background:#fff;
-  border-bottom:2px solid #000;
-  padding:10px 0 0;
 }
-.nav-words{
+.oma-nav{
   display:flex;
-  flex-wrap:wrap;
-  align-items:baseline;
-  line-height:1;
+  padding:18px 40px 0;
 }
-.nav-word{
-  font-size:clamp(38px,6vw,100px);
+.oma-nav-item{
+  font-size:clamp(28px,5vw,72px);
   font-weight:900;
-  letter-spacing:-0.04em;
+  letter-spacing:-1px;
+  line-height:1;
+  padding-right:48px;
+  cursor:pointer;
+  color:#000;
+  text-transform:uppercase;
+  user-select:none;
+}
+.oma-nav-item.outline{
+  -webkit-text-stroke:2px #000;
+  color:transparent;
+}
+.oma-nav-item:hover{opacity:.6;}
+.oma-sub-nav{
+  display:flex;
+  padding:4px 40px 0;
+  gap:36px;
+}
+.oma-sub-item{
+  font-size:clamp(18px,3vw,42px);
+  font-weight:900;
+  letter-spacing:-0.5px;
   text-transform:uppercase;
   cursor:pointer;
   user-select:none;
-  white-space:nowrap;
-  padding-right:0.28em;
-  padding-bottom:8px;
-  line-height:1;
+  border-bottom:3px solid transparent;
+  padding-bottom:2px;
   color:#000;
-  transition:opacity .12s;
 }
-.nav-word:hover{opacity:.45;}
-.nav-word.active{
-  text-decoration:underline;
-  text-decoration-thickness:3px;
-  text-underline-offset:8px;
-  opacity:1;
-}
-/* ADMIN = outlined stroke, like OMA's SEARCH */
-.nav-word.nav-util{
-  -webkit-text-stroke:2.5px #000;
+.oma-sub-item.active{border-bottom:3px solid #000;}
+.oma-sub-item:hover{opacity:.6;}
+.oma-sub-item.outline{
+  -webkit-text-stroke:2px #000;
   color:transparent;
 }
-.nav-word.nav-util:hover{opacity:.55;}
-.nav-word.nav-util.active{
+.oma-sub-item.outline.active{
   color:#000;
   -webkit-text-stroke:0;
+  border-bottom:3px solid #000;
 }
-.nav-user-bar{
+.oma-user-bar{
   border-top:1px solid #e0e0e0;
   display:flex;
   align-items:center;
   gap:16px;
   font-size:11px;
-  padding:6px 0 8px;
+  padding:8px 40px;
+  margin-top:4px;
 }
 
 /* ─── ROLE + STATUS TAGS ───────────────────────────────────────────────── */
@@ -112,7 +122,7 @@ body{
 .live-dot{animation:pulse 1.6s infinite;}
 
 /* ─── PAGE SHELL ────────────────────────────────────────────────────────── */
-.page{padding:48px 64px 120px;max-width:none;}
+.page{padding:24px 40px 60px;max-width:none;}
 /* Page title: small section label — nav already carries the big type */
 .page-title{
   font-size:10px;
@@ -381,7 +391,7 @@ tbody tr:hover .role-tag.admin{background:#fff;color:#000;}
 .ov-wrap{padding:0;}
 .ov-header{
   display:flex;justify-content:space-between;align-items:flex-end;
-  padding:48px 64px 36px;
+  padding:32px 40px 28px;
   border-bottom:2px solid #000;
 }
 /* Date as the graphic headline — OMA uses editorial numbers/dates as art */
@@ -400,7 +410,7 @@ tbody tr:hover .role-tag.admin{background:#fff;color:#000;}
 /* Stats strip: numbers fill the column */
 .ov-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #000;}
 .ov-stat{
-  padding:40px 0 40px 64px;
+  padding:40px 0 40px 40px;
   border-right:1px solid #e0e0e0;
   cursor:default;
 }
@@ -421,8 +431,8 @@ tbody tr:hover .role-tag.admin{background:#fff;color:#000;}
   display:grid;grid-template-columns:3fr 2fr;
   border-bottom:2px solid #000;
 }
-.ov-col{padding:40px 64px;}
-.ov-col+.ov-col{border-left:1px solid #e0e0e0;padding-left:48px;}
+.ov-col{padding:40px 40px;}
+.ov-col+.ov-col{border-left:1px solid #e0e0e0;padding-left:40px;}
 .ov-col-head{
   font-size:8px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;
   margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid #000;
@@ -841,19 +851,19 @@ function hasAdmin() { return state.allUsers.some(u=>(u.roles||[]).includes('admi
 
 function renderNav() {
   const u=state.user; if(!u) return;
-  // 'overview' maps to brand label MATTRACK — both brand identity and home tab
-  const tabs=[['overview','MATTRACK'],['materials','MATERIALS'],['craft','CRAFT'],['inventory','INVENTORY'],['tasks','TASKS'],['archive','LOG']];
-  if(isAdmin(u)) tabs.push(['admin','ADMIN']);
+  const admin=isAdmin(u);
   const noAdmin=!hasAdmin();
+  // Sub-nav: the content pages. Overview is reached by clicking MATTRACK.
+  const subTabs=[['materials','MATERIALS'],['craft','CRAFT'],['inventory','INVENTORY'],['tasks','TASKS'],['archive','LOG']];
   document.getElementById('nav').innerHTML=`
-    <div class="nav-words">
-      ${tabs.map(([id,lbl])=>{
-        const active=currentPage===id;
-        const util=id==='admin';
-        return `<span class="nav-word${active?' active':''}${util?' nav-util':''}" onclick="goTo('${id}')">${lbl}</span>`;
-      }).join('')}
+    <div class="oma-nav">
+      <div class="oma-nav-item" onclick="goTo('overview')">MATTRACK</div>
+      ${admin?`<div class="oma-nav-item outline" onclick="goTo('admin')">ADMIN</div>`:''}
     </div>
-    <div class="nav-user-bar">
+    <div class="oma-sub-nav">
+      ${subTabs.map(([id,lbl])=>`<div class="oma-sub-item${currentPage===id?' active':''}" onclick="goTo('${id}')">${lbl}</div>`).join('')}
+    </div>
+    <div class="oma-user-bar">
       <span class="live-dot"></span>
       <span style="font-weight:700;">${esc(u.username)}</span>
       ${u.roles.map(r=>roleTagHtml(r)).join('')}
