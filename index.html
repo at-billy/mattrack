@@ -80,6 +80,10 @@ tbody tr:hover{background:#fafafa;}
 .badge-crafter_approved{background:#16a34a;color:#fff;}
 .badge-crafter_denied{background:#888;color:#fff;}
 .badge-admin_granted{background:#000;color:#fff;}
+.badge-item_handed_out{background:#0ea5e9;color:#fff;}
+.inv-quality{font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;}
+.inv-row{padding:20px 0;border-bottom:1px solid #e8e8e8;}
+.inv-row:last-child{border-bottom:none;}
 .btn-del{background:none;border:1px solid #fca5a5;color:var(--red);padding:4px 10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
 .btn-del:hover{background:var(--red);color:#fff;border-color:var(--red);}
 .pending-note{background:#fffbeb;border:1px solid #fcd34d;padding:10px 14px;font-size:12px;color:#92400e;margin-top:10px;line-height:1.6;display:none;}
@@ -99,6 +103,10 @@ tbody tr:hover{background:#fafafa;}
 .code-block{background:#f5f5f5;border:1px solid #ddd;padding:8px 12px;font-family:monospace;font-size:12px;margin:8px 0;}
 
 #toast{position:fixed;bottom:28px;right:28px;background:#000;color:#fff;padding:12px 20px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:none;z-index:999;}
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:24px;}
+#modal-overlay.open{display:flex;}
+.modal-box{background:#fff;padding:36px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:18px;font-weight:900;letter-spacing:-.5px;margin-bottom:24px;}
 .search-row{display:flex;gap:12px;align-items:center;margin-bottom:24px;}
 .search-row input{max-width:260px;margin:0;}
 
@@ -121,6 +129,7 @@ tbody tr:hover{background:#fafafa;}
 
 <div id="root"></div>
 <div id="toast"></div>
+<div id="modal-overlay" onclick="modalOverlayClick(event)"><div class="modal-box" id="modal-box"></div></div>
 
 <script>
 // ─── STATIC DATA ─────────────────────────────────────────────────────────────
@@ -215,10 +224,12 @@ function itemCatLabel(id) {
 // ─── CONFIG / STATE ───────────────────────────────────────────────────────────
 let CONVEX_URL = localStorage.getItem('mattrack_url') || 'https://notable-grasshopper-505.convex.cloud';
 let currentPage = 'materials';
-const state = { user: null, stock: [], craftItems: [], archive: [], allUsers: [] };
+const state = { user: null, stock: [], craftItems: [], archive: [], allUsers: [], inventory: [] };
 let craftState = { itemId: null, mode: 'best', qMin: 850, qMax: 1000, quantity: 1, plan: null };
 let itemsFilter = 'all';
+let invFilter = 'available'; // "available" | "handed_out"
 let pollTimer = null;
+let pendingCraft = null; // holds craft data while user picks location
 
 // ─── CONVEX HTTP HELPERS ──────────────────────────────────────────────────────
 async function convexQuery(path, args = {}) {
@@ -275,16 +286,18 @@ function locationOptions(system) {
 // ─── POLLING / DATA ───────────────────────────────────────────────────────────
 async function refreshAll(silent=false) {
   try {
-    const [stock, items, archive, allUsers] = await Promise.all([
+    const [stock, items, archive, allUsers, inventory] = await Promise.all([
       convexQuery('materials:getAvailable'),
       convexQuery('craftItems:getAll'),
       convexQuery('archive:getAll'),
       convexQuery('users:getAllUsers'),
+      convexQuery('inventory:getAll'),
     ]);
-    state.stock      = stock    || [];
-    state.craftItems = items    || [];
-    state.archive    = archive  || [];
-    state.allUsers   = allUsers || [];
+    state.stock      = stock     || [];
+    state.craftItems = items     || [];
+    state.archive    = archive   || [];
+    state.allUsers   = allUsers  || [];
+    state.inventory  = inventory || [];
     // Sync logged-in user's roles from server
     if(state.user) {
       const fresh=state.allUsers.find(u=>u._id===state.user._id);
@@ -302,9 +315,15 @@ function updateLiveView() {
     const t=document.getElementById('mat-table'); if(t) t.innerHTML=renderMatTable(av);
     const s=document.getElementById('mat-count'); if(s) s.textContent=`${av.length} entr${av.length===1?'y':'ies'} in stock`;
   }
-  if (currentPage==='items') {
-    const el=document.getElementById('items-list'); if(el) el.innerHTML=renderItemsList();
-    const s=document.getElementById('items-count'); if(s) s.textContent=`${state.craftItems.length} item${state.craftItems.length!==1?'s':''} defined`;
+  if (currentPage==='inventory') {
+    const el=document.getElementById('inv-list'); if(el) el.innerHTML=renderInvList();
+    const avail=state.inventory.filter(i=>i.status==='available').length;
+    const s=document.getElementById('inv-count'); if(s) s.textContent=`${avail} item${avail!==1?'s':''} in stock`;
+  }
+  if (currentPage==='craft') {
+    // Update craft item selector options in case new items were added
+    const sel=document.getElementById('craft-sel');
+    if(sel) { const prev=sel.value; sel.innerHTML=craftItemOptgroups(); if(prev) sel.value=prev; }
   }
   if (currentPage==='archive') {
     const el=document.getElementById('archive-table'); if(el) el.innerHTML=renderArchiveTable();
@@ -454,7 +473,7 @@ function hasAdmin() { return state.allUsers.some(u=>(u.roles||[]).includes('admi
 
 function renderNav() {
   const u=state.user; if(!u) return;
-  const tabs=[['materials','Materials'],['craft','Craft'],['items','Items'],['archive','Log']];
+  const tabs=[['materials','Materials'],['craft','Craft'],['inventory','Inventory'],['archive','Log']];
   if(isAdmin(u)) tabs.push(['admin','Admin']);
   const noAdmin=!hasAdmin();
   document.getElementById('nav').innerHTML=`
@@ -469,7 +488,7 @@ function renderNav() {
     </div>`;
 }
 function renderPage() {
-  const pages={materials:pageMaterials,craft:pageCraft,items:pageItems,archive:pageArchive,admin:pageAdmin};
+  const pages={materials:pageMaterials,craft:pageCraft,inventory:pageInventory,archive:pageArchive,admin:pageAdmin};
   const pw=document.getElementById('page-wrap');
   if(pw) pw.innerHTML=`<div class="page">${(pages[currentPage]||pageMaterials)()}</div>`;
 }
@@ -785,7 +804,8 @@ async function addItem() {
   try {
     await convexMutation('craftItems:add',{name,requirements:reqs,category,userId:u._id,userName:u.username});
     toast('Item saved');
-    togglePanel('add-item-panel');
+    // close whichever panel is open
+    ['add-item-panel','def-item-panel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.remove('open'); });
     await refreshAll();
   } catch(e){alert(e.message);}
 }
@@ -806,21 +826,50 @@ function craftItemOptgroups() {
 
 function pageCraft() {
   const u=state.user;
-  if(!u.roles.includes('crafter')) {
-    const isPending=u.roles.includes('crafter_pending');
-    return `
-    <div class="page-title">CRAFT</div>
-    <div style="margin-top:24px;max-width:480px;">
-      ${isPending
-        ?`<div class="pending-note" style="display:block;margin-bottom:16px;">⏳ <strong>Crafter approval pending</strong> — An admin needs to approve your crafter application. You'll gain access once approved.</div>`
-        :`<p style="color:#555;margin-bottom:20px;">Your account doesn't have the Crafter role. Request crafter access below — an admin will need to approve it.</p>
-        <button class="btn btn-black" onclick="requestCrafter()">Request Crafter Access</button>`}
-    </div>`;
-  }
+  const iscrafter=u.roles.includes('crafter');
+  const isPending=u.roles.includes('crafter_pending');
   const cs=craftState;
   return `
     <div class="page-title">CRAFT</div>
-    <div class="page-sub" style="margin-bottom:40px;">Select an item and configure quality preferences</div>
+
+    ${/* ── Define new craftable item (moved from Items tab) ──*/`
+    <div style="margin-bottom:32px;">
+      <button class="btn btn-outline" onclick="togglePanel('def-item-panel')">+ Define New Craftable Item</button>
+      <div id="def-item-panel" class="collapsible" style="margin-top:16px;">
+        <div class="panel">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Define Craftable Item</div>
+          <div class="grid2" style="max-width:680px;">
+            <div class="field">
+              <label class="lbl">Item Name</label>
+              <input type="text" id="item-name-inp" placeholder="e.g. Quantum Drive Component…">
+            </div>
+            <div class="field">
+              <label class="lbl">Category</label>
+              <select id="item-cat-sel">
+                ${ITEM_CATEGORIES.map(c=>`<option value="${c.id}">${c.label}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:20px 0 12px;">Required Materials</div>
+          <div id="req-rows"></div>
+          <button class="btn btn-outline btn-sm" style="margin-bottom:20px;" onclick="addReqRow()">+ Add Requirement</button>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-black" onclick="addItem()">Save Item</button>
+            <button class="btn btn-outline" onclick="togglePanel('def-item-panel')">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>`}
+
+    ${!iscrafter ? `
+    <div style="max-width:480px;">
+      ${isPending
+        ?`<div class="pending-note" style="display:block;">⏳ <strong>Crafter approval pending</strong> — An admin needs to approve your crafter application before you can craft items.</div>`
+        :`<div class="pending-note" style="display:block;background:#f5f5f5;border-left-color:#ccc;color:#555;">You need the Crafter role to craft items. Request access below — an admin will approve it.</div>
+        <button class="btn btn-black" style="margin-top:16px;" onclick="requestCrafter()">Request Crafter Access</button>`}
+    </div>` : `
+    <hr class="thick">
+    <div class="page-sub" style="margin-bottom:32px;margin-top:8px;">Select an item and configure quality preferences</div>
     <div class="grid2" style="margin-bottom:0;">
       <div>
         <div class="field">
@@ -859,7 +908,7 @@ function pageCraft() {
         ${cs.plan?renderCraftSummary(cs.plan):`<div style="padding:32px;border:1px solid #e8e8e8;text-align:center;color:#bbb;font-size:13px;">Select an item to see crafting details.</div>`}
       </div>
     </div>
-    <div id="craft-detail-area" style="margin-top:32px;">${cs.plan?renderCraftDetail(cs.plan):''}</div>`;
+    <div id="craft-detail-area" style="margin-top:32px;">${cs.plan?renderCraftDetail(cs.plan):''}</div>`}`;
 }
 
 async function requestCrafter() {
@@ -1034,18 +1083,50 @@ function renderCraftDetail(plan){
   }
   if(plan.canCraft){
     html+=`<div style="margin-top:28px;padding-top:24px;border-top:1px solid #000;">
-      <button class="btn btn-red" onclick="executeCraft()">Mark Materials as Used${qty>1?` (${qty}× craft)`:''}
+      <button class="btn btn-red" onclick="openCraftLocationModal()">Craft${qty>1?` (${qty}×)`:''}
       </button>
-      <div style="font-size:11px;color:#999;margin-top:8px;">Consumes the listed materials and records this craft in the log.</div>
+      <div style="font-size:11px;color:#999;margin-top:8px;">Next: select your crafting location, then materials will be consumed and the item added to inventory.</div>
     </div>`;
   }
   return html;
 }
 
-async function executeCraft(){
+function openCraftLocationModal() {
   const plan=craftState.plan; if(!plan||!plan.canCraft) return;
   const qty=plan.quantity||1;
-  if(!confirm(`Confirm crafting ${qty>1?qty+'× ':''}"${plan.item.name}"?\n\nThe listed materials will be consumed.`)) return;
+  showModal(`
+    <div class="modal-title">Where did you craft ${qty>1?qty+'× ':''}${esc(plan.item.name)}?</div>
+    <div class="field">
+      <label class="lbl">System</label>
+      <select id="cl-sys" onchange="onCLSysChange()">
+        <option value="">Select system…</option>
+        ${Object.keys(SYSTEMS).map(s=>`<option value="${s}">${s}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field">
+      <label class="lbl">Location</label>
+      <select id="cl-loc">
+        <option value="">Select system first…</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-red" onclick="confirmCraft()">Confirm Craft</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+
+function onCLSysChange() {
+  const sys=(document.getElementById('cl-sys')||{value:''}).value;
+  const loc=document.getElementById('cl-loc');
+  if(loc) loc.innerHTML=sys?locationOptions(sys):'<option value="">Select system first…</option>';
+}
+
+async function confirmCraft() {
+  const plan=craftState.plan; if(!plan||!plan.canCraft) return;
+  const system=(document.getElementById('cl-sys')||{value:''}).value;
+  const location=(document.getElementById('cl-loc')||{value:''}).value;
+  if(!system||!location){alert('Select a system and location');return;}
+  const qty=plan.quantity||1;
   const u=state.user;
   const batches=plan.requirements.flatMap(r=>r.batches.map(b=>({stockId:b.stockId,quantityUse:b.quantityUse})));
   const materialsDetail=plan.requirements.flatMap(r=>r.batches.map(b=>({
@@ -1053,14 +1134,26 @@ async function executeCraft(){
     system:b.system,location:b.location,ownerName:b.ownerName,
   })));
   try {
+    closeModal();
     await convexMutation('materials:executeCraft',{
       batches,itemName:plan.item.name,avgQuality:plan.avgQuality,
       userId:u._id,userName:u.username,materialsDetail,
     });
+    await convexMutation('inventory:add',{
+      itemName:plan.item.name,
+      itemId:plan.item._id,
+      category:plan.item.category,
+      quantity:qty,
+      avgQuality:plan.avgQuality,
+      craftedBy:u._id,
+      craftedByName:u.username,
+      system,
+      location,
+    });
     craftState={itemId:null,mode:'best',qMin:850,qMax:1000,quantity:1,plan:null};
-    toast('Crafted! Materials logged.');
+    toast(`${qty>1?qty+'× ':''}${plan.item.name} crafted and added to inventory!`);
     await refreshAll();
-    goTo('archive');
+    goTo('inventory');
   } catch(e){alert(e.message);}
 }
 
@@ -1104,6 +1197,7 @@ function fmtArchiveDetails(e){
     case 'crafter_approved': return `Approved <strong>${esc(d.targetUsername)}</strong> as Crafter`;
     case 'crafter_denied':   return `Denied <strong>${esc(d.targetUsername)}</strong> crafter request`;
     case 'admin_granted':    return `Granted admin to <strong>${esc(d.targetUsername)}</strong>`;
+    case 'item_handed_out':  return `${esc(d.itemName)}${d.quantity>1?` &times;${d.quantity}`:''} &middot; avg q${d.avgQuality} &middot; to <strong>${esc(d.handedOutTo)}</strong>`;
     default: return JSON.stringify(d);
   }
 }
@@ -1113,9 +1207,179 @@ function togglePanel(id){
   const el=document.getElementById(id); if(!el) return;
   const wasOpen=el.classList.contains('open');
   el.classList.toggle('open');
-  if(!wasOpen&&id==='add-item-panel'){
+  if(!wasOpen&&(id==='add-item-panel'||id==='def-item-panel')){
     const rr=document.getElementById('req-rows'); if(rr){rr.innerHTML='';addReqRow();}
   }
+}
+
+// ─── MODAL UTILS ─────────────────────────────────────────────────────────────
+function showModal(html) {
+  const box=document.getElementById('modal-box');
+  const overlay=document.getElementById('modal-overlay');
+  if(box) box.innerHTML=html;
+  if(overlay) overlay.classList.add('open');
+}
+function closeModal() {
+  const overlay=document.getElementById('modal-overlay');
+  if(overlay) overlay.classList.remove('open');
+}
+function modalOverlayClick(e) {
+  if(e.target===document.getElementById('modal-overlay')) closeModal();
+}
+
+// ─── INVENTORY PAGE ───────────────────────────────────────────────────────────
+function pageInventory() {
+  const u=state.user;
+  const avail=state.inventory.filter(i=>i.status==='available');
+  const handedOut=state.inventory.filter(i=>i.status==='handed_out');
+  return `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
+      <div>
+        <div class="page-title">INVENTORY</div>
+        <div class="page-sub" id="inv-count">${avail.length} item${avail.length!==1?'s':''} in stock</div>
+      </div>
+    </div>
+    <div class="filter-tabs" style="margin-bottom:28px;">
+      <button class="filter-tab${invFilter==='available'?' active':''}" onclick="setInvFilter('available')">In Stock (${avail.length})</button>
+      <button class="filter-tab${invFilter==='handed_out'?' active':''}" onclick="setInvFilter('handed_out')">Handed Out (${handedOut.length})</button>
+    </div>
+    <div id="inv-list">${renderInvList()}</div>`;
+}
+
+function setInvFilter(f) {
+  invFilter=f;
+  document.querySelectorAll('#page-wrap .filter-tab').forEach(btn=>{
+    btn.classList.toggle('active',
+      (f==='available'&&btn.textContent.startsWith('In Stock'))||
+      (f==='handed_out'&&btn.textContent.startsWith('Handed Out')));
+  });
+  const el=document.getElementById('inv-list'); if(el) el.innerHTML=renderInvList();
+}
+
+function renderInvList() {
+  const u=state.user;
+  const admin=isAdmin(u);
+  const canHandOut=u.roles.includes('crafter')||admin;
+  const items=state.inventory.filter(i=>i.status===invFilter)
+    .slice().sort((a,b)=>b._creationTime-a._creationTime);
+  if(!items.length) return `<div class="empty">${invFilter==='available'?'No crafted items in stock yet.':'No items have been handed out yet.'}</div>`;
+
+  if(invFilter==='available') {
+    return items.map(item=>`
+      <div class="inv-row" style="display:flex;gap:24px;align-items:flex-start;">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+            ${item.category?`<span class="item-cat-tag">${esc(itemCatLabel(item.category))}</span>`:''}
+            <span style="font-size:18px;font-weight:700;">${esc(item.itemName)}</span>
+            <span style="font-size:13px;font-weight:700;color:#555;">&times;${item.quantity}</span>
+          </div>
+          <div style="display:flex;gap:20px;font-size:12px;color:#666;flex-wrap:wrap;">
+            <span>Avg quality: <strong style="color:#000;">${item.avgQuality}</strong> <span style="color:#999;">${qualLabel(item.avgQuality)}</span></span>
+            <span>Crafted by: <strong style="color:#000;">${esc(item.craftedByName)}</strong></span>
+            <span>${sysBadge(item.system)}${esc(item.location)}</span>
+            <span style="color:#bbb;">${fmtDate(item._creationTime)}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
+          ${canHandOut?`<button class="btn btn-black btn-sm" onclick="openHandOutModal('${esc(item._id)}')">Hand Out</button>`:''}
+          ${admin?`<button class="btn-del" onclick="adminDeleteInventory('${esc(item._id)}')">✕</button>`:''}
+        </div>
+      </div>`).join('');
+  } else {
+    // Handed out archive
+    return `<table>
+      <thead><tr><th>Item</th><th>Qty</th><th>Avg Quality</th><th>Crafted By</th><th>Handed To</th><th>By</th><th>Date</th>${admin?'<th></th>':''}</tr></thead>
+      <tbody>${items.map(item=>`<tr>
+        <td>
+          ${item.category?`<span class="item-cat-tag" style="font-size:9px;">${esc(itemCatLabel(item.category))}</span> `:''}
+          <strong>${esc(item.itemName)}</strong>
+        </td>
+        <td style="font-weight:700;">&times;${item.quantity}</td>
+        <td><span class="q">${item.avgQuality}</span></td>
+        <td style="font-size:12px;">${esc(item.craftedByName)}</td>
+        <td style="font-weight:600;">${esc(item.handedOutTo||'—')}</td>
+        <td style="font-size:12px;">${esc(item.handedOutByName||'—')}</td>
+        <td style="font-size:11px;color:#999;white-space:nowrap;">${fmtDate(item._creationTime)}</td>
+        ${admin?`<td><button class="btn-del" onclick="adminDeleteInventory('${esc(item._id)}')">✕</button></td>`:''}
+      </tr>`).join('')}</tbody></table>`;
+  }
+}
+
+function openHandOutModal(invId) {
+  const item=state.inventory.find(i=>i._id===invId);
+  if(!item) return;
+  const memberOptions=state.allUsers
+    .filter(u=>u._id!==state.user._id)
+    .map(u=>`<option value="${esc(u.username)}">${esc(u.username)}</option>`).join('');
+  showModal(`
+    <div class="modal-title">Hand Out: ${esc(item.itemName)}</div>
+    <div style="font-size:12px;color:#999;margin-bottom:20px;">
+      ${item.category?`<span class="item-cat-tag" style="font-size:9px;margin-right:6px;">${esc(itemCatLabel(item.category))}</span>`:''}
+      ${item.quantity} available &middot; avg quality ${item.avgQuality}
+    </div>
+    <div class="field">
+      <label class="lbl">Quantity to Hand Out</label>
+      <input type="number" id="ho-qty" min="1" max="${item.quantity}" step="1" value="${item.quantity}" style="max-width:140px;">
+      <div style="font-size:11px;color:#888;margin-top:4px;">Max: ${item.quantity}</div>
+    </div>
+    <div class="field">
+      <label class="lbl">Hand Out To</label>
+      <select id="ho-member-sel" onchange="onHOMemberChange()">
+        <option value="">Select member…</option>
+        ${memberOptions}
+        <option value="__custom__">+ Other (type name)</option>
+      </select>
+    </div>
+    <div id="ho-custom-wrap" style="display:none;">
+      <div class="field">
+        <label class="lbl">Member Name</label>
+        <input type="text" id="ho-custom-name" placeholder="Enter member name">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-black" onclick="confirmHandOut('${esc(invId)}')">Confirm Handout</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+
+function onHOMemberChange() {
+  const val=(document.getElementById('ho-member-sel')||{value:''}).value;
+  const wrap=document.getElementById('ho-custom-wrap');
+  if(wrap) wrap.style.display=val==='__custom__'?'block':'none';
+}
+
+async function confirmHandOut(invId) {
+  const qty=parseInt((document.getElementById('ho-qty')||{value:'1'}).value)||0;
+  const selVal=(document.getElementById('ho-member-sel')||{value:''}).value;
+  let recipient='';
+  if(selVal==='__custom__') recipient=(document.getElementById('ho-custom-name')||{value:''}).value.trim();
+  else recipient=selVal;
+  if(!recipient){alert('Select or enter a recipient');return;}
+  if(qty<1){alert('Quantity must be at least 1');return;}
+  const u=state.user;
+  try {
+    await convexMutation('inventory:handOut',{
+      id:invId,
+      quantity:qty,
+      handedOutTo:recipient,
+      handedOutBy:u._id,
+      handedOutByName:u.username,
+    });
+    closeModal();
+    toast(`Handed out to ${recipient}`);
+    invFilter='handed_out';
+    await refreshAll();
+    goTo('inventory');
+  } catch(e){alert(e.message);}
+}
+
+async function adminDeleteInventory(id) {
+  if(!confirm('Delete this inventory entry?')) return;
+  try {
+    await convexMutation('inventory:remove',{id,adminId:state.user._id});
+    toast('Entry deleted');
+    await refreshAll();
+  } catch(e){alert(e.message);}
 }
 
 // ─── ADMIN PAGE ──────────────────────────────────────────────────────────────

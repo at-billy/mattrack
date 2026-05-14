@@ -37,6 +37,22 @@ export default defineSchema({
     createdByName: v.string(),
   }),
 
+  craftedInventory: defineTable({
+    itemName: v.string(),
+    itemId: v.optional(v.id("craftItems")),
+    category: v.optional(v.string()),
+    quantity: v.number(),
+    avgQuality: v.number(),
+    craftedBy: v.id("users"),
+    craftedByName: v.string(),
+    system: v.string(),
+    location: v.string(),
+    status: v.string(), // "available" | "handed_out"
+    handedOutTo: v.optional(v.string()),
+    handedOutBy: v.optional(v.id("users")),
+    handedOutByName: v.optional(v.string()),
+  }).index("by_status", ["status"]),
+
   archive: defineTable({
     type: v.string(),
     userId: v.id("users"),
