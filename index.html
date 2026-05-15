@@ -7,14 +7,14 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{--red:#cc0000;--mid:#888;}
-body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;color:#000;font-size:10px;line-height:1.5;}
+body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;color:#000;font-size:14px;line-height:1.5;}
 
 /* ── NAV WRAPPER ─────────────────────────────────────────────────── */
 /* transparent so only letter slivers show when items translate up   */
 #nav{position:fixed;top:0;left:0;right:0;z-index:100;background:transparent;}
 
 /* ── NAV TOPBAR (user info) ──────────────────────────────────────── */
-#nav-topbar{display:flex;align-items:center;justify-content:flex-end;padding:7px 40px;gap:12px;font-size:10px;border-bottom:1px solid #e0e0e0;background:#fff;}
+#nav-topbar{display:flex;align-items:center;justify-content:flex-end;padding:7px 40px;gap:12px;font-size:14px;border-bottom:1px solid #e0e0e0;background:#fff;}
 
 /* ── PRIMARY NAV ─────────────────────────────────────────────────── */
 /* overflow:hidden clips items as they translate up (OMA mechanic)   */
@@ -28,14 +28,14 @@ body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;col
 
 /* ── SUB NAV ─────────────────────────────────────────────────────── */
 #nav-sub{display:flex;align-items:baseline;padding:4px 40px 0;gap:0;}
-.nav-sub-item{font-size:clamp(16px,2.2vw,38px);font-weight:900;letter-spacing:-.5px;text-transform:uppercase;cursor:pointer;color:#000;border-bottom:3px solid transparent;padding-bottom:4px;padding-right:52px;user-select:none;transition:opacity .15s;}
+.nav-sub-item{font-size:clamp(20px,2.6vw,42px);font-weight:900;letter-spacing:-.5px;text-transform:uppercase;cursor:pointer;color:#000;border-bottom:3px solid transparent;padding-bottom:4px;padding-right:52px;user-select:none;transition:opacity .15s;}
 .nav-sub-item:last-child{padding-right:0;}
 .nav-sub-item:hover{opacity:.45;}
 .nav-sub-item.active{border-bottom:3px solid #000;}
 .nav-divider{border:none;border-top:2px solid #000;margin:0;}
 
 /* ── ROLE & STATUS TAGS ──────────────────────────────────────────── */
-.role-tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border:1px solid #000;}
+.role-tag{font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border:1px solid #000;}
 .role-tag.crafter{border-color:var(--red);color:var(--red);}
 .role-tag.admin{background:#000;color:#fff;}
 .role-tag.crafter_pending{border-color:#f59e0b;color:#f59e0b;}
@@ -49,8 +49,8 @@ body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;col
 
 /* ── PAGE LAYOUT ─────────────────────────────────────────────────── */
 .page{padding:60px 40px 140px;}
-.page-title{font-size:30px;font-weight:900;letter-spacing:-.5px;line-height:1;margin-bottom:10px;}
-.page-sub{font-size:10px;color:#000;margin-bottom:52px;margin-top:4px;}
+.page-title{font-size:34px;font-weight:900;letter-spacing:-.5px;line-height:1;margin-bottom:10px;}
+.page-sub{font-size:14px;color:#000;margin-bottom:52px;margin-top:4px;}
 .page-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:60px;padding-bottom:0;}
 .page-head-left{flex:1;}
 hr.thick{border:none;border-top:2px solid #000;margin:60px 0;}
@@ -59,24 +59,24 @@ hr.red{border:none;border-top:1px solid var(--red);margin:60px 0;}
 
 /* ── BUTTONS ─────────────────────────────────────────────────────── */
 button{font-family:inherit;cursor:pointer;border:none;outline:none;}
-.btn{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:9px 18px;}
+.btn{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:9px 18px;}
 .btn-black{background:#000;color:#fff;}
 .btn-black:hover{background:#222;}
 .btn-outline{background:#fff;color:#000;border:1.5px solid #000;}
 .btn-outline:hover{background:#f0f0f0;}
 .btn-red{background:var(--red);color:#fff;}
 .btn-red:hover{background:#a00;}
-.btn-sm{padding:5px 11px;font-size:10px;}
-.btn-ghost{background:none;color:#000;border:1px solid #ccc;padding:5px 11px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+.btn-sm{padding:5px 11px;font-size:14px;}
+.btn-ghost{background:none;color:#000;border:1px solid #ccc;padding:5px 11px;font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
 .btn-ghost:hover{border-color:#000;color:#000;}
 .btn-ghost.active{background:#000;color:#fff;border-color:#000;}
-.btn-max{background:#000;color:#fff;padding:0 16px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1.5px solid #000;white-space:nowrap;}
+.btn-max{background:#000;color:#fff;padding:0 16px;font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1.5px solid #000;white-space:nowrap;}
 .btn-max:hover{background:#333;}
 
 /* ── FORMS ───────────────────────────────────────────────────────── */
-label.lbl{display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;color:#000;}
+label.lbl{display:block;font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;color:#000;}
 input[type=text],input[type=password],input[type=number],select{
-  display:block;width:100%;border:1.5px solid #000;padding:9px 12px;font-size:10px;font-family:inherit;background:#fff;appearance:none;-webkit-appearance:none;outline:none;}
+  display:block;width:100%;border:1.5px solid #000;padding:9px 12px;font-size:14px;font-family:inherit;background:#fff;appearance:none;-webkit-appearance:none;outline:none;}
 input:focus,select:focus{border-color:var(--red);}
 input::placeholder{color:#000;}
 .field{margin-bottom:28px;}
@@ -88,22 +88,22 @@ input::placeholder{color:#000;}
 
 /* ── TABLES ──────────────────────────────────────────────────────── */
 table{width:100%;border-collapse:collapse;}
-thead th{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:16px 14px;border-bottom:2px solid #000;text-align:left;white-space:nowrap;color:#000;}
-tbody td{padding:20px 14px;vertical-align:middle;font-size:10px;}
+thead th{font-size:14px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:16px 14px;border-bottom:2px solid #000;text-align:left;white-space:nowrap;color:#000;}
+tbody td{padding:20px 14px;vertical-align:middle;font-size:14px;}
 tbody tr:hover{background:#f9f9f9;}
-.empty{padding:120px 0;text-align:center;color:#000;font-size:10px;letter-spacing:.04em;}
+.empty{padding:120px 0;text-align:center;color:#000;font-size:14px;letter-spacing:.04em;}
 
 /* ── TAGS ────────────────────────────────────────────────────────── */
-.q{display:inline-block;padding:2px 7px;font-size:10px;font-weight:700;background:#000;color:#fff;}
-.unit-tag{display:inline-block;padding:1px 5px;font-size:10px;font-weight:700;letter-spacing:.06em;color:#000;margin-left:4px;}
-.cat-tag{display:inline-block;padding:1px 5px;font-size:10px;font-weight:700;letter-spacing:.06em;background:#f0f0f0;color:#000;}
-.item-cat-tag{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#000;color:#fff;}
+.q{display:inline-block;padding:2px 7px;font-size:14px;font-weight:700;background:#000;color:#fff;}
+.unit-tag{display:inline-block;padding:1px 5px;font-size:14px;font-weight:700;letter-spacing:.06em;color:#000;margin-left:4px;}
+.cat-tag{display:inline-block;padding:1px 5px;font-size:14px;font-weight:700;letter-spacing:.06em;background:#f0f0f0;color:#000;}
+.item-cat-tag{display:inline-block;padding:2px 8px;font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#000;color:#fff;}
 .craft-box{border:2px solid #000;padding:36px;margin-bottom:48px;}
 .craft-box.err{border-color:var(--red);}
 .q-big{font-size:52px;font-weight:900;letter-spacing:-2px;line-height:1;}
 
 /* ── LOG BADGES ──────────────────────────────────────────────────── */
-.badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;}
+.badge{display:inline-block;font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;}
 .badge-crafted{background:var(--red);color:#fff;}
 .badge-material_added{background:#000;color:#fff;}
 .badge-material_removed,.badge-item_created,.badge-item_deleted{background:#888;color:#fff;}
@@ -132,13 +132,13 @@ tbody tr:hover{background:#f9f9f9;}
 .task-card:hover{background:#fafafa;}
 .task-card.completed{opacity:.5;}
 .task-card.cancelled{opacity:.35;}
-.task-card-title{font-size:16px;font-weight:900;letter-spacing:-.3px;line-height:1.2;margin-bottom:12px;}
-.p-badge{display:inline-block;padding:2px 7px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-right:6px;}
+.task-card-title{font-size:20px;font-weight:900;letter-spacing:-.3px;line-height:1.2;margin-bottom:12px;}
+.p-badge{display:inline-block;padding:2px 7px;font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-right:6px;}
 .p-urgent{background:var(--red);color:#fff;}
 .p-high{background:#f97316;color:#fff;}
 .p-normal{background:#3b82f6;color:#fff;}
 .p-whenever{background:#e5e7eb;color:#555;}
-.role-badge{display:inline-block;padding:1px 6px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid #000;margin-right:3px;}
+.role-badge{display:inline-block;padding:1px 6px;font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1px solid #000;margin-right:3px;}
 .rb-provider{border-color:#bbb;color:#888;}
 .rb-crafter{border-color:var(--red);color:var(--red);}
 .rb-logistics{border-color:#0ea5e9;color:#0ea5e9;}
@@ -146,43 +146,43 @@ tbody tr:hover{background:#f9f9f9;}
 .task-search-bar{padding:0 0 36px;margin-bottom:0;}
 
 /* ── MISC CONTROLS ───────────────────────────────────────────────── */
-.btn-del{background:none;border:1px solid #fca5a5;color:var(--red);padding:4px 10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
+.btn-del{background:none;border:1px solid #fca5a5;color:var(--red);padding:4px 10px;font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
 .btn-del:hover{background:var(--red);color:#fff;border-color:var(--red);}
-.pending-note{background:#fffbeb;padding:10px 14px;font-size:10px;color:#000;margin-top:10px;line-height:1.6;display:none;}
+.pending-note{background:#fffbeb;padding:10px 14px;font-size:14px;color:#000;margin-top:10px;line-height:1.6;display:none;}
 
 /* ── AUTH ────────────────────────────────────────────────────────── */
 .center-screen{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px;}
 .auth-box{width:100%;max-width:400px;}
 .auth-logo{font-size:clamp(44px,8vw,100px);font-weight:900;letter-spacing:-4px;text-align:center;margin-bottom:72px;}
 .tabs{display:flex;border-bottom:2px solid #000;margin-bottom:40px;}
-.tab-btn{flex:1;padding:12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:center;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;color:#000;}
+.tab-btn{flex:1;padding:12px;font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:center;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;color:#000;}
 .tab-btn.active{border-bottom-color:#000;color:#000;}
-.err-msg{font-size:10px;color:var(--red);margin-bottom:12px;display:none;}
+.err-msg{font-size:14px;color:var(--red);margin-bottom:12px;display:none;}
 .chk-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;}
 .chk-row input{width:auto;flex-shrink:0;}
-.chk-row span{font-size:10px;}
-.setup-note{font-size:10px;color:#000;margin-top:16px;line-height:1.7;}
-.code-block{background:#f5f5f5;padding:8px 12px;font-family:monospace;font-size:10px;margin:8px 0;}
+.chk-row span{font-size:14px;}
+.setup-note{font-size:14px;color:#000;margin-top:16px;line-height:1.7;}
+.code-block{background:#f5f5f5;padding:8px 12px;font-family:monospace;font-size:14px;margin:8px 0;}
 
 /* ── TOAST / MODAL ───────────────────────────────────────────────── */
-#toast{position:fixed;bottom:28px;right:28px;background:#000;color:#fff;padding:12px 20px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:none;z-index:999;}
+#toast{position:fixed;bottom:28px;right:28px;background:#000;color:#fff;padding:12px 20px;font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:none;z-index:999;}
 #modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:24px;}
 #modal-overlay.open{display:flex;}
 .modal-box{background:#fff;padding:36px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
-.modal-title{font-size:16px;font-weight:900;letter-spacing:-.5px;margin-bottom:40px;}
+.modal-title{font-size:20px;font-weight:900;letter-spacing:-.5px;margin-bottom:40px;}
 .search-row{display:flex;gap:12px;align-items:center;margin-bottom:36px;}
 .search-row input{max-width:260px;margin:0;}
 
 /* ── INLINE UTILS ────────────────────────────────────────────────── */
-.unit-inline{font-size:10px;font-weight:700;color:#000;margin-left:4px;}
-.loc-display{font-size:10px;color:#000;}
-.sys-badge{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#333;padding:1px 5px;margin-right:4px;}
+.unit-inline{font-size:14px;font-weight:700;color:#000;margin-left:4px;}
+.loc-display{font-size:14px;color:#000;}
+.sys-badge{font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#333;padding:1px 5px;margin-right:4px;}
 .sys-badge.pyro{background:var(--red);}
 .sys-badge.nyx{background:#005080;}
 
 /* ── FILTER TABS (inline content) ────────────────────────────────── */
 .filter-tabs{display:flex;gap:48px;flex-wrap:wrap;margin-bottom:52px;padding-bottom:20px;}
-.filter-tab{padding:0;font-size:10px;font-weight:700;border:none;background:none;color:#000;cursor:pointer;letter-spacing:-.1px;}
+.filter-tab{padding:0;font-size:14px;font-weight:700;border:none;background:none;color:#000;cursor:pointer;letter-spacing:-.1px;}
 .filter-tab.active{color:#000;border-bottom:2px solid #000;padding-bottom:2px;}
 .filter-tab:hover:not(.active){color:#000;}
 
@@ -191,36 +191,36 @@ tbody tr:hover{background:#f9f9f9;}
 .sub-tab{display:none;}
 
 /* ── HINT BOX ────────────────────────────────────────────────────── */
-.hint-box{background:#f5f5f5;border-left:3px solid #000;padding:16px 20px;font-size:10px;color:#000;margin-top:16px;line-height:1.8;}
+.hint-box{background:#f5f5f5;border-left:3px solid #000;padding:16px 20px;font-size:14px;color:#000;margin-top:16px;line-height:1.8;}
 .hint-box strong{color:#000;}
 
 /* ── OVERVIEW / LANDING ──────────────────────────────────────────── */
 .ov-wrap{}
 .ov-header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:28px;border-bottom:2px solid #000;}
 .ov-title{display:none;}
-.ov-greeting{font-size:clamp(14px,2.2vw,26px);font-weight:900;letter-spacing:-.5px;line-height:1;}
-.ov-greeting-sub{font-size:10px;color:#000;margin-top:6px;font-weight:400;}
-.ov-date{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#000;text-align:right;line-height:1.9;}
+.ov-greeting{font-size:clamp(18px,2.6vw,30px);font-weight:900;letter-spacing:-.5px;line-height:1;}
+.ov-greeting-sub{font-size:14px;color:#000;margin-top:6px;font-weight:400;}
+.ov-date{font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#000;text-align:right;line-height:1.9;}
 .ov-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #000;}
 .ov-stat{padding:40px 0;}
-.ov-stat-num{font-size:clamp(34px,5vw,58px);font-weight:900;letter-spacing:-3px;line-height:1;margin-bottom:10px;}
+.ov-stat-num{font-size:clamp(38px,5.5vw,62px);font-weight:900;letter-spacing:-3px;line-height:1;margin-bottom:10px;}
 .ov-stat-num.red{color:var(--red);}
-.ov-stat-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#000;}
-.ov-stat-sub{font-size:10px;color:#000;margin-top:5px;letter-spacing:.04em;}
+.ov-stat-label{font-size:14px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#000;}
+.ov-stat-sub{font-size:14px;color:#000;margin-top:5px;letter-spacing:.04em;}
 .ov-body{display:grid;grid-template-columns:3fr 2fr;gap:0;border-bottom:2px solid #000;}
 .ov-col{padding:40px 0;}
 .ov-col+.ov-col{padding-left:60px;}
-.ov-col-head{font-size:30px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid #000;}
+.ov-col-head{font-size:34px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:24px;padding-bottom:14px;border-bottom:1px solid #000;}
 .ov-entry{display:grid;grid-template-columns:60px 100px 1fr auto;gap:8px 28px;padding:14px 0;align-items:baseline;}
-.ov-entry-date{font-size:10px;color:#000;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;}
-.ov-entry-action{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#000;white-space:nowrap;}
-.ov-entry-body{font-size:10px;line-height:1.6;}
-.ov-entry-who{font-size:10px;color:#000;font-weight:700;letter-spacing:.04em;white-space:nowrap;}
+.ov-entry-date{font-size:14px;color:#000;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;}
+.ov-entry-action{font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#000;white-space:nowrap;}
+.ov-entry-body{font-size:14px;line-height:1.6;}
+.ov-entry-who{font-size:14px;color:#000;font-weight:700;letter-spacing:.04em;white-space:nowrap;}
 .ov-task-row{padding:16px 0;}
-.ov-task-title{font-size:10px;font-weight:600;margin-bottom:5px;}
-.ov-task-meta{font-size:10px;color:#000;}
+.ov-task-title{font-size:14px;font-weight:600;margin-bottom:5px;}
+.ov-task-meta{font-size:14px;color:#000;}
 .ov-bottom{display:grid;grid-template-columns:3fr 2fr;gap:0;padding-top:32px;}
-.ov-empty{color:#000;font-size:10px;padding:24px 0;}
+.ov-empty{color:#000;font-size:14px;padding:24px 0;}
 
 /* ── ARCHIVE MONTH GROUPS ────────────────────────────────────────── */
 details.log-month{}
@@ -229,8 +229,8 @@ details.log-month>summary::-webkit-details-marker{display:none;}
 details.log-month>summary::marker{display:none;}
 .log-month-arrow{font-size:9px;color:#000;transition:transform .15s;display:inline-block;flex-shrink:0;}
 details.log-month[open] .log-month-arrow{transform:rotate(90deg);}
-.log-month-name{font-size:16px;font-weight:900;letter-spacing:-.3px;}
-.log-month-count{font-size:10px;color:#000;margin-left:auto;font-weight:700;letter-spacing:.06em;}
+.log-month-name{font-size:20px;font-weight:900;letter-spacing:-.3px;}
+.log-month-count{font-size:14px;color:#000;margin-left:auto;font-weight:700;letter-spacing:.06em;}
 details.log-month>div{padding-bottom:48px;}
 </style>
 </head>
@@ -478,7 +478,7 @@ function showSetup() {
     <div class="center-screen">
       <div class="auth-box" style="max-width:480px;">
         <div class="auth-logo">MATTRACK</div>
-        <div style="font-size:10px;color:#000;margin-bottom:24px;text-align:center;">Connect to your Convex backend.</div>
+        <div style="font-size:14px;color:#000;margin-bottom:24px;text-align:center;">Connect to your Convex backend.</div>
         <div class="field">
           <label class="lbl">Convex Deployment URL</label>
           <input type="text" id="setup-url" placeholder="https://happy-animal-123.convex.cloud" value="${esc(CONVEX_URL)}">
@@ -525,7 +525,7 @@ function showAuth(tab='signin') {
           <div class="field"><label class="lbl">Password</label><input id="si-pass" type="password" autocomplete="current-password" placeholder="password"></div>
           <div class="err-msg" id="si-err"></div>
           <button class="btn btn-black" style="width:100%;justify-content:center;" onclick="doSignIn()">Sign In</button>
-          <div style="margin-top:12px;font-size:10px;color:#000;text-align:center;">
+          <div style="margin-top:12px;font-size:14px;color:#000;text-align:center;">
             Wrong URL? <span style="cursor:pointer;text-decoration:underline;" onclick="showSetup()">Change setup</span>
           </div>
         `:`
@@ -760,7 +760,7 @@ function pageOverview() {
             <div class="ov-entry-who">${esc(e.userName)}</div>
           </div>`).join('')
         : `<div class="ov-empty">No activity yet.</div>`}
-        ${state.archive.length>7?`<div style="padding-top:12px;"><span style="font-size:10px;color:#000;cursor:pointer;text-decoration:underline;" onclick="goTo('archive')">View full log (${state.archive.length} entries) →</span></div>`:''}
+        ${state.archive.length>7?`<div style="padding-top:12px;"><span style="font-size:14px;color:#000;cursor:pointer;text-decoration:underline;" onclick="goTo('archive')">View full log (${state.archive.length} entries) →</span></div>`:''}
       </div>
       <div class="ov-col">
         <div class="ov-col-head">Open Tasks</div>
@@ -776,7 +776,7 @@ function pageOverview() {
           </div>`;
         }).join('')
         : `<div class="ov-empty">No open tasks.</div>`}
-        ${openTasks.length>6?`<div style="padding-top:12px;"><span style="font-size:10px;color:#000;cursor:pointer;text-decoration:underline;" onclick="goTo('tasks')">All tasks (${openTasks.length}) →</span></div>`:''}
+        ${openTasks.length>6?`<div style="padding-top:12px;"><span style="font-size:14px;color:#000;cursor:pointer;text-decoration:underline;" onclick="goTo('tasks')">All tasks (${openTasks.length}) →</span></div>`:''}
       </div>
     </div>
 
@@ -787,37 +787,37 @@ function pageOverview() {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px;">
           <div>
             <div style="font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;">${oreEntries.length}</div>
-            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#000;margin-top:4px;">Ore Entries</div>
-            <div style="font-size:10px;color:#000;margin-top:2px;">${Math.round(oreQty*100)/100} SCU total</div>
+            <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#000;margin-top:4px;">Ore Entries</div>
+            <div style="font-size:14px;color:#000;margin-top:2px;">${Math.round(oreQty*100)/100} SCU total</div>
           </div>
           <div>
             <div style="font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;">${gemEntries.length}</div>
-            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#000;margin-top:4px;">Gem Entries</div>
-            <div style="font-size:10px;color:#000;margin-top:2px;">${gemQty} UNIT total</div>
+            <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#000;margin-top:4px;">Gem Entries</div>
+            <div style="font-size:14px;color:#000;margin-top:2px;">${gemQty} UNIT total</div>
           </div>
         </div>
         ${topMats.length?`
-        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#000;margin-bottom:10px;">Top by Quantity</div>
+        <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#000;margin-bottom:10px;">Top by Quantity</div>
         ${topMats.map(([name,qty])=>`
           <div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid #f5f5f5;">
-            <span style="font-size:10px;font-weight:600;">${esc(name)}</span>
-            <span style="font-size:10px;color:#000;">${Math.round(qty*100)/100} ${unitFor(name)}</span>
+            <span style="font-size:14px;font-weight:600;">${esc(name)}</span>
+            <span style="font-size:14px;color:#000;">${Math.round(qty*100)/100} ${unitFor(name)}</span>
           </div>`).join('')}`:''}
-        <div style="padding-top:16px;"><span style="font-size:10px;color:#000;cursor:pointer;text-decoration:underline;" onclick="goTo('materials')">All materials →</span></div>`}
+        <div style="padding-top:16px;"><span style="font-size:14px;color:#000;cursor:pointer;text-decoration:underline;" onclick="goTo('materials')">All materials →</span></div>`}
       </div>
       <div class="ov-col" style="padding-left:40px;">
         <div class="ov-col-head">Inventory</div>
         ${recentCrafted.length===0 ? `<div class="ov-empty">Nothing crafted yet.</div>` : `
-        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#000;margin-bottom:10px;">Recent Crafted Items</div>
+        <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#000;margin-bottom:10px;">Recent Crafted Items</div>
         ${recentCrafted.map(i=>`
           <div style="padding:8px 0;border-bottom:1px solid #f5f5f5;">
             <div style="display:flex;justify-content:space-between;align-items:baseline;">
-              <span style="font-size:10px;font-weight:600;">${esc(i.itemName)}</span>
-              <span style="font-size:10px;color:#000;">${i.status==='available'?`×${i.quantity} available`:'handed out'}</span>
+              <span style="font-size:14px;font-weight:600;">${esc(i.itemName)}</span>
+              <span style="font-size:14px;color:#000;">${i.status==='available'?`×${i.quantity} available`:'handed out'}</span>
             </div>
-            <div style="font-size:10px;color:#000;">avg q${i.avgQuality} &middot; ${esc(i.craftedByName)} &middot; ${shortDate(i._creationTime)}</div>
+            <div style="font-size:14px;color:#000;">avg q${i.avgQuality} &middot; ${esc(i.craftedByName)} &middot; ${shortDate(i._creationTime)}</div>
           </div>`).join('')}
-        <div style="padding-top:16px;"><span style="font-size:10px;color:#000;cursor:pointer;text-decoration:underline;" onclick="goTo('inventory')">Full inventory →</span></div>`}
+        <div style="padding-top:16px;"><span style="font-size:14px;color:#000;cursor:pointer;text-decoration:underline;" onclick="goTo('inventory')">Full inventory →</span></div>`}
       </div>
     </div>
 
@@ -846,7 +846,7 @@ function pageMaterials() {
 
     <div id="add-mat-panel" class="collapsible" style="margin-bottom:32px;">
       <div class="panel">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Add Material to Database</div>
+        <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Add Material to Database</div>
         <div class="grid2">
           <div>
             <div class="field">
@@ -877,9 +877,9 @@ function pageMaterials() {
             <div class="field">
               <label class="lbl" id="mat-qty-lbl">Quantity (SCU)</label>
               <input type="number" id="mat-qty" min="0.01" step="0.01" placeholder="e.g. 50">
-              <div style="font-size:10px;color:#000;margin-top:4px;" id="mat-qty-hint">0.01 SCU increments</div>
+              <div style="font-size:14px;color:#000;margin-top:4px;" id="mat-qty-hint">0.01 SCU increments</div>
             </div>
-            <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;color:#000;">System &amp; Location</div>
+            <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;color:#000;">System &amp; Location</div>
             <div class="field">
               <select id="mat-system" onchange="onSystemChange()">
                 <option value="">Select system…</option>
@@ -909,7 +909,7 @@ function pageMaterials() {
       </select>
       <label class="chk-row" style="margin:0;white-space:nowrap;">
         <input type="checkbox" id="mat-mine" style="width:auto;" onchange="filterMaterials()">
-        <span style="font-size:10px;">My entries only</span>
+        <span style="font-size:14px;">My entries only</span>
       </label>
     </div>
     <div id="mat-table">${renderMatTable(stock)}</div>`;
@@ -926,8 +926,8 @@ function renderMatTable(stock) {
       <td><span class="q">${m.quality}</span></td>
       <td>${m.quantity}<span class="unit-inline">${esc(m.unit)}</span></td>
       <td class="loc-display">${sysBadge(m.system)}${esc(m.location)}</td>
-      <td style="font-size:10px;">${esc(m.ownerName)}${m.ownerId===u._id?' <span style="color:#000;">(you)</span>':''}</td>
-      <td style="font-size:10px;color:#000;">${fmtDate(m._creationTime)}</td>
+      <td style="font-size:14px;">${esc(m.ownerName)}${m.ownerId===u._id?' <span style="color:#000;">(you)</span>':''}</td>
+      <td style="font-size:14px;color:#000;">${fmtDate(m._creationTime)}</td>
       <td style="white-space:nowrap;">
         ${(m.ownerId===u._id||admin)?`<button class="btn-ghost btn-sm" style="margin-right:4px;" onclick="openMoveModal('${esc(m._id)}')">Move</button>`:''}
         ${(m.ownerId===u._id||admin)?`<button class="${admin&&m.ownerId!==u._id?'btn-del':'btn-ghost btn-sm'}" onclick="removeMaterial('${esc(m._id)}')">${admin&&m.ownerId!==u._id?'✕':'Remove'}</button>`:''}
@@ -1032,7 +1032,7 @@ function pageItems() {
 
     <div id="add-item-panel" class="collapsible" style="margin-bottom:32px;">
       <div class="panel">
-        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Define Craftable Item</div>
+        <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Define Craftable Item</div>
         <div class="grid2" style="max-width:680px;">
           <div class="field">
             <label class="lbl">Item Name</label>
@@ -1045,7 +1045,7 @@ function pageItems() {
             </select>
           </div>
         </div>
-        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:20px 0 12px;">Required Materials</div>
+        <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:20px 0 12px;">Required Materials</div>
         <div id="req-rows"></div>
         <button class="btn btn-outline btn-sm" style="margin-bottom:20px;" onclick="addReqRow()">+ Add Requirement</button>
         <div style="display:flex;gap:10px;">
@@ -1083,15 +1083,15 @@ function renderItemsList() {
         <div>
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
             ${item.category?`<span class="item-cat-tag">${esc(itemCatLabel(item.category))}</span>`:''}
-            <span style="font-size:16px;font-weight:700;">${esc(item.name)}</span>
+            <span style="font-size:20px;font-weight:700;">${esc(item.name)}</span>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
-            ${item.requirements.map(r=>`<span style="font-size:10px;padding:4px 12px;border:1px solid #000;">
+            ${item.requirements.map(r=>`<span style="font-size:14px;padding:4px 12px;border:1px solid #000;">
               ${esc(r.materialName)} &times; ${r.quantity}<span class="unit-inline">${esc(r.unit)}</span>
             </span>`).join('')}
           </div>
         </div>
-        <div style="text-align:right;font-size:10px;color:#000;flex-shrink:0;margin-left:24px;">
+        <div style="text-align:right;font-size:14px;color:#000;flex-shrink:0;margin-left:24px;">
           ${esc(item.createdByName)}<br>${fmtDate(item._creationTime)}
           ${admin?`<br><button class="btn-del" style="margin-top:8px;" onclick="adminDeleteItem('${esc(item._id)}','${esc(item.name)}')">✕ Delete</button>`:''}
         </div>
@@ -1180,7 +1180,7 @@ function pageCraft() {
       </div>
       <div id="add-item-panel" class="collapsible" style="margin-bottom:32px;">
         <div class="panel">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Define Craftable Item</div>
+          <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Define Craftable Item</div>
           <div class="grid2" style="max-width:680px;">
             <div class="field">
               <label class="lbl">Item Name</label>
@@ -1193,7 +1193,7 @@ function pageCraft() {
               </select>
             </div>
           </div>
-          <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:20px 0 12px;">Required Materials</div>
+          <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:20px 0 12px;">Required Materials</div>
           <div id="req-rows"></div>
           <button class="btn btn-outline btn-sm" style="margin-bottom:20px;" onclick="addReqRow()">+ Add Requirement</button>
           <div style="display:flex;gap:10px;">
@@ -1202,7 +1202,7 @@ function pageCraft() {
           </div>
         </div>
       </div>
-      <div style="margin-bottom:4px;font-size:10px;color:#000;" id="items-count">${state.craftItems.length} item${state.craftItems.length!==1?'s':''} defined</div>
+      <div style="margin-bottom:4px;font-size:14px;color:#000;" id="items-count">${state.craftItems.length} item${state.craftItems.length!==1?'s':''} defined</div>
       <div class="filter-tabs" style="margin:16px 0 24px;">
         <button class="filter-tab${itemsFilter==='all'?' active':''}" onclick="setItemsFilter('all')">All</button>
         ${ITEM_CATEGORIES.map(c=>`<button class="filter-tab${itemsFilter===c.id?' active':''}" onclick="setItemsFilter('${c.id}')">${c.label}</button>`).join('')}
@@ -1258,7 +1258,7 @@ function pageCraft() {
         </div>
       </div>
       <div id="craft-summary-area">
-        ${cs.plan?renderCraftSummary(cs.plan):`<div style="padding:32px;border:1px solid #e8e8e8;text-align:center;color:#000;font-size:10px;">Select an item to see crafting details.</div>`}
+        ${cs.plan?renderCraftSummary(cs.plan):`<div style="padding:32px;border:1px solid #e8e8e8;text-align:center;color:#000;font-size:14px;">Select an item to see crafting details.</div>`}
       </div>
     </div>
     <div id="craft-detail-area" style="margin-top:32px;">${cs.plan?renderCraftDetail(cs.plan):''}</div>`}`;
@@ -1385,14 +1385,14 @@ function renderCraftSummary(plan, maxCraftable){
   const catLabel=plan.item.category?itemCatLabel(plan.item.category):'';
   const maxStr=maxCraftable!=null?maxCraftable:calcMaxCrafts(plan.item,state.stock,craftState.mode,craftState.qMin,craftState.qMax);
   return `<div class="craft-box${ok?'':' err'}">
-    <div style="font-size:10px;font-weight:700;margin-bottom:2px;">${esc(plan.item.name)}</div>
-    ${catLabel?`<div style="font-size:10px;color:#000;margin-bottom:14px;">${esc(catLabel)}</div>`:''}
-    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:${ok?'#000':'var(--red)'};">${ok?`CRAFTABLE &times;${qty}`:'INSUFFICIENT MATERIALS'}</div>
-    ${ok?`<div style="font-size:10px;color:#000;margin-top:4px;margin-bottom:16px;">Max craftable with current stock: <strong style="color:#000;">${maxStr}</strong></div>`:''}
+    <div style="font-size:14px;font-weight:700;margin-bottom:2px;">${esc(plan.item.name)}</div>
+    ${catLabel?`<div style="font-size:14px;color:#000;margin-bottom:14px;">${esc(catLabel)}</div>`:''}
+    <div style="font-size:14px;font-weight:700;letter-spacing:.1em;color:${ok?'#000':'var(--red)'};">${ok?`CRAFTABLE &times;${qty}`:'INSUFFICIENT MATERIALS'}</div>
+    ${ok?`<div style="font-size:14px;color:#000;margin-top:4px;margin-bottom:16px;">Max craftable with current stock: <strong style="color:#000;">${maxStr}</strong></div>`:''}
     <hr class="thin" style="margin:16px 0;">
-    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#000;margin-bottom:4px;text-transform:uppercase;">Avg. Craft Quality</div>
+    <div style="font-size:14px;font-weight:700;letter-spacing:.1em;color:#000;margin-bottom:4px;text-transform:uppercase;">Avg. Craft Quality</div>
     <div class="q-big">${ok?plan.avgQuality:'—'}</div>
-    ${ok?`<div style="font-size:10px;color:#000;margin-top:4px;">${qualLabel(plan.avgQuality)}</div>`:''}
+    ${ok?`<div style="font-size:14px;color:#000;margin-top:4px;">${qualLabel(plan.avgQuality)}</div>`:''}
   </div>`;
 }
 
@@ -1400,26 +1400,26 @@ function matCatTag(materialName) {
   const entry=catLookup(materialName);
   if(!entry) return '';
   const label=entry.cat==='Ores'?'ORE':'GEM';
-  return `<span style="font-size:10px;font-weight:700;letter-spacing:.06em;border:1.5px solid #000;padding:1px 5px;margin-left:6px;">${label}</span>`;
+  return `<span style="font-size:14px;font-weight:700;letter-spacing:.06em;border:1.5px solid #000;padding:1px 5px;margin-left:6px;">${label}</span>`;
 }
 
 function renderCraftDetail(plan){
   const qty=plan.quantity||1;
   let html=`<hr class="thick">
-  <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px;">
+  <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px;">
     Material Requirements &mdash; ${qty}&times; ${esc(plan.item.name).toUpperCase()}
   </div>`;
   for(const req of plan.requirements){
     const clr=req.ok?'#000':'var(--red)';
     html+=`<div style="border-bottom:1px solid #e8e8e8;padding:20px 0;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;">
-        <div style="font-size:16px;font-weight:700;">${esc(req.materialName)}${matCatTag(req.materialName)}</div>
-        <div style="font-size:10px;color:${clr};">${req.ok
+        <div style="font-size:20px;font-weight:700;">${esc(req.materialName)}${matCatTag(req.materialName)}</div>
+        <div style="font-size:14px;color:${clr};">${req.ok
           ?`${req.fulfilled}&thinsp;/&thinsp;${req.needed} ${esc(req.unit)} &nbsp;&middot;&nbsp; avg quality <strong>${req.avgQuality}</strong>`
           :`${req.fulfilled}&thinsp;/&thinsp;${req.needed} ${esc(req.unit)} available &mdash; short <strong>${Math.round(req.shortfall*100)/100}</strong>`}</div>
       </div>`;
     if(req.batches.length){
-      html+=`<table style="font-size:10px;">
+      html+=`<table style="font-size:14px;">
         <thead><tr><th>Quality</th><th>Use</th><th>Available</th><th>System</th><th>Location</th><th>Owner</th></tr></thead>
         <tbody>${req.batches.map(b=>`<tr>
           <td><span class="q">${b.quality}</span></td>
@@ -1430,7 +1430,7 @@ function renderCraftDetail(plan){
           <td>${esc(b.ownerName)}</td>
         </tr>`).join('')}</tbody></table>`;
     } else {
-      html+=`<div style="font-size:10px;color:var(--red);">No suitable materials found in stock.</div>`;
+      html+=`<div style="font-size:14px;color:var(--red);">No suitable materials found in stock.</div>`;
     }
     html+=`</div>`;
   }
@@ -1438,7 +1438,7 @@ function renderCraftDetail(plan){
     html+=`<div style="margin-top:28px;padding-top:24px;border-top:1px solid #000;">
       <button class="btn btn-red" onclick="openCraftLocationModal()">Craft${qty>1?` (${qty}×)`:''}
       </button>
-      <div style="font-size:10px;color:#000;margin-top:8px;">Next: select your crafting location, then materials will be consumed and the item added to inventory.</div>
+      <div style="font-size:14px;color:#000;margin-top:8px;">Next: select your crafting location, then materials will be consumed and the item added to inventory.</div>
     </div>`;
   }
   return html;
@@ -1562,10 +1562,10 @@ function renderMonthRows(entries){
   return `<table>
     <thead><tr><th>Date</th><th>Action</th><th>User</th><th>Details</th>${admin?'<th></th>':''}</tr></thead>
     <tbody>${entries.map(e=>`<tr>
-      <td style="font-size:10px;color:#000;white-space:nowrap;">${fmtDT(e._creationTime)}</td>
+      <td style="font-size:14px;color:#000;white-space:nowrap;">${fmtDT(e._creationTime)}</td>
       <td><span class="badge badge-${e.type}">${labels[e.type]||e.type}</span></td>
-      <td style="font-weight:600;font-size:10px;">${esc(e.userName)}</td>
-      <td style="font-size:10px;color:#000;">${fmtArchiveDetails(e)}</td>
+      <td style="font-weight:600;font-size:14px;">${esc(e.userName)}</td>
+      <td style="font-size:14px;color:#000;">${fmtArchiveDetails(e)}</td>
       ${admin?`<td><button class="btn-del" onclick="adminDeleteLog('${esc(e._id)}')">✕</button></td>`:''}
     </tr>`).join('')}</tbody></table>`;
 }
@@ -1578,7 +1578,7 @@ function fmtArchiveDetails(e){
       return `${esc(d.materialName)} &middot; ${d.quantity} ${esc(d.unit||'')} &middot; ${sysBadge(d.system)}${esc(d.location)}`;
     case 'crafted': {
       const lines=(d.materialsUsed||[]).map(m=>`${esc(m.materialName)} &times;${m.quantityUsed}${esc(m.unit||'')} (q${m.quality}, ${esc(m.ownerName)}, ${sysBadge(m.system)}${esc(m.location)})`).join(' | ');
-      return `<strong>${esc(d.itemName)}</strong> &middot; avg q${d.avgQuality}<br><span style="font-size:10px;color:#000;">${lines}</span>`; }
+      return `<strong>${esc(d.itemName)}</strong> &middot; avg q${d.avgQuality}<br><span style="font-size:14px;color:#000;">${lines}</span>`; }
     case 'item_created':
       return `${esc(d.itemName)} &middot; ${(d.requirements||[]).map(r=>`${esc(r.materialName)}&times;${r.quantity}${esc(r.unit||'')}`).join(', ')}`;
     case 'item_deleted':
@@ -1637,7 +1637,7 @@ function pageMember() {
           ${activeRoles.map(r=>roleTagHtml(r)).join('')}
         </div>
       </div>
-      ${noAdmin?`<button class="btn btn-outline" style="border-color:var(--red);color:#000;font-size:10px;" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
+      ${noAdmin?`<button class="btn btn-outline" style="border-color:var(--red);color:#000;font-size:14px;" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
     </div>
 
     <div class="ov-stats" style="margin-bottom:40px;">
@@ -1665,9 +1665,9 @@ function pageMember() {
 
     ${requestable.length||pending.length?`
     <div style="margin-bottom:40px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;color:#000;">Role Requests</div>
+      <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;color:#000;">Role Requests</div>
       ${pending.length?`
-      <div style="margin-bottom:12px;font-size:10px;color:#000;">
+      <div style="margin-bottom:12px;font-size:14px;color:#000;">
         ${pending.map(r=>`<span style="margin-right:16px;">⏳ <strong>${r.label}</strong> — pending admin approval</span>`).join('')}
       </div>`:''}
       ${requestable.length?`
@@ -1678,13 +1678,13 @@ function pageMember() {
 
     ${recentActivity.length?`
     <div>
-      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;color:#000;">Recent Activity</div>
+      <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;color:#000;">Recent Activity</div>
       <table>
         <thead><tr><th>Date</th><th>Action</th><th>Details</th></tr></thead>
         <tbody>${recentActivity.map(e=>`<tr>
-          <td style="font-size:10px;color:#000;white-space:nowrap;">${fmtDate(e._creationTime)}</td>
+          <td style="font-size:14px;color:#000;white-space:nowrap;">${fmtDate(e._creationTime)}</td>
           <td><span class="badge badge-${e.type}">${logLabels[e.type]||e.type}</span></td>
-          <td style="font-size:10px;color:#000;">${fmtArchiveDetails(e)}</td>
+          <td style="font-size:14px;color:#000;">${fmtArchiveDetails(e)}</td>
         </tr>`).join('')}</tbody>
       </table>
     </div>`:`<div class="empty">No activity recorded yet.</div>`}`;
@@ -1716,10 +1716,10 @@ function openMoveModal(matId) {
   const isGem = m.unit === 'UNIT';
   showModal(`
     <div class="modal-title">Move: ${esc(m.materialName)}</div>
-    <div style="font-size:10px;color:#000;margin-bottom:20px;">
-      Currently at: ${sysBadge(m.system)}${esc(m.location)} &middot; ${m.quantity} ${esc(m.unit)} &middot; <span class="q" style="font-size:10px;">${m.quality}</span>
+    <div style="font-size:14px;color:#000;margin-bottom:20px;">
+      Currently at: ${sysBadge(m.system)}${esc(m.location)} &middot; ${m.quantity} ${esc(m.unit)} &middot; <span class="q" style="font-size:14px;">${m.quality}</span>
     </div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;color:#000;">New Location</div>
+    <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;color:#000;">New Location</div>
     <div class="field">
       <label class="lbl">System</label>
       <select id="mv-sys" onchange="onMVSysChange()">
@@ -1734,11 +1734,11 @@ function openMoveModal(matId) {
     <div class="field" style="margin-top:12px;">
       <label class="chk-row" style="margin-bottom:8px;">
         <input type="checkbox" id="mv-partial" style="width:auto;" onchange="toggleMVPartial(${esc(String(m.quantity))}, '${esc(m.unit)}')">
-        <span style="font-size:10px;">Move partial quantity (default: all ${m.quantity} ${esc(m.unit)})</span>
+        <span style="font-size:14px;">Move partial quantity (default: all ${m.quantity} ${esc(m.unit)})</span>
       </label>
       <div id="mv-partial-wrap" style="display:none;">
         <input type="number" id="mv-qty" value="${m.quantity}" min="${isGem?1:0.01}" max="${m.quantity}" step="${isGem?1:0.01}" style="max-width:160px;">
-        <div style="font-size:10px;color:#000;margin-top:4px;">Max: ${m.quantity} ${esc(m.unit)}</div>
+        <div style="font-size:14px;color:#000;margin-top:4px;">Max: ${m.quantity} ${esc(m.unit)}</div>
       </div>
     </div>
     <div style="display:flex;gap:10px;margin-top:8px;">
@@ -1835,10 +1835,10 @@ function renderInvList() {
         <div style="flex:1;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
             ${item.category?`<span class="item-cat-tag">${esc(itemCatLabel(item.category))}</span>`:''}
-            <span style="font-size:16px;font-weight:700;">${esc(item.itemName)}</span>
-            <span style="font-size:10px;font-weight:700;color:#000;">&times;${item.quantity}</span>
+            <span style="font-size:20px;font-weight:700;">${esc(item.itemName)}</span>
+            <span style="font-size:14px;font-weight:700;color:#000;">&times;${item.quantity}</span>
           </div>
-          <div style="display:flex;gap:20px;font-size:10px;color:#000;flex-wrap:wrap;">
+          <div style="display:flex;gap:20px;font-size:14px;color:#000;flex-wrap:wrap;">
             <span>Avg quality: <strong style="color:#000;">${item.avgQuality}</strong> <span style="color:#000;">${qualLabel(item.avgQuality)}</span></span>
             <span>Crafted by: <strong style="color:#000;">${esc(item.craftedByName)}</strong></span>
             <span>${sysBadge(item.system)}${esc(item.location)}</span>
@@ -1861,10 +1861,10 @@ function renderInvList() {
         </td>
         <td style="font-weight:700;">&times;${item.quantity}</td>
         <td><span class="q">${item.avgQuality}</span></td>
-        <td style="font-size:10px;">${esc(item.craftedByName)}</td>
+        <td style="font-size:14px;">${esc(item.craftedByName)}</td>
         <td style="font-weight:600;">${esc(item.handedOutTo||'—')}</td>
-        <td style="font-size:10px;">${esc(item.handedOutByName||'—')}</td>
-        <td style="font-size:10px;color:#000;white-space:nowrap;">${fmtDate(item._creationTime)}</td>
+        <td style="font-size:14px;">${esc(item.handedOutByName||'—')}</td>
+        <td style="font-size:14px;color:#000;white-space:nowrap;">${fmtDate(item._creationTime)}</td>
         ${admin?`<td><button class="btn-del" onclick="adminDeleteInventory('${esc(item._id)}')">✕</button></td>`:''}
       </tr>`).join('')}</tbody></table>`;
   }
@@ -1878,14 +1878,14 @@ function openHandOutModal(invId) {
     .map(u=>`<option value="${esc(u.username)}">${esc(u.username)}</option>`).join('');
   showModal(`
     <div class="modal-title">Hand Out: ${esc(item.itemName)}</div>
-    <div style="font-size:10px;color:#000;margin-bottom:20px;">
+    <div style="font-size:14px;color:#000;margin-bottom:20px;">
       ${item.category?`<span class="item-cat-tag" style="font-size:9px;margin-right:6px;">${esc(itemCatLabel(item.category))}</span>`:''}
       ${item.quantity} available &middot; avg quality ${item.avgQuality}
     </div>
     <div class="field">
       <label class="lbl">Quantity to Hand Out</label>
       <input type="number" id="ho-qty" min="1" max="${item.quantity}" step="1" value="${item.quantity}" style="max-width:140px;">
-      <div style="font-size:10px;color:#000;margin-top:4px;">Max: ${item.quantity}</div>
+      <div style="font-size:14px;color:#000;margin-top:4px;">Max: ${item.quantity}</div>
     </div>
     <div class="field">
       <label class="lbl">Hand Out To</label>
@@ -1969,16 +1969,16 @@ function renderAdminContent() {
   return `
     ${pending.length?`
     <div style="margin-bottom:40px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000;">
-        Pending Crafter Applications <span style="background:var(--red);color:#fff;padding:1px 8px;font-size:10px;margin-left:8px;">${pending.length}</span>
+      <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000;">
+        Pending Crafter Applications <span style="background:var(--red);color:#fff;padding:1px 8px;font-size:14px;margin-left:8px;">${pending.length}</span>
       </div>
       ${pending.map(m=>{
         const pendingRoles=PENDING_ROLES.filter(r=>m.roles.includes(r.pending));
         return pendingRoles.map(pr=>`
         <div style="display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid #e8e8e8;">
-          <div style="font-weight:700;font-size:10px;flex:1;">${esc(m.username)}</div>
-          <div style="font-size:10px;color:#000;">requesting <strong>${pr.label}</strong> role</div>
-          <div style="font-size:10px;color:#000;">${m.roles.filter(r=>r!==pr.pending).join(', ')||'—'}</div>
+          <div style="font-weight:700;font-size:14px;flex:1;">${esc(m.username)}</div>
+          <div style="font-size:14px;color:#000;">requesting <strong>${pr.label}</strong> role</div>
+          <div style="font-size:14px;color:#000;">${m.roles.filter(r=>r!==pr.pending).join(', ')||'—'}</div>
           <button class="btn btn-black btn-sm" onclick="adminApproveRole('${esc(m._id)}','${esc(m.username)}','${pr.pending}','${pr.full}')">✓ Approve</button>
           <button class="btn btn-outline btn-sm" onclick="adminDenyRole('${esc(m._id)}','${esc(m.username)}','${pr.pending}')">✕ Deny</button>
         </div>`).join('');
@@ -1986,14 +1986,14 @@ function renderAdminContent() {
     </div>`:''}
 
     <div>
-      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000;">All Members</div>
+      <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000;">All Members</div>
       ${state.allUsers.map(m=>{
         const isMe = m._id===u._id;
         const removed = m.roles.includes('removed');
         const MANAGEABLE = ['provider','crafter','logistics'];
         return `<div style="display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-bottom:1px solid #e8e8e8;flex-wrap:wrap;">
           <div style="min-width:140px;">
-            <div style="font-weight:700;font-size:10px;">${esc(m.username)}${isMe?' <span style="color:#000;font-size:10px;">(you)</span>':''}</div>
+            <div style="font-weight:700;font-size:14px;">${esc(m.username)}${isMe?' <span style="color:#000;font-size:14px;">(you)</span>':''}</div>
             <div style="margin-top:4px;">${m.roles.map(r=>roleTagHtml(r)).join(' ')}</div>
           </div>
           ${!removed?`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1;">
@@ -2008,7 +2008,7 @@ function renderAdminContent() {
           </div>
           <div style="margin-left:auto;">
             ${!isMe?`<button class="btn-del" onclick="adminRemoveMember('${esc(m._id)}','${esc(m.username)}')">Remove</button>`:''}
-          </div>`:`<div style="color:#ef4444;font-size:10px;align-self:center;">Removed</div>`}
+          </div>`:`<div style="color:#ef4444;font-size:14px;align-self:center;">Removed</div>`}
         </div>`;
       }).join('')}
     </div>`;
@@ -2120,7 +2120,7 @@ function pageTasks() {
       ${admin?`<button class="btn btn-black" onclick="openCreateTaskModal()">+ Create Task</button>`:''}
     </div>
     ${!tasksSearchActive?`<div style="display:flex;gap:8px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
-      <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#000;">Role:</span>
+      <span style="font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#000;">Role:</span>
       <button class="btn-ghost btn-sm${tasksRoleFilter===''?' active':''}" onclick="setTasksRoleFilter('')">All</button>
       <button class="btn-ghost btn-sm${tasksRoleFilter==='provider'?' active':''}" onclick="setTasksRoleFilter('provider')">Provider</button>
       <button class="btn-ghost btn-sm${tasksRoleFilter==='crafter'?' active':''}" onclick="setTasksRoleFilter('crafter')">Crafter</button>
@@ -2217,10 +2217,10 @@ function renderTasksList() {
             <span class="task-card-title">${esc(t.title)}</span>
             ${t.targetRoles.map(r=>taskRoleBadge(r)).join('')}
           </div>
-          <div style="font-size:10px;color:#000;margin-bottom:10px;line-height:1.5;">${taskTypeDesc(t)}</div>
-          <div style="font-size:10px;color:#000;display:flex;gap:16px;flex-wrap:wrap;">
+          <div style="font-size:14px;color:#000;margin-bottom:10px;line-height:1.5;">${taskTypeDesc(t)}</div>
+          <div style="font-size:14px;color:#000;display:flex;gap:16px;flex-wrap:wrap;">
             <span>${activeSlots}/${t.slots} slots</span>
-            <span>${t.acceptees.length?t.acceptees.map(a=>`<strong style="color:${a.status==='completed'?'#16a34a':'#555'};font-size:10px;">${esc(a.userName)}${a.status==='completed'?' ✓':''}</strong>`).join(', '):'no acceptees'}</span>
+            <span>${t.acceptees.length?t.acceptees.map(a=>`<strong style="color:${a.status==='completed'?'#16a34a':'#555'};font-size:14px;">${esc(a.userName)}${a.status==='completed'?' ✓':''}</strong>`).join(', '):'no acceptees'}</span>
             <span style="color:#000;">by ${esc(t.createdByName)}</span>
           </div>
         </div>
@@ -2309,7 +2309,7 @@ function openCreateTaskModal() {
     <div class="field">
       <label class="lbl">Visible to (roles)</label>
       <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap;">
-        ${TASK_TARGET_ROLES.map(r=>`<label class="chk-row" style="margin:0;"><input type="checkbox" class="ct-role" value="${r.id}" style="width:auto;"> <span style="font-size:10px;">${r.label}</span></label>`).join('')}
+        ${TASK_TARGET_ROLES.map(r=>`<label class="chk-row" style="margin:0;"><input type="checkbox" class="ct-role" value="${r.id}" style="width:auto;"> <span style="font-size:14px;">${r.label}</span></label>`).join('')}
       </div>
     </div>
     <div class="field">
@@ -2357,19 +2357,19 @@ function renderCTTypeFields(type) {
         <div class="field"><label class="lbl">Quantity</label><input type="number" id="ct-qty" min="0.01" step="0.01" placeholder="e.g. 50"></div>
         <div class="field"><label class="lbl">Unit</label><select id="ct-unit"><option value="SCU">SCU</option><option value="UNIT">UNIT</option></select></div>
       </div>
-      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:12px 0 8px;color:#000;">From</div>
+      <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:12px 0 8px;color:#000;">From</div>
       <div class="grid2" style="gap:12px;">
         <div class="field"><select id="ct-from-sys" onchange="onCTFromSysChange()"><option value="">System…</option>${Object.keys(SYSTEMS).map(s=>`<option value="${s}">${s}</option>`).join('')}</select></div>
         <div class="field"><select id="ct-from-loc"><option value="">Location…</option></select></div>
       </div>
-      <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:12px 0 8px;color:#000;">To</div>
+      <div style="font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:12px 0 8px;color:#000;">To</div>
       <div class="grid2" style="gap:12px;">
         <div class="field"><select id="ct-to-sys" onchange="onCTToSysChange()"><option value="">System…</option>${Object.keys(SYSTEMS).map(s=>`<option value="${s}">${s}</option>`).join('')}</select></div>
         <div class="field"><select id="ct-to-loc"><option value="">Location…</option></select></div>
       </div>`;
     default: return `
       <div class="field"><label class="lbl">Description</label>
-        <textarea id="ct-desc" rows="3" style="width:100%;border:1.5px solid #000;padding:9px 12px;font-size:10px;font-family:inherit;resize:vertical;" placeholder="Describe the task…"></textarea>
+        <textarea id="ct-desc" rows="3" style="width:100%;border:1.5px solid #000;padding:9px 12px;font-size:14px;font-family:inherit;resize:vertical;" placeholder="Describe the task…"></textarea>
       </div>`;
   }
 }
