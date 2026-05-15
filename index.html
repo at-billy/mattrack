@@ -68,6 +68,7 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none;}
 .btn-sm{padding:5px 11px;font-size:10px;}
 .btn-ghost{background:none;color:var(--mid);border:1px solid #ccc;padding:5px 11px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
 .btn-ghost:hover{border-color:#000;color:#000;}
+.btn-ghost.active{background:#000;color:#fff;border-color:#000;}
 .btn-max{background:#000;color:#fff;padding:0 16px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1.5px solid #000;white-space:nowrap;}
 .btn-max:hover{background:#333;}
 
@@ -337,6 +338,7 @@ const state = { user: null, stock: [], craftItems: [], archive: [], allUsers: []
 let tasksFilter = 'open';
 let tasksSearchActive = false;
 let tasksSearch = '';
+let tasksRoleFilter = '';
 let craftState = { itemId: null, mode: 'best', qMin: 850, qMax: 1000, quantity: 1, plan: null };
 let itemsFilter = 'all';
 let invFilter = 'available'; // "available" | "handed_out"
@@ -612,10 +614,9 @@ function hasAdmin() { return state.allUsers.some(u=>(u.roles||[]).includes('admi
 
 function renderNav() {
   const u=state.user; if(!u) return;
-  const noAdmin=!hasAdmin();
   // Map currentPage → main nav section
   const inCraft=['craft','materials','inventory'];
-  const inLog=['archive','admin'];
+  const inLog=['archive','admin','member'];
   let main='mat';
   if(currentPage==='tasks') main='task';
   else if(inCraft.includes(currentPage)) main='craft';
@@ -626,11 +627,9 @@ function renderNav() {
   if(main==='task'){
     const oc=state.tasks.filter(t=>t.status==='open').length;
     const dc=state.tasks.filter(t=>t.status==='completed').length;
-    const cc=state.tasks.filter(t=>t.status==='cancelled').length;
     sub=`
       <div class="nav-sub-item${tasksFilter==='open'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('open')">Open${oc?` (${oc})`:''}</div>
       <div class="nav-sub-item${tasksFilter==='completed'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('completed')">Completed${dc?` (${dc})`:''}</div>
-      <div class="nav-sub-item${tasksFilter==='cancelled'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('cancelled')">Cancelled${cc?` (${cc})`:''}</div>
       <div class="nav-sub-item${tasksSearchActive?' active':''}" onclick="toggleTaskSearch()">Search</div>`;
   } else if(main==='craft'){
     sub=`
@@ -641,18 +640,13 @@ function renderNav() {
   } else if(main==='log'){
     sub=`
       <div class="nav-sub-item${currentPage==='archive'?' active':''}" onclick="goTo('archive')">Log</div>
-      ${isAdmin(u)?`<div class="nav-sub-item${currentPage==='admin'?' active':''}" onclick="goTo('admin')">Admin</div>`:''}`;
+      ${isAdmin(u)?`<div class="nav-sub-item${currentPage==='admin'?' active':''}" onclick="goTo('admin')">Admin</div>`:''}
+      <div class="nav-sub-item${currentPage==='member'?' active':''}" onclick="goTo('member')">${esc(u.username)}</div>
+      <div class="nav-sub-item" onclick="doLogout()">Sign out</div>`;
   }
 
   const el=document.getElementById('nav');
   el.innerHTML=`
-    <div id="nav-topbar">
-      <span class="live-dot"></span>
-      <span style="font-weight:700;">${esc(u.username)}</span>
-      ${u.roles.map(r=>roleTagHtml(r)).join('')}
-      ${noAdmin?`<button class="btn-ghost" style="border-color:#f59e0b;color:#92400e;" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
-      <button class="btn-ghost" onclick="doLogout()">Sign out</button>
-    </div>
     <div id="nav-primary">
       <div class="nav-main${main==='mat'?' active':''}" onclick="goTo('overview')">MAT</div>
       <div class="nav-main${main==='task'?' active':''}" onclick="goTo('tasks')">TASK</div>
@@ -664,7 +658,7 @@ function renderNav() {
   if(window._navScrollUpdate) window._navScrollUpdate();
 }
 function renderPage() {
-  const pages={overview:pageOverview,materials:pageMaterials,craft:pageCraft,inventory:pageInventory,tasks:pageTasks,archive:pageArchive,admin:pageAdmin};
+  const pages={overview:pageOverview,materials:pageMaterials,craft:pageCraft,inventory:pageInventory,tasks:pageTasks,archive:pageArchive,admin:pageAdmin,member:pageMember};
   const pw=document.getElementById('page-wrap');
   const isFullWidth = currentPage==='overview';
   if(pw) pw.innerHTML=`<div class="page"${isFullWidth?' style="padding:0;"':''}>${(pages[currentPage]||pageOverview)()}</div>`;
@@ -1615,6 +1609,105 @@ function fmtArchiveDetails(e){
   }
 }
 
+// ─── MEMBER PAGE ──────────────────────────────────────────────────────────────
+function pageMember() {
+  const u = state.user;
+  const noAdmin = !hasAdmin();
+  // Activity from archive filtered to this user
+  const myLog = state.archive.filter(e => e.userId === u._id);
+  const myMatsAdded   = myLog.filter(e=>e.type==='material_added').length;
+  const myMatsRemoved = myLog.filter(e=>e.type==='material_removed').length;
+  const myCrafted     = myLog.filter(e=>e.type==='crafted').length;
+  const myTasksDone   = myLog.filter(e=>e.type==='task_completed').length;
+  const myTasksAcc    = myLog.filter(e=>e.type==='task_accepted').length;
+
+  // Roles the member has (non-pending, non-removed)
+  const activeRoles = (u.roles||[]).filter(r=>!r.endsWith('_pending')&&r!=='removed');
+  // Roles they could request
+  const REQUESTABLE = [
+    {id:'provider',  label:'Provider'},
+    {id:'crafter',   label:'Crafter'},
+    {id:'logistics', label:'Logistics'},
+  ];
+  const requestable = REQUESTABLE.filter(r => {
+    return !u.roles.includes(r.id) && !u.roles.includes(r.id+'_pending');
+  });
+  const pending = REQUESTABLE.filter(r => u.roles.includes(r.id+'_pending'));
+
+  // Last 10 personal log entries
+  const recentActivity = myLog.slice(0,10);
+  const logLabels = {crafted:'Crafted',material_added:'Added',material_removed:'Removed',material_moved:'Moved',item_handed_out:'Handed Out',task_created:'Created Task',task_accepted:'Accepted Task',task_completed:'Completed Task',user_joined:'Joined'};
+
+  return `
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="page-title">${esc(u.username)}</div>
+        <div class="page-sub" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+          ${activeRoles.map(r=>roleTagHtml(r)).join('')}
+        </div>
+      </div>
+      ${noAdmin?`<button class="btn btn-outline" style="border-color:#f59e0b;color:#92400e;font-size:11px;" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
+    </div>
+
+    <div class="ov-stats" style="margin-bottom:40px;">
+      <div class="ov-stat" style="padding-right:28px;">
+        <div class="ov-stat-num">${myMatsAdded}</div>
+        <div class="ov-stat-label">Materials Added</div>
+        <div class="ov-stat-sub">${myMatsRemoved} removed</div>
+      </div>
+      <div class="ov-stat" style="padding-left:28px;padding-right:28px;">
+        <div class="ov-stat-num">${myCrafted}</div>
+        <div class="ov-stat-label">Items Crafted</div>
+        <div class="ov-stat-sub">&nbsp;</div>
+      </div>
+      <div class="ov-stat" style="padding-left:28px;padding-right:28px;">
+        <div class="ov-stat-num">${myTasksDone}</div>
+        <div class="ov-stat-label">Tasks Completed</div>
+        <div class="ov-stat-sub">${myTasksAcc} accepted total</div>
+      </div>
+      <div class="ov-stat" style="padding-left:28px;">
+        <div class="ov-stat-num">${myLog.length}</div>
+        <div class="ov-stat-label">Total Actions</div>
+        <div class="ov-stat-sub">&nbsp;</div>
+      </div>
+    </div>
+
+    ${requestable.length||pending.length?`
+    <div style="margin-bottom:40px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;color:#555;">Role Requests</div>
+      ${pending.length?`
+      <div style="margin-bottom:12px;font-size:13px;color:#92400e;">
+        ${pending.map(r=>`<span style="margin-right:16px;">⏳ <strong>${r.label}</strong> — pending admin approval</span>`).join('')}
+      </div>`:''}
+      ${requestable.length?`
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        ${requestable.map(r=>`<button class="btn btn-outline btn-sm" onclick="requestRole('${r.id}','${r.label}')">Request ${r.label}</button>`).join('')}
+      </div>`:''}
+    </div>`:''}
+
+    ${recentActivity.length?`
+    <div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;color:#555;">Recent Activity</div>
+      <table>
+        <thead><tr><th>Date</th><th>Action</th><th>Details</th></tr></thead>
+        <tbody>${recentActivity.map(e=>`<tr>
+          <td style="font-size:11px;color:#999;white-space:nowrap;">${fmtDate(e._creationTime)}</td>
+          <td><span class="badge badge-${e.type}">${logLabels[e.type]||e.type}</span></td>
+          <td style="font-size:12px;color:#555;">${fmtArchiveDetails(e)}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`:`<div class="empty">No activity recorded yet.</div>`}`;
+}
+
+async function requestRole(role, label) {
+  if(!confirm(`Request ${label} role? An admin will need to approve it.`)) return;
+  try {
+    await convexMutation('users:requestRole',{userId:state.user._id,role});
+    toast(`${label} role requested — pending admin approval`);
+    await refreshAll();
+  } catch(e){alert(e.message);}
+}
+
 // ─── SHARED HELPERS ───────────────────────────────────────────────────────────
 function togglePanel(id){
   const el=document.getElementById(id); if(!el) return;
@@ -1903,17 +1996,30 @@ function renderAdminContent() {
 
     <div>
       <div style="font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000;">All Members</div>
-      <table>
-        <thead><tr><th>Username</th><th>Roles</th><th></th></tr></thead>
-        <tbody>${state.allUsers.map(m=>`<tr>
-          <td style="font-weight:600;">${esc(m.username)}${m._id===u._id?' <span style="color:#bbb;font-size:11px;">(you)</span>':''}</td>
-          <td>${m.roles.map(r=>roleTagHtml(r)).join(' ')}</td>
-          <td style="white-space:nowrap;display:flex;gap:6px;align-items:center;">
-            ${(!m.roles.includes('admin')&&m._id!==u._id&&!m.roles.includes('removed'))?`<button class="btn-ghost btn-sm" onclick="adminGrantAdmin('${esc(m._id)}','${esc(m.username)}')">Grant Admin</button>`:''}
-            ${(m._id!==u._id&&!m.roles.includes('removed'))?`<button class="btn-del" onclick="adminRemoveMember('${esc(m._id)}','${esc(m.username)}')">Remove</button>`:''}
-          </td>
-        </tr>`).join('')}</tbody>
-      </table>
+      ${state.allUsers.map(m=>{
+        const isMe = m._id===u._id;
+        const removed = m.roles.includes('removed');
+        const MANAGEABLE = ['provider','crafter','logistics'];
+        return `<div style="display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-bottom:1px solid #e8e8e8;flex-wrap:wrap;">
+          <div style="min-width:140px;">
+            <div style="font-weight:700;font-size:15px;">${esc(m.username)}${isMe?' <span style="color:#bbb;font-size:11px;">(you)</span>':''}</div>
+            <div style="margin-top:4px;">${m.roles.map(r=>roleTagHtml(r)).join(' ')}</div>
+          </div>
+          ${!removed?`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1;">
+            ${MANAGEABLE.map(role=>{
+              const has = m.roles.includes(role);
+              const pending = m.roles.includes(role+'_pending');
+              if(has) return `<button class="btn-ghost btn-sm" style="border-color:#fca5a5;color:#ef4444;" onclick="adminRevokeRole('${esc(m._id)}','${esc(m.username)}','${role}')">− ${role.charAt(0).toUpperCase()+role.slice(1)}</button>`;
+              if(pending) return `<button class="btn btn-black btn-sm" onclick="adminApproveRole('${esc(m._id)}','${esc(m.username)}','${role}_pending','${role}')">✓ ${role.charAt(0).toUpperCase()+role.slice(1)}?</button>`;
+              return `<button class="btn-ghost btn-sm" onclick="adminDirectGrantRole('${esc(m._id)}','${esc(m.username)}','${role}')">+ ${role.charAt(0).toUpperCase()+role.slice(1)}</button>`;
+            }).join('')}
+            ${!m.roles.includes('admin')&&!isMe?`<button class="btn-ghost btn-sm" onclick="adminGrantAdmin('${esc(m._id)}','${esc(m.username)}')">+ Admin</button>`:''}
+          </div>
+          <div style="margin-left:auto;">
+            ${!isMe?`<button class="btn-del" onclick="adminRemoveMember('${esc(m._id)}','${esc(m.username)}')">Remove</button>`:''}
+          </div>`:`<div style="color:#ef4444;font-size:12px;align-self:center;">Removed</div>`}
+        </div>`;
+      }).join('')}
     </div>`;
 }
 
@@ -1932,6 +2038,26 @@ async function adminDenyRole(targetId, targetName, pendingRole) {
   try {
     await convexMutation('users:denyRole',{adminId:state.user._id,targetUserId:targetId,pendingRole});
     toast(`${targetName}'s application denied`);
+    await refreshAll();
+  } catch(e){alert(e.message);}
+}
+
+async function adminDirectGrantRole(targetId, targetName, role) {
+  const label = role.charAt(0).toUpperCase()+role.slice(1);
+  if(!confirm(`Grant ${label} role to ${targetName}?`)) return;
+  try {
+    await convexMutation('users:grantRole',{adminId:state.user._id,targetUserId:targetId,role});
+    toast(`${label} role granted to ${targetName}`);
+    await refreshAll();
+  } catch(e){alert(e.message);}
+}
+
+async function adminRevokeRole(targetId, targetName, role) {
+  const label = role.charAt(0).toUpperCase()+role.slice(1);
+  if(!confirm(`Revoke ${label} role from ${targetName}?`)) return;
+  try {
+    await convexMutation('users:revokeRole',{adminId:state.user._id,targetUserId:targetId,role});
+    toast(`${label} role revoked from ${targetName}`);
     await refreshAll();
   } catch(e){alert(e.message);}
 }
@@ -2002,6 +2128,13 @@ function pageTasks() {
       </div>
       ${admin?`<button class="btn btn-black" onclick="openCreateTaskModal()">+ Create Task</button>`:''}
     </div>
+    ${!tasksSearchActive?`<div style="display:flex;gap:8px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#999;">Role:</span>
+      <button class="btn-ghost btn-sm${tasksRoleFilter===''?' active':''}" onclick="setTasksRoleFilter('')">All</button>
+      <button class="btn-ghost btn-sm${tasksRoleFilter==='provider'?' active':''}" onclick="setTasksRoleFilter('provider')">Provider</button>
+      <button class="btn-ghost btn-sm${tasksRoleFilter==='crafter'?' active':''}" onclick="setTasksRoleFilter('crafter')">Crafter</button>
+      <button class="btn-ghost btn-sm${tasksRoleFilter==='logistics'?' active':''}" onclick="setTasksRoleFilter('logistics')">Logistics</button>
+    </div>`:''}
     <div id="task-search-bar" class="task-search-bar" style="${tasksSearchActive?'':'display:none;'}">
       <input type="text" id="task-search-inp" placeholder="Search tasks by title…" value="${esc(tasksSearch)}" style="max-width:420px;"
         oninput="tasksSearch=this.value;document.getElementById('tasks-list').innerHTML=renderTasksList();">
@@ -2014,15 +2147,18 @@ function setTasksFilter(f) {
   tasksSearchActive=false;
   tasksSearch='';
   renderNav();
-  const el=document.getElementById('tasks-list'); if(el) el.innerHTML=renderTasksList();
-  const sb=document.getElementById('task-search-bar'); if(sb) sb.style.display='none';
+  renderPage();
+}
+function setTasksRoleFilter(role) {
+  tasksRoleFilter=role;
+  renderPage();
 }
 function toggleTaskSearch() {
   tasksSearchActive=!tasksSearchActive;
   if(!tasksSearchActive) tasksSearch='';
   renderNav();
-  const el=document.getElementById('tasks-list'); if(el) el.innerHTML=renderTasksList();
-  const sb=document.getElementById('task-search-bar'); if(sb){ sb.style.display=tasksSearchActive?'':'none'; if(tasksSearchActive){const inp=sb.querySelector('input');if(inp)inp.focus();} }
+  renderPage();
+  if(tasksSearchActive) setTimeout(()=>{const inp=document.getElementById('task-search-inp');if(inp)inp.focus();},50);
 }
 
 function taskRoleBadge(role) {
@@ -2069,7 +2205,8 @@ function renderTasksList() {
   } else {
     tasks=state.tasks.filter(t=>t.status===tasksFilter);
     if(!admin) tasks=tasks.filter(t=>t.targetRoles.some(r=>u.roles.includes(r)));
-    if(!tasks.length) return `<div class="empty">No ${tasksFilter} tasks${!admin?' for your role':''} yet.</div>`;
+    if(tasksRoleFilter) tasks=tasks.filter(t=>t.targetRoles.includes(tasksRoleFilter));
+    if(!tasks.length) return `<div class="empty">No ${tasksFilter} tasks${tasksRoleFilter?' for '+tasksRoleFilter:(!admin?' for your role':'')} yet.</div>`;
   }
   tasks=tasks.slice().sort((a,b)=>{
     const po={urgent:0,high:1,normal:2,whenever:3};

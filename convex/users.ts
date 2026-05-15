@@ -134,6 +134,62 @@ export const removeMember = mutation({
   },
 });
 
+// Member requests a role (adds _pending version for admin approval)
+export const requestRole = mutation({
+  args: { userId: v.id("users"), role: v.string() },
+  handler: async (ctx, { userId, role }) => {
+    const REQUESTABLE = ['crafter', 'logistics', 'provider'];
+    if (!REQUESTABLE.includes(role)) throw new Error("Role not requestable");
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+    const pendingRole = role === 'provider' ? role : role + '_pending';
+    if (user.roles.includes(role)) throw new Error("Already have this role");
+    if (user.roles.includes(pendingRole)) throw new Error("Already requested");
+    await ctx.db.patch(userId, { roles: [...user.roles, pendingRole] });
+  },
+});
+
+// Admin directly grants a role (bypasses pending)
+export const grantRole = mutation({
+  args: { adminId: v.id("users"), targetUserId: v.id("users"), role: v.string() },
+  handler: async (ctx, { adminId, targetUserId, role }) => {
+    const admin = await ctx.db.get(adminId);
+    if (!admin?.roles.includes("admin")) throw new Error("Not authorized");
+    const target = await ctx.db.get(targetUserId);
+    if (!target) throw new Error("User not found");
+    const pendingRole = role + '_pending';
+    const newRoles = target.roles.filter(r => r !== pendingRole && r !== role);
+    newRoles.push(role);
+    await ctx.db.patch(targetUserId, { roles: newRoles });
+    await ctx.db.insert("archive", {
+      type: "role_approved",
+      userId: adminId,
+      userName: admin.username,
+      details: { targetUsername: target.username, role },
+    });
+  },
+});
+
+// Admin revokes a role from a member
+export const revokeRole = mutation({
+  args: { adminId: v.id("users"), targetUserId: v.id("users"), role: v.string() },
+  handler: async (ctx, { adminId, targetUserId, role }) => {
+    const admin = await ctx.db.get(adminId);
+    if (!admin?.roles.includes("admin")) throw new Error("Not authorized");
+    const target = await ctx.db.get(targetUserId);
+    if (!target) throw new Error("User not found");
+    const pendingRole = role + '_pending';
+    const newRoles = target.roles.filter(r => r !== role && r !== pendingRole);
+    await ctx.db.patch(targetUserId, { roles: newRoles });
+    await ctx.db.insert("archive", {
+      type: "role_denied",
+      userId: adminId,
+      userName: admin.username,
+      details: { targetUsername: target.username, role },
+    });
+  },
+});
+
 // Admin grants admin role to another user
 export const grantAdmin = mutation({
   args: { adminId: v.id("users"), targetUserId: v.id("users") },
