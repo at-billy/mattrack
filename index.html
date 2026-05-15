@@ -659,8 +659,7 @@ function renderNav() {
       <div class="nav-main${main==='craft'?' active':''}" onclick="goTo('craft')">CRAFT</div>
       <div class="nav-main outline${main==='log'?' active':''}" onclick="goTo('archive')">LOG</div>
     </div>
-    ${sub?`<div id="nav-sub">${sub}</div>`:''}
-    <hr class="nav-divider">`;
+    ${sub?`<div id="nav-sub">${sub}</div>`:''}`;
   /* re-sync scroll state after re-render (active class may have changed) */
   if(window._navScrollUpdate) window._navScrollUpdate();
 }
