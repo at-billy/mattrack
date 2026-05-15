@@ -10,12 +10,14 @@
 body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;color:#000;font-size:14px;line-height:1.4;}
 
 /* ── NAV WRAPPER ─────────────────────────────────────────────────── */
-#nav{position:sticky;top:0;z-index:100;background:#fff;}
+/* fixed so content scrolls under it; background opaque for topbar   */
+#nav{position:fixed;top:0;left:0;right:0;z-index:100;background:#fff;}
 
 /* ── NAV TOPBAR (user info) ──────────────────────────────────────── */
-#nav-topbar{display:flex;align-items:center;justify-content:flex-end;padding:7px 40px;gap:12px;font-size:11px;border-bottom:1px solid #e0e0e0;will-change:opacity;}
+#nav-topbar{display:flex;align-items:center;justify-content:flex-end;padding:7px 40px;gap:12px;font-size:11px;border-bottom:1px solid #e0e0e0;}
 
 /* ── PRIMARY NAV ─────────────────────────────────────────────────── */
+/* overflow:hidden clips items as they translate up (OMA mechanic)   */
 #nav-primary{display:flex;justify-content:space-between;align-items:flex-end;padding:10px 40px 0;overflow:hidden;}
 .nav-main{font-size:clamp(40px,8vw,220px);font-weight:900;letter-spacing:-0.03em;line-height:1;padding-bottom:10px;cursor:pointer;color:#000;text-transform:uppercase;user-select:none;will-change:transform;transition:opacity .15s;}
 .nav-main:hover{opacity:.45;}
@@ -24,7 +26,7 @@ body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;col
 .nav-main.outline.active{border-bottom-color:#000;}
 
 /* ── SUB NAV ─────────────────────────────────────────────────────── */
-#nav-sub{display:flex;align-items:baseline;padding:2px 40px 0;gap:0;will-change:opacity;}
+#nav-sub{display:flex;align-items:baseline;padding:2px 40px 0;gap:0;}
 .nav-sub-item{font-size:clamp(18px,2.8vw,44px);font-weight:900;letter-spacing:-.5px;text-transform:uppercase;cursor:pointer;color:#000;border-bottom:3px solid transparent;padding-bottom:4px;padding-right:36px;user-select:none;transition:opacity .15s;}
 .nav-sub-item:last-child{padding-right:0;}
 .nav-sub-item:hover{opacity:.45;}
@@ -2340,49 +2342,83 @@ async function init(){
 }
 init();
 
-/* ── OMA-STYLE SCROLL NAV ────────────────────────────────────────── */
-/* Inactive items slide up proportionally; active item stays fixed.  */
-/* Matches OMA's behaviour: full translation within first 100px scroll */
+/* ── OMA-STYLE FIXED NAV — exact spec implementation ─────────────── */
 (function(){
-  const SCROLL_RANGE = 100; // px of scroll to reach full collapse
-  const TRANSLATE_RATIO = 0.9; // 90% up → 10% sliver remains
+  const SCROLL_RANGE  = 100;   // px of scroll to reach full translation
+  const TRANSLATE_CAP = 0.9;   // 90% up → bottom 10% sliver always visible
 
-  function updateNav(){
-    const y = window.scrollY;
-    const progress = Math.min(y / SCROLL_RANGE, 1);
+  /* nav-primary item height (vw-based, remeasured on resize) */
+  let ITEM_H      = 0;
+  let MAX_TRANSLATE = 0;
 
-    /* ── primary nav items ── */
+  /* ── measure & lock the primary-nav height ──────────────────────── */
+  function setup(){
+    const primary  = document.getElementById('nav-primary');
+    const pageWrap = document.getElementById('page-wrap');
+    const nav      = document.getElementById('nav');
+    if(!primary || !pageWrap || !nav) return;
+
+    /* unlock height so we can remeasure after re-render */
+    primary.style.height = '';
+    const item = primary.querySelector('.nav-main');
+    ITEM_H       = item ? item.offsetHeight : 120;
+    MAX_TRANSLATE = ITEM_H * TRANSLATE_CAP;
+
+    /* lock nav-primary to measured height so overflow:hidden clips correctly */
+    primary.style.height = ITEM_H + 'px';
+
+    /* push page content below the entire fixed nav */
+    pageWrap.style.marginTop = nav.offsetHeight + 'px';
+  }
+
+  /* ── scroll handler (rAF-throttled, direction-aware) ────────────── */
+  let lastScrollY = window.scrollY;
+  let ticking     = false;
+
+  function update(){
+    const scrollY     = window.scrollY;
+    const scrollingDown = scrollY > lastScrollY;
+    const progress    = Math.min(scrollY / SCROLL_RANGE, 1);
+    const translateY  = progress * MAX_TRANSLATE;
+
+    /* inactive .nav-main items: translate up, clip in overflow:hidden */
     const primary = document.getElementById('nav-primary');
     if(primary){
-      const items = primary.querySelectorAll('.nav-main');
-      const itemH = items.length ? items[0].offsetHeight : 120;
-      const maxTY = itemH * TRANSLATE_RATIO;
-      const ty = progress * maxTY;
-      items.forEach(item => {
-        item.style.transform = item.classList.contains('active')
-          ? 'translate(0px,0px)'
-          : `translate(0px,-${ty}px)`;
+      primary.querySelectorAll('.nav-main').forEach(el => {
+        if(el.classList.contains('active')){
+          /* active item never moves */
+          el.style.transition = 'none';
+          el.style.transform  = 'translate(0px,0px)';
+        } else {
+          /* scrolling down → no transition, follows finger in real-time  */
+          /* scrolling up   → smooth ease back to rest position           */
+          el.style.transition = scrollingDown
+            ? 'none'
+            : 'transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94)';
+          el.style.transform  = `translate(0px,-${translateY}px)`;
+        }
       });
     }
 
-    /* ── topbar: fade out ── */
+    /* topbar + subnav: fade out (doesn't affect layout) */
     const topbar = document.getElementById('nav-topbar');
-    if(topbar){
-      topbar.style.opacity = 1 - progress;
-      topbar.style.pointerEvents = progress > 0.5 ? 'none' : '';
-    }
+    const sub    = document.getElementById('nav-sub');
+    const alpha  = 1 - progress;
+    if(topbar){ topbar.style.opacity = alpha; topbar.style.pointerEvents = progress > 0.5 ? 'none' : ''; }
+    if(sub)   { sub.style.opacity    = alpha; sub.style.pointerEvents    = progress > 0.5 ? 'none' : ''; }
 
-    /* ── subnav: fade out ── */
-    const sub = document.getElementById('nav-sub');
-    if(sub){
-      sub.style.opacity = 1 - progress;
-      sub.style.pointerEvents = progress > 0.5 ? 'none' : '';
-    }
+    lastScrollY = scrollY;
+    ticking     = false;
   }
 
-  window.addEventListener('scroll', updateNav, { passive: true });
-  /* expose so renderNav() can re-sync after active class changes */
-  window._navScrollUpdate = updateNav;
+  window.addEventListener('scroll', () => {
+    if(!ticking){ requestAnimationFrame(update); ticking = true; }
+  }, { passive: true });
+
+  window.addEventListener('resize', () => { setup(); update(); }, { passive: true });
+
+  /* called by renderNav() after every re-render so active class is re-synced */
+  window._navScrollUpdate = function(){ setup(); update(); };
 })();
 </script>
 </body>
