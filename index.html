@@ -7,7 +7,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{--red:#cc0000;--mid:#888;}
-body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;color:#000;font-size:28px;line-height:1.4;}
+body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;color:#000;font-size:22px;line-height:1.4;}
 
 /* ── NAV WRAPPER ─────────────────────────────────────────────────── */
 /* transparent so only letter slivers show when items translate up   */
@@ -75,7 +75,7 @@ button{font-family:inherit;cursor:pointer;border:none;outline:none;}
 /* ── FORMS ───────────────────────────────────────────────────────── */
 label.lbl{display:block;font-size:22px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;color:#000;}
 input[type=text],input[type=password],input[type=number],select{
-  display:block;width:100%;border:1.5px solid #000;padding:9px 12px;font-size:28px;font-family:inherit;background:#fff;appearance:none;-webkit-appearance:none;outline:none;}
+  display:block;width:100%;border:1.5px solid #000;padding:9px 12px;font-size:22px;font-family:inherit;background:#fff;appearance:none;-webkit-appearance:none;outline:none;}
 input:focus,select:focus{border-color:var(--red);}
 input::placeholder{color:#000;}
 .field{margin-bottom:16px;}
@@ -88,9 +88,9 @@ input::placeholder{color:#000;}
 /* ── TABLES ──────────────────────────────────────────────────────── */
 table{width:100%;border-collapse:collapse;}
 thead th{font-size:22px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:10px 14px;border-bottom:2px solid #000;text-align:left;white-space:nowrap;color:#000;}
-tbody td{padding:14px 14px;vertical-align:middle;font-size:28px;}
+tbody td{padding:14px 14px;vertical-align:middle;font-size:22px;}
 tbody tr:hover{background:#f9f9f9;}
-.empty{padding:80px 0;text-align:center;color:#000;font-size:28px;letter-spacing:.04em;}
+.empty{padding:80px 0;text-align:center;color:#000;font-size:22px;letter-spacing:.04em;}
 
 /* ── TAGS ────────────────────────────────────────────────────────── */
 .q{display:inline-block;padding:2px 7px;font-size:22px;font-weight:700;background:#000;color:#fff;}
@@ -174,14 +174,14 @@ tbody tr:hover{background:#f9f9f9;}
 
 /* ── INLINE UTILS ────────────────────────────────────────────────── */
 .unit-inline{font-size:22px;font-weight:700;color:#000;margin-left:4px;}
-.loc-display{font-size:28px;color:#000;}
+.loc-display{font-size:22px;color:#000;}
 .sys-badge{font-size:22px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#333;padding:1px 5px;margin-right:4px;}
 .sys-badge.pyro{background:var(--red);}
 .sys-badge.nyx{background:#005080;}
 
 /* ── FILTER TABS (inline content) ────────────────────────────────── */
 .filter-tabs{display:flex;gap:28px;flex-wrap:wrap;margin-bottom:28px;padding-bottom:14px;}
-.filter-tab{padding:0;font-size:28px;font-weight:700;border:none;background:none;color:#000;cursor:pointer;letter-spacing:-.1px;}
+.filter-tab{padding:0;font-size:22px;font-weight:700;border:none;background:none;color:#000;cursor:pointer;letter-spacing:-.1px;}
 .filter-tab.active{color:#000;border-bottom:2px solid #000;padding-bottom:2px;}
 .filter-tab:hover:not(.active){color:#000;}
 
@@ -190,7 +190,7 @@ tbody tr:hover{background:#f9f9f9;}
 .sub-tab{display:none;}
 
 /* ── HINT BOX ────────────────────────────────────────────────────── */
-.hint-box{background:#f5f5f5;border-left:3px solid #000;padding:10px 14px;font-size:28px;color:#000;margin-top:8px;line-height:1.7;}
+.hint-box{background:#f5f5f5;border-left:3px solid #000;padding:10px 14px;font-size:22px;color:#000;margin-top:8px;line-height:1.7;}
 .hint-box strong{color:#000;}
 
 /* ── OVERVIEW / LANDING ──────────────────────────────────────────── */
@@ -212,10 +212,10 @@ tbody tr:hover{background:#f9f9f9;}
 .ov-col-head{font-size:42px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #000;}
 .ov-entry{display:grid;grid-template-columns:72px 1fr auto;gap:8px;padding:9px 0;align-items:baseline;}
 .ov-entry-date{font-size:22px;color:#000;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;}
-.ov-entry-body{font-size:28px;line-height:1.5;}
+.ov-entry-body{font-size:22px;line-height:1.5;}
 .ov-entry-who{font-size:22px;color:#000;font-weight:700;letter-spacing:.04em;white-space:nowrap;}
 .ov-task-row{padding:10px 0;}
-.ov-task-title{font-size:28px;font-weight:600;margin-bottom:3px;}
+.ov-task-title{font-size:22px;font-weight:600;margin-bottom:3px;}
 .ov-task-meta{font-size:22px;color:#000;}
 .ov-bottom{display:grid;grid-template-columns:3fr 2fr;gap:0;padding-top:4px;}
 .ov-empty{color:#bbb;font-size:12px;padding:16px 0;}
@@ -622,7 +622,7 @@ function renderNav() {
   // Build sub-nav HTML
   let sub='';
   if(main==='mat'){
-    sub=`<div class="nav-sub-item">${esc(u.username)}</div>`;
+    sub=`<div class="nav-sub-item">Welcome back, ${esc(u.username)}</div>`;
   } else if(main==='task'){
     const oc=state.tasks.filter(t=>t.status==='open').length;
     const dc=state.tasks.filter(t=>t.status==='completed').length;
@@ -2478,7 +2478,7 @@ init();
   let MAX_TRANSLATE = 0;
 
   /* ── measure & lock the primary-nav height ──────────────────────── */
-  function setup(){
+  function setup(updateMargin=true){
     const primary  = document.getElementById('nav-primary');
     const pageWrap = document.getElementById('page-wrap');
     const nav      = document.getElementById('nav');
@@ -2493,8 +2493,11 @@ init();
     /* lock nav-primary to measured height so overflow:hidden clips correctly */
     primary.style.height = ITEM_H + 'px';
 
-    /* push page content below the entire fixed nav */
-    pageWrap.style.marginTop = nav.offsetHeight + 'px';
+    /* push page content below the entire fixed nav — only on first load & resize
+       to avoid a vertical jump whenever subnav changes between sections */
+    if(updateMargin || !pageWrap.style.marginTop){
+      pageWrap.style.marginTop = nav.offsetHeight + 'px';
+    }
   }
 
   /* ── scroll handler (rAF-throttled, direction-aware) ────────────── */
@@ -2532,10 +2535,11 @@ init();
     if(!ticking){ requestAnimationFrame(update); ticking = true; }
   }, { passive: true });
 
-  window.addEventListener('resize', () => { setup(); update(); }, { passive: true });
+  window.addEventListener('resize', () => { setup(true); update(); }, { passive: true });
 
-  /* called by renderNav() after every re-render so active class is re-synced */
-  window._navScrollUpdate = function(){ setup(); update(); };
+  /* called by renderNav() after every re-render — re-syncs transforms but does NOT
+     recalculate margin-top (that would shift the page on every navigation) */
+  window._navScrollUpdate = function(){ setup(false); update(); };
 })();
 </script>
 </body>
