@@ -700,7 +700,7 @@ function renderNav() {
   let sub='';
   if(main==='mat'){
     const dark=document.body.classList.contains('dark');
-    sub=`<div class="nav-sub-item" style="cursor:default;">Welcome back, ${esc(u.username)}</div><div class="nav-sub-item" onclick="toggleDark()" style="font-size:18px;font-weight:400;text-transform:none;letter-spacing:0;opacity:.45;">${dark?'lights on?':'lights off?'}</div>`;
+    sub=`<div class="nav-sub-item" style="cursor:default;">Welcome back, ${esc(u.username)}</div><div class="nav-sub-item" onclick="toggleDark()" style="text-transform:none;letter-spacing:0;">${dark?'lights on?':'lights off?'}</div>`;
   } else if(main==='task'){
     const u2=state.user; const admin2=isAdmin(u2);
     const oc=state.tasks.filter(t=>t.status==='open'&&t.acceptees.filter(a=>a.status!=='completed').length<t.slots).length;
