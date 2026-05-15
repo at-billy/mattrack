@@ -2219,7 +2219,7 @@ function renderTasksList() {
           ${t.status==='open'&&!myAcceptee&&!isFull?`<button class="btn btn-black btn-sm" onclick="acceptTask('${esc(t._id)}')">Accept</button>`:''}
           ${t.status==='open'&&myAcceptee&&myAcceptee.status!=='completed'?`<button class="btn btn-outline btn-sm" onclick="completeTask('${esc(t._id)}')">Mark Done</button>`:''}
           ${t.status==='open'&&myAcceptee&&myAcceptee.status!=='completed'?`<button class="btn-ghost btn-sm" onclick="unacceptTask('${esc(t._id)}')">Withdraw</button>`:''}
-          ${admin&&t.status==='open'?`<button class="btn btn-red btn-sm" onclick="adminCompleteTask('${esc(t._id)}')">Complete</button>`:''}
+
           ${admin&&t.status==='open'?`<button class="btn-ghost btn-sm" onclick="adminCancelTask('${esc(t._id)}')">Cancel</button>`:''}
           ${admin?`<button class="btn-del" onclick="adminDeleteTask('${esc(t._id)}')">✕</button>`:''}
         </div>
