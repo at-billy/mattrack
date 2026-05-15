@@ -213,6 +213,80 @@ tbody tr:hover{background:#f9f9f9;}
 .ov-bottom{display:grid;grid-template-columns:3fr 2fr;gap:0;padding-top:32px;}
 .ov-empty{color:#000;font-size:18px;padding:24px 0;}
 
+/* ── DARK MODE ───────────────────────────────────────────────────── */
+body.dark{background:#111;color:#e0e0e0;}
+body.dark #nav-topbar{background:#111;border-bottom-color:#333;}
+body.dark .nav-main{color:#e0e0e0;}
+body.dark .nav-main.outline{-webkit-text-stroke:2px #e0e0e0;color:transparent;}
+body.dark .nav-sub-item{color:#e0e0e0;}
+body.dark .nav-sub-item.active{border-bottom-color:#e0e0e0;}
+body.dark .nav-divider{border-top-color:#e0e0e0;}
+body.dark hr.thick{border-top-color:#e0e0e0;}
+body.dark hr.thin{border-top-color:#333;}
+body.dark hr.red{border-top-color:var(--red);}
+body.dark .page-sub{color:#e0e0e0;}
+body.dark input[type=text],body.dark input[type=password],body.dark input[type=number],body.dark select{background:#1a1a1a;border-color:#e0e0e0;color:#e0e0e0;}
+body.dark input::placeholder{color:#888;}
+body.dark .panel{border-color:#e0e0e0;}
+body.dark .btn-black{background:#e0e0e0;color:#111;}
+body.dark .btn-black:hover{background:#ccc;}
+body.dark .btn-outline{background:#111;color:#e0e0e0;border-color:#e0e0e0;}
+body.dark .btn-outline:hover{background:#222;}
+body.dark .btn-ghost{background:none;color:#e0e0e0;border-color:#555;}
+body.dark .btn-ghost:hover{border-color:#e0e0e0;color:#e0e0e0;}
+body.dark .btn-ghost.active{background:#e0e0e0;color:#111;border-color:#e0e0e0;}
+body.dark .btn-max{background:#e0e0e0;color:#111;border-color:#e0e0e0;}
+body.dark .btn-max:hover{background:#ccc;}
+body.dark .btn-del{border-color:#7f1d1d;color:var(--red);}
+body.dark .btn-del:hover{background:var(--red);color:#fff;}
+body.dark label.lbl{color:#e0e0e0;}
+body.dark thead th{border-bottom-color:#e0e0e0;color:#e0e0e0;}
+body.dark tbody tr:hover{background:#1a1a1a;}
+body.dark .empty{color:#e0e0e0;}
+body.dark .q{background:#e0e0e0;color:#111;}
+body.dark .cat-tag{background:#222;color:#e0e0e0;}
+body.dark .item-cat-tag{background:#e0e0e0;color:#111;}
+body.dark .craft-box{border-color:#e0e0e0;}
+body.dark .task-list{border-top-color:#e0e0e0;}
+body.dark .task-card:hover{background:#1a1a1a;}
+body.dark .task-card.whenever::before{background:#444;}
+body.dark .p-whenever{background:#333;color:#aaa;}
+body.dark .role-badge{border-color:#e0e0e0;}
+body.dark .rb-admin{background:#e0e0e0;color:#111;}
+body.dark .role-tag{border-color:#e0e0e0;color:#e0e0e0;}
+body.dark .role-tag.admin{background:#e0e0e0;color:#111;}
+body.dark .badge{color:#e0e0e0;}
+body.dark .badge-crafted,.dark .badge-material_added,.dark .badge-material_removed,.dark .badge-item_created,.dark .badge-item_deleted,.dark .badge-material_moved,.dark .badge-user_joined,.dark .badge-member_removed,.dark .badge-task_created,.dark .badge-task_accepted,.dark .badge-task_completed,.dark .badge-crafter_approved,.dark .badge-role_approved,.dark .badge-crafter_denied,.dark .badge-role_denied,.dark .badge-admin_granted,.dark .badge-item_handed_out{color:#e0e0e0;}
+body.dark .ov-col-head{border-bottom-color:#333;}
+body.dark .ov-header{border-bottom-color:#333;}
+body.dark .ov-stats{border-bottom-color:#333;}
+body.dark .ov-body{border-bottom-color:#333;}
+body.dark .ov-col+.ov-col{}
+body.dark .modal-box{background:#111;}
+body.dark #toast{background:#e0e0e0;color:#111;}
+body.dark .tabs{border-bottom-color:#e0e0e0;}
+body.dark .tab-btn{color:#e0e0e0;}
+body.dark .tab-btn.active{border-bottom-color:#e0e0e0;color:#e0e0e0;}
+body.dark .filter-tab{color:#e0e0e0;}
+body.dark .filter-tab.active{border-bottom-color:#e0e0e0;color:#e0e0e0;}
+body.dark .hint-box{background:#1a1a1a;border-left-color:#e0e0e0;}
+body.dark .code-block{background:#1a1a1a;}
+body.dark .pending-note{background:#1a1a12;color:#e0e0e0;}
+body.dark .sys-badge{background:#444;color:#e0e0e0;}
+body.dark .sys-badge.pyro{background:var(--red);}
+body.dark .sys-badge.nyx{background:#004a6e;}
+body.dark .log-month-arrow{color:#e0e0e0;}
+body.dark details.log-month>summary{border-bottom-color:#333;}
+body.dark .unit-tag{color:#e0e0e0;}
+body.dark .loc-display{color:#e0e0e0;}
+body.dark .ov-date{color:#e0e0e0;}
+body.dark .ov-stat-label{color:#e0e0e0;}
+body.dark .ov-task-meta{color:#e0e0e0;}
+body.dark .ov-empty{color:#e0e0e0;}
+body.dark .ov-entry-date{color:#e0e0e0;}
+body.dark .ov-entry-who{color:#e0e0e0;}
+body.dark .ov-greeting-sub{color:#e0e0e0;}
+
 /* ── ARCHIVE MONTH GROUPS ────────────────────────────────────────── */
 details.log-month{}
 details.log-month>summary{display:flex;align-items:center;gap:14px;padding:28px 0;cursor:pointer;user-select:none;list-style:none;}
@@ -462,6 +536,16 @@ function updateLiveView() {
 // ─── ROUTER ───────────────────────────────────────────────────────────────────
 function goTo(tab) { currentPage=tab; renderNav(); renderPage(); }
 
+// ─── DARK MODE ────────────────────────────────────────────────────────────────
+function toggleDark() {
+  const on=document.body.classList.toggle('dark');
+  localStorage.setItem('mattrack_dark', on?'1':'0');
+  renderNav();
+}
+(function initDark(){
+  if(localStorage.getItem('mattrack_dark')==='1') document.body.classList.add('dark');
+})();
+
 // ─── SETUP ────────────────────────────────────────────────────────────────────
 function showSetup() {
   stopPolling();
@@ -615,7 +699,8 @@ function renderNav() {
   // Build sub-nav HTML
   let sub='';
   if(main==='mat'){
-    sub=`<div class="nav-sub-item">Welcome back, ${esc(u.username)}</div>`;
+    const dark=document.body.classList.contains('dark');
+    sub=`<div class="nav-sub-item" style="cursor:default;">Welcome back, ${esc(u.username)}</div><div class="nav-sub-item" onclick="toggleDark()" style="font-size:18px;font-weight:400;text-transform:none;letter-spacing:0;opacity:.45;">${dark?'lights on?':'lights off?'}</div>`;
   } else if(main==='task'){
     const u2=state.user; const admin2=isAdmin(u2);
     const oc=state.tasks.filter(t=>t.status==='open'&&t.acceptees.filter(a=>a.status!=='completed').length<t.slots).length;
