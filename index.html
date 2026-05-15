@@ -618,7 +618,7 @@ function renderNav() {
     sub=`<div class="nav-sub-item">Welcome back, ${esc(u.username)}</div>`;
   } else if(main==='task'){
     const u2=state.user; const admin2=isAdmin(u2);
-    const oc=state.tasks.filter(t=>t.status==='open').length;
+    const oc=state.tasks.filter(t=>t.status==='open'&&!t.acceptees.some(a=>a.status!=='completed')).length;
     const dc=state.tasks.filter(t=>t.status==='completed').length;
     const ac=state.tasks.filter(t=>t.status==='open'&&t.acceptees.some(a=>a.status!=='completed')&&(admin2||t.acceptees.some(a=>a.userId===u2._id&&a.status!=='completed'))).length;
     sub=`
@@ -2194,6 +2194,8 @@ function renderTasksList() {
     if(!tasks.length) return `<div class="empty">No accepted tasks yet.</div>`;
   } else {
     tasks=state.tasks.filter(t=>t.status===tasksFilter);
+    // Open tab: exclude tasks that have active acceptees (those live in Accepted tab)
+    if(tasksFilter==='open') tasks=tasks.filter(t=>!t.acceptees.some(a=>a.status!=='completed'));
     if(!admin) tasks=tasks.filter(t=>t.targetRoles.some(r=>u.roles.includes(r)));
     if(tasksRoleFilter) tasks=tasks.filter(t=>t.targetRoles.includes(tasksRoleFilter));
     if(!tasks.length) return `<div class="empty">No ${tasksFilter} tasks${tasksRoleFilter?' for '+tasksRoleFilter:(!admin?' for your role':'')} yet.</div>`;
