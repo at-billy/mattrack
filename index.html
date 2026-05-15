@@ -617,10 +617,13 @@ function renderNav() {
   if(main==='mat'){
     sub=`<div class="nav-sub-item">Welcome back, ${esc(u.username)}</div>`;
   } else if(main==='task'){
+    const u2=state.user; const admin2=isAdmin(u2);
     const oc=state.tasks.filter(t=>t.status==='open').length;
     const dc=state.tasks.filter(t=>t.status==='completed').length;
+    const ac=state.tasks.filter(t=>t.status==='open'&&t.acceptees.some(a=>a.status!=='completed')&&(admin2||t.acceptees.some(a=>a.userId===u2._id&&a.status!=='completed'))).length;
     sub=`
       <div class="nav-sub-item${tasksFilter==='open'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('open')">Open${oc?` (${oc})`:''}</div>
+      <div class="nav-sub-item${tasksFilter==='accepted'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('accepted')">Accepted${ac?` (${ac})`:''}</div>
       <div class="nav-sub-item${tasksFilter==='completed'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('completed')">Completed${dc?` (${dc})`:''}</div>
       <div class="nav-sub-item${tasksSearchActive?' active':''}" onclick="toggleTaskSearch()">Search</div>`;
   } else if(main==='craft'){
@@ -2184,6 +2187,11 @@ function renderTasksList() {
       tasks=tasks.filter(t=>t.title.toLowerCase().includes(q)||(t.materialName||'').toLowerCase().includes(q)||(t.itemName||'').toLowerCase().includes(q));
     }
     if(!tasks.length) return `<div class="empty">No tasks match "${esc(tasksSearch)}".</div>`;
+  } else if(tasksFilter==='accepted') {
+    // Open tasks with at least one active acceptee; non-admins only see their own accepted tasks
+    tasks=state.tasks.filter(t=>t.status==='open'&&t.acceptees.some(a=>a.status!=='completed'));
+    if(!admin) tasks=tasks.filter(t=>t.acceptees.some(a=>a.userId===u._id&&a.status!=='completed'));
+    if(!tasks.length) return `<div class="empty">No accepted tasks yet.</div>`;
   } else {
     tasks=state.tasks.filter(t=>t.status===tasksFilter);
     if(!admin) tasks=tasks.filter(t=>t.targetRoles.some(r=>u.roles.includes(r)));
@@ -2211,7 +2219,7 @@ function renderTasksList() {
           <div style="font-size:18px;color:#000;margin-bottom:10px;line-height:1.5;">${taskTypeDesc(t)}</div>
           <div style="font-size:18px;color:#000;display:flex;gap:16px;flex-wrap:wrap;">
             <span>${activeSlots}/${t.slots} slots</span>
-            <span>${t.acceptees.length?t.acceptees.map(a=>`<strong style="color:${a.status==='completed'?'#16a34a':'#555'};font-size:18px;">${esc(a.userName)}${a.status==='completed'?' ✓':''}</strong>`).join(', '):'no acceptees'}</span>
+            <span>${t.acceptees.length?t.acceptees.map(a=>`<strong style="color:${a.status==='completed'?'var(--red)':'#000'};font-size:18px;">${esc(a.userName)}${a.status==='completed'?' ✓':''}</strong>`).join(', '):'no acceptees'}</span>
             <span style="color:#000;">by ${esc(t.createdByName)}</span>
           </div>
         </div>
