@@ -6,91 +6,75 @@
 <title>MATTRACK</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-:root{--red:#cc0000;--mid:#888;}
+:root{--red:#e50000;--mid:#999;}
 body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;color:#000;font-size:14px;line-height:1.4;}
 
-/* ── PRIMARY NAV ─────────────────────────────────────────────────── */
-#nav-primary{display:flex;align-items:flex-end;padding:18px 40px 0;}
-.nav-main{font-size:clamp(26px,4.5vw,66px);font-weight:900;letter-spacing:-1.5px;line-height:1;padding-right:32px;padding-bottom:10px;cursor:pointer;color:#000;text-transform:uppercase;user-select:none;transition:opacity .15s;}
-.nav-main:hover{opacity:.45;}
-.nav-main.active{border-bottom:4px solid #000;margin-bottom:-4px;}
-.nav-main.outline{-webkit-text-stroke:2px #000;color:transparent;}
-.nav-main.outline.active{border-bottom-color:#000;}
-.nav-user{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:11px;padding-bottom:14px;flex-shrink:0;padding-left:20px;}
-
-/* ── SUB NAV ─────────────────────────────────────────────────────── */
-#nav-sub{display:flex;align-items:baseline;padding:4px 40px 0;gap:28px;}
-.nav-sub-item{font-size:clamp(14px,2.4vw,36px);font-weight:900;letter-spacing:-.5px;text-transform:uppercase;cursor:pointer;color:#000;border-bottom:3px solid transparent;padding-bottom:3px;user-select:none;transition:opacity .15s;}
-.nav-sub-item:hover{opacity:.45;}
-.nav-sub-item.active{border-bottom:3px solid #000;}
-.nav-divider{border:none;border-top:2px solid #000;margin:0;}
-
-/* ── ROLE & STATUS TAGS ──────────────────────────────────────────── */
+#nav{display:flex;align-items:baseline;border-bottom:2px solid #000;padding:0 40px;flex-wrap:wrap;}
+#nav .brand{font-size:30px;font-weight:900;letter-spacing:-1px;padding:18px 40px 18px 0;}
+.nav-item{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:22px 18px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;user-select:none;}
+.nav-item:hover{color:#555;}
+.nav-item.active{border-bottom-color:#000;}
+#nav .user-area{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:12px;padding:0 0 0 20px;}
 .role-tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border:1px solid #000;}
 .role-tag.crafter{border-color:var(--red);color:var(--red);}
-.role-tag.admin{background:#000;color:#fff;}
+.role-tag.admin{background:#000;color:#fff;border-color:#000;}
 .role-tag.crafter_pending{border-color:#f59e0b;color:#f59e0b;}
 .role-tag.provider{border-color:#bbb;color:#999;}
 .role-tag.logistics{border-color:#0ea5e9;color:#0ea5e9;}
 .role-tag.logistics_pending{border-color:#0ea5e9;color:#0ea5e9;opacity:.6;}
-.role-tag.removed{border-color:#fca5a5;color:#ef4444;}
+.role-tag.removed{border-color:#fca5a5;color:#ef4444;background:#fff5f5;}
 .live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
 .live-dot{animation:pulse 2s infinite;}
 
-/* ── PAGE LAYOUT ─────────────────────────────────────────────────── */
-.page{padding:32px 40px 80px;max-width:1400px;}
-.page-title{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#999;margin-bottom:4px;}
-.page-sub{font-size:12px;color:var(--mid);margin-bottom:28px;}
-hr.thick{border:none;border-top:2px solid #000;margin:28px 0;}
+.page{padding:40px 40px 80px;max-width:1400px;}
+.page-title{font-size:52px;font-weight:900;letter-spacing:-2px;margin-bottom:6px;line-height:1;}
+.page-sub{font-size:13px;color:var(--mid);margin-bottom:40px;}
+hr.thick{border:none;border-top:2px solid #000;margin:32px 0;}
 hr.thin{border:none;border-top:1px solid #e0e0e0;margin:0;}
-hr.red{border:none;border-top:1px solid var(--red);margin:32px 0;}
 
-/* ── BUTTONS ─────────────────────────────────────────────────────── */
 button{font-family:inherit;cursor:pointer;border:none;outline:none;}
-.btn{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:8px 16px;}
+.btn{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:9px 18px;}
 .btn-black{background:#000;color:#fff;}
 .btn-black:hover{background:#222;}
 .btn-outline{background:#fff;color:#000;border:1.5px solid #000;}
-.btn-outline:hover{background:#f0f0f0;}
+.btn-outline:hover{background:#f5f5f5;}
 .btn-red{background:var(--red);color:#fff;}
-.btn-red:hover{background:#a00;}
-.btn-sm{padding:4px 10px;font-size:10px;}
+.btn-red:hover{background:#c00;}
+.btn-sm{padding:5px 10px;font-size:10px;}
 .btn-ghost{background:none;color:var(--mid);border:1px solid #ddd;padding:5px 10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
 .btn-ghost:hover{border-color:#000;color:#000;}
 .btn-max{background:#000;color:#fff;padding:0 16px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1.5px solid #000;white-space:nowrap;}
 .btn-max:hover{background:#333;}
 
-/* ── FORMS ───────────────────────────────────────────────────────── */
 label.lbl{display:block;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;color:#555;}
 input[type=text],input[type=password],input[type=number],select{
   display:block;width:100%;border:1.5px solid #000;padding:9px 12px;font-size:13px;font-family:inherit;background:#fff;appearance:none;-webkit-appearance:none;outline:none;}
 input:focus,select:focus{border-color:var(--red);}
 input::placeholder{color:#bbb;}
 .field{margin-bottom:16px;}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+
 .panel{border:1.5px solid #000;padding:28px;}
 .collapsible{display:none;}
 .collapsible.open{display:block;}
 
-/* ── TABLES ──────────────────────────────────────────────────────── */
 table{width:100%;border-collapse:collapse;}
 thead th{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:8px 12px;border-bottom:2px solid #000;text-align:left;white-space:nowrap;}
 tbody td{padding:11px 12px;border-bottom:1px solid #e8e8e8;vertical-align:middle;}
 tbody tr:hover{background:#fafafa;}
 .empty{padding:60px 0;text-align:center;color:var(--mid);font-size:13px;}
 
-/* ── TAGS ────────────────────────────────────────────────────────── */
 .q{display:inline-block;padding:2px 7px;font-size:11px;font-weight:700;background:#000;color:#fff;}
 .unit-tag{display:inline-block;padding:1px 5px;font-size:10px;font-weight:700;letter-spacing:.06em;border:1px solid #ccc;color:#666;margin-left:4px;}
 .cat-tag{display:inline-block;padding:1px 5px;font-size:10px;font-weight:700;letter-spacing:.06em;background:#f0f0f0;color:#555;}
 .item-cat-tag{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#000;color:#fff;}
+
 .craft-box{border:2px solid #000;padding:24px;margin-bottom:32px;}
 .craft-box.err{border-color:var(--red);}
 .q-big{font-size:52px;font-weight:900;letter-spacing:-2px;line-height:1;}
 
-/* ── LOG BADGES ──────────────────────────────────────────────────── */
 .badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;}
 .badge-crafted{background:var(--red);color:#fff;}
 .badge-material_added{background:#000;color:#fff;}
@@ -103,23 +87,20 @@ tbody tr:hover{background:#fafafa;}
 .badge-crafter_denied,.badge-role_denied{background:#888;color:#fff;}
 .badge-admin_granted{background:#000;color:#fff;}
 .badge-item_handed_out{background:#0ea5e9;color:#fff;}
-
-/* ── INVENTORY ───────────────────────────────────────────────────── */
 .inv-quality{font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1;}
 .inv-row{padding:20px 0;border-bottom:1px solid #e8e8e8;}
 .inv-row:last-child{border-bottom:none;}
-
-/* ── TASKS ───────────────────────────────────────────────────────── */
-.task-card{padding:20px 24px;border:1.5px solid #e0e0e0;margin-bottom:8px;border-left-width:4px;}
-.task-card:hover{border-color:#aaa;}
-.task-card.urgent{border-left-color:var(--red);}
+/* Tasks */
+.task-card{padding:20px 24px;border:1.5px solid #e0e0e0;margin-bottom:10px;border-left-width:4px;}
+.task-card:hover{border-color:#999;border-left-width:4px;}
+.task-card.urgent{border-left-color:#e50000;}
 .task-card.high{border-left-color:#f97316;}
 .task-card.normal{border-left-color:#3b82f6;}
 .task-card.whenever{border-left-color:#d1d5db;}
 .task-card.completed{opacity:.55;}
 .task-card.cancelled{opacity:.4;}
 .p-badge{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-right:4px;}
-.p-urgent{background:var(--red);color:#fff;}
+.p-urgent{background:#e50000;color:#fff;}
 .p-high{background:#f97316;color:#fff;}
 .p-normal{background:#3b82f6;color:#fff;}
 .p-whenever{background:#e5e7eb;color:#555;}
@@ -127,18 +108,14 @@ tbody tr:hover{background:#fafafa;}
 .rb-provider{border-color:#bbb;color:#888;}
 .rb-crafter{border-color:var(--red);color:var(--red);}
 .rb-logistics{border-color:#0ea5e9;color:#0ea5e9;}
-.rb-admin{background:#000;color:#fff;}
-.task-search-bar{padding:0 0 20px;margin-bottom:8px;border-bottom:1px solid #e0e0e0;}
-
-/* ── MISC CONTROLS ───────────────────────────────────────────────── */
+.rb-admin{background:#000;color:#fff;border-color:#000;}
 .btn-del{background:none;border:1px solid #fca5a5;color:var(--red);padding:4px 10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;}
 .btn-del:hover{background:var(--red);color:#fff;border-color:var(--red);}
 .pending-note{background:#fffbeb;border:1px solid #fcd34d;padding:10px 14px;font-size:12px;color:#92400e;margin-top:10px;line-height:1.6;display:none;}
 
-/* ── AUTH ────────────────────────────────────────────────────────── */
 .center-screen{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px;}
 .auth-box{width:100%;max-width:380px;}
-.auth-logo{font-size:clamp(40px,7vw,88px);font-weight:900;letter-spacing:-3px;text-align:center;margin-bottom:48px;}
+.auth-logo{font-size:40px;font-weight:900;letter-spacing:-2px;text-align:center;margin-bottom:48px;}
 .tabs{display:flex;border-bottom:2px solid #000;margin-bottom:28px;}
 .tab-btn{flex:1;padding:12px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:center;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;color:var(--mid);}
 .tab-btn.active{border-bottom-color:#000;color:#000;}
@@ -146,10 +123,10 @@ tbody tr:hover{background:#fafafa;}
 .chk-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;}
 .chk-row input{width:auto;flex-shrink:0;}
 .chk-row span{font-size:13px;}
+
 .setup-note{font-size:12px;color:#888;margin-top:16px;line-height:1.7;}
 .code-block{background:#f5f5f5;border:1px solid #ddd;padding:8px 12px;font-family:monospace;font-size:12px;margin:8px 0;}
 
-/* ── TOAST / MODAL ───────────────────────────────────────────────── */
 #toast{position:fixed;bottom:28px;right:28px;background:#000;color:#fff;padding:12px 20px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:none;z-index:999;}
 #modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:24px;}
 #modal-overlay.open{display:flex;}
@@ -158,46 +135,41 @@ tbody tr:hover{background:#fafafa;}
 .search-row{display:flex;gap:12px;align-items:center;margin-bottom:24px;}
 .search-row input{max-width:260px;margin:0;}
 
-/* ── INLINE UTILS ────────────────────────────────────────────────── */
 .unit-inline{font-size:11px;font-weight:700;color:#888;margin-left:4px;}
 .loc-display{font-size:12px;color:#555;}
 .sys-badge{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:#333;padding:1px 5px;margin-right:4px;}
-.sys-badge.pyro{background:var(--red);}
+.sys-badge.pyro{background:#c05000;}
 .sys-badge.nyx{background:#005080;}
 
-/* ── FILTER TABS (inline content) ────────────────────────────────── */
-.filter-tabs{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid #e8e8e8;}
-.filter-tab{padding:0;font-size:13px;font-weight:700;border:none;background:none;color:#bbb;cursor:pointer;letter-spacing:0;text-transform:none;}
-.filter-tab.active{color:#000;border-bottom:2px solid #000;padding-bottom:1px;}
-.filter-tab:hover:not(.active){color:#555;}
+.filter-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;}
+.filter-tab{padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1.5px solid #ddd;background:#fff;color:#888;cursor:pointer;}
+.filter-tab.active{border-color:#000;background:#000;color:#fff;}
+.filter-tab:hover:not(.active){border-color:#999;color:#000;}
+.sub-tabs{display:flex;border-bottom:2px solid #000;margin-bottom:36px;}
+.sub-tab{padding:10px 24px 10px 0;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;color:#999;}
+.sub-tab.active{border-bottom-color:#000;color:#000;}
+.sub-tab:hover:not(.active){color:#555;}
 
-/* ── PAGE SUB-TABS (now in nav — keep for compat, invisible) ─────── */
-.sub-tabs{display:none;}
-.sub-tab{display:none;}
-
-/* ── HINT BOX ────────────────────────────────────────────────────── */
 .hint-box{background:#f5f5f5;border-left:3px solid #000;padding:10px 14px;font-size:11px;color:#555;margin-top:8px;line-height:1.7;}
 .hint-box strong{color:#000;}
-
-/* ── OVERVIEW / LANDING ──────────────────────────────────────────── */
-.ov-wrap{padding:32px 40px 80px;max-width:1400px;}
-.ov-header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:20px;border-bottom:2px solid #000;}
-.ov-title{display:none;}
-.ov-greeting{font-size:clamp(20px,2.8vw,32px);font-weight:900;letter-spacing:-.5px;line-height:1;}
-.ov-greeting-sub{font-size:13px;color:#999;margin-top:6px;font-weight:400;}
-.ov-date{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;text-align:right;line-height:1.9;}
+/* Overview / landing page */
+.ov-wrap{padding:40px 40px 80px;max-width:1400px;}
+.ov-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:0;padding-bottom:20px;border-bottom:2px solid #000;}
+.ov-title{font-size:52px;font-weight:900;letter-spacing:-2px;line-height:1;}
+.ov-date{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;text-align:right;line-height:1.8;}
+.ov-greeting{font-size:12px;color:#999;margin-top:6px;letter-spacing:.06em;}
 .ov-stats{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #000;}
-.ov-stat{padding:24px 0;border-right:1px solid #e0e0e0;}
+.ov-stat{padding:28px 0;border-right:1px solid #e0e0e0;}
 .ov-stat:last-child{border-right:none;}
-.ov-stat-num{font-size:clamp(40px,5.5vw,64px);font-weight:900;letter-spacing:-3px;line-height:1;margin-bottom:6px;}
+.ov-stat-num{font-size:64px;font-weight:900;letter-spacing:-3px;line-height:1;margin-bottom:6px;}
 .ov-stat-num.red{color:var(--red);}
 .ov-stat-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#999;}
 .ov-stat-sub{font-size:11px;color:#bbb;margin-top:3px;letter-spacing:.04em;}
 .ov-body{display:grid;grid-template-columns:3fr 2fr;gap:0;border-bottom:2px solid #000;}
-.ov-col{padding:24px 0;}
+.ov-col{padding:28px 0;}
 .ov-col+.ov-col{padding-left:40px;border-left:1px solid #e0e0e0;}
 .ov-col-head{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid #000;}
-.ov-entry{display:grid;grid-template-columns:72px 1fr auto;gap:8px;padding:9px 0;border-bottom:1px solid #f0f0f0;align-items:baseline;}
+.ov-entry{display:grid;grid-template-columns:80px 1fr auto;gap:8px;padding:10px 0;border-bottom:1px solid #f0f0f0;align-items:baseline;}
 .ov-entry:last-child{border-bottom:none;}
 .ov-entry-date{font-size:10px;color:#bbb;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;}
 .ov-entry-body{font-size:12px;line-height:1.5;}
@@ -206,10 +178,9 @@ tbody tr:hover{background:#fafafa;}
 .ov-task-row:last-child{border-bottom:none;}
 .ov-task-title{font-size:13px;font-weight:600;margin-bottom:3px;}
 .ov-task-meta{font-size:11px;color:#999;}
-.ov-bottom{display:grid;grid-template-columns:3fr 2fr;gap:0;padding-top:4px;}
+.ov-bottom{display:grid;grid-template-columns:3fr 2fr;gap:0;}
 .ov-empty{color:#bbb;font-size:12px;padding:16px 0;}
-
-/* ── ARCHIVE MONTH GROUPS ────────────────────────────────────────── */
+/* Archive month groups */
 details.log-month{border-bottom:1px solid #e0e0e0;}
 details.log-month>summary{display:flex;align-items:center;gap:12px;padding:16px 0;cursor:pointer;user-select:none;list-style:none;}
 details.log-month>summary::-webkit-details-marker{display:none;}
@@ -322,8 +293,6 @@ let CONVEX_URL = localStorage.getItem('mattrack_url') || 'https://focused-snake-
 let currentPage = 'overview';
 const state = { user: null, stock: [], craftItems: [], archive: [], allUsers: [], inventory: [], tasks: [] };
 let tasksFilter = 'open';
-let tasksSearchActive = false;
-let tasksSearch = '';
 let craftState = { itemId: null, mode: 'best', qMin: 850, qMax: 1000, quantity: 1, plan: null };
 let itemsFilter = 'all';
 let invFilter = 'available'; // "available" | "handed_out"
@@ -444,7 +413,6 @@ function updateLiveView() {
   }
   if (currentPage==='tasks') {
     const el=document.getElementById('tasks-list'); if(el) el.innerHTML=renderTasksList();
-    renderNav(); // keep sub-nav counts updated
   }
   if (currentPage==='overview') {
     const pw=document.getElementById('page-wrap');
@@ -599,55 +567,19 @@ function hasAdmin() { return state.allUsers.some(u=>(u.roles||[]).includes('admi
 
 function renderNav() {
   const u=state.user; if(!u) return;
+  const tabs=[['overview','Overview'],['materials','Materials'],['craft','Craft'],['inventory','Inventory'],['tasks','Tasks'],['archive','Log']];
+  if(isAdmin(u)) tabs.push(['admin','Admin']);
   const noAdmin=!hasAdmin();
-  // Map currentPage → main nav section
-  const inCraft=['craft','materials','inventory'];
-  const inLog=['archive','admin'];
-  let main='mat';
-  if(currentPage==='tasks') main='task';
-  else if(inCraft.includes(currentPage)) main='craft';
-  else if(inLog.includes(currentPage)) main='log';
-
-  // Build sub-nav HTML
-  let sub='';
-  if(main==='task'){
-    const oc=state.tasks.filter(t=>t.status==='open').length;
-    const dc=state.tasks.filter(t=>t.status==='completed').length;
-    const cc=state.tasks.filter(t=>t.status==='cancelled').length;
-    sub=`
-      <div class="nav-sub-item${tasksFilter==='open'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('open')">Open${oc?` (${oc})`:''}</div>
-      <div class="nav-sub-item${tasksFilter==='completed'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('completed')">Completed${dc?` (${dc})`:''}</div>
-      <div class="nav-sub-item${tasksFilter==='cancelled'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('cancelled')">Cancelled${cc?` (${cc})`:''}</div>
-      <div class="nav-sub-item${tasksSearchActive?' active':''}" onclick="toggleTaskSearch()">Search</div>`;
-  } else if(main==='craft'){
-    sub=`
-      <div class="nav-sub-item${currentPage==='materials'?' active':''}" onclick="goTo('materials')">Materials</div>
-      <div class="nav-sub-item${currentPage==='craft'&&craftSubTab==='craft'?' active':''}" onclick="setCraftSubTab('craft')">Craft</div>
-      <div class="nav-sub-item${currentPage==='craft'&&craftSubTab==='items'?' active':''}" onclick="setCraftSubTab('items')">Items</div>
-      <div class="nav-sub-item${currentPage==='inventory'?' active':''}" onclick="goTo('inventory')">Inventory</div>`;
-  } else if(main==='log'){
-    sub=`
-      <div class="nav-sub-item${currentPage==='archive'?' active':''}" onclick="goTo('archive')">Log</div>
-      ${isAdmin(u)?`<div class="nav-sub-item${currentPage==='admin'?' active':''}" onclick="goTo('admin')">Admin</div>`:''}`;
-  }
-
-  const el=document.getElementById('nav');
-  el.innerHTML=`
-    <div id="nav-primary">
-      <div class="nav-main${main==='mat'?' active':''}" onclick="goTo('overview')">MAT</div>
-      <div class="nav-main${main==='task'?' active':''}" onclick="goTo('tasks')">TASK</div>
-      <div class="nav-main${main==='craft'?' active':''}" onclick="goTo('craft')">CRAFT</div>
-      <div class="nav-main outline${main==='log'?' active':''}" onclick="goTo('archive')">LOG</div>
-      <div class="nav-user">
-        <span class="live-dot"></span>
-        <span style="font-weight:700;">${esc(u.username)}</span>
-        ${u.roles.map(r=>roleTagHtml(r)).join('')}
-        ${noAdmin?`<button class="btn-ghost" style="border-color:#f59e0b;color:#92400e;" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
-        <button class="btn-ghost" onclick="doLogout()">Sign out</button>
-      </div>
-    </div>
-    ${sub?`<div id="nav-sub">${sub}</div>`:''}
-    <hr class="nav-divider">`;
+  document.getElementById('nav').innerHTML=`
+    <div class="brand" onclick="goTo('overview')" style="cursor:pointer;">MATTRACK</div>
+    ${tabs.map(([id,lbl])=>`<div class="nav-item${currentPage===id?' active':''}" onclick="goTo('${id}')">${lbl}</div>`).join('')}
+    <div class="user-area">
+      <span class="live-dot"></span>
+      <span style="font-weight:700;">${esc(u.username)}</span>
+      ${u.roles.map(r=>roleTagHtml(r)).join('')}
+      ${noAdmin?`<button class="btn-ghost" style="border-color:#f59e0b;color:#92400e;" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
+      <button class="btn-ghost" onclick="doLogout()">Sign out</button>
+    </div>`;
 }
 function renderPage() {
   const pages={overview:pageOverview,materials:pageMaterials,craft:pageCraft,inventory:pageInventory,tasks:pageTasks,archive:pageArchive,admin:pageAdmin};
@@ -679,8 +611,8 @@ function pageOverview() {
   const topTasks = openTasks.slice().sort((a,b)=>(prioOrder[a.priority]??2)-(prioOrder[b.priority]??2)).slice(0,6);
 
   // Stock breakdown
-  const oreEntries = matAvail.filter(m=>m.category==='Ores'||m.category==='Vehicle Mining');
-  const gemEntries = matAvail.filter(m=>m.category==='FPS Mining');
+  const oreEntries = matAvail.filter(m=>m.category==='Ores');
+  const gemEntries = matAvail.filter(m=>m.category==='Gems');
   const oreQty     = oreEntries.reduce((s,m)=>s+m.quantity,0);
   const gemQty     = gemEntries.reduce((s,m)=>s+m.quantity,0);
 
@@ -720,8 +652,8 @@ function pageOverview() {
 
     <div class="ov-header">
       <div>
-        <div class="ov-greeting">Welcome back, ${esc(u.username)}</div>
-        <div class="ov-greeting-sub">${u.roles.map(r=>roleTagHtml(r)).join('')}</div>
+        <div class="ov-title">OVERVIEW</div>
+        <div class="ov-greeting">Welcome back, ${esc(u.username)} &nbsp;${u.roles.map(r=>roleTagHtml(r)).join('')}</div>
       </div>
       <div class="ov-date">${dateStr}<br>${timeStr}</div>
     </div>
@@ -730,7 +662,7 @@ function pageOverview() {
       <div class="ov-stat" style="padding-right:28px;">
         <div class="ov-stat-num${matAvail.length===0?' red':''}">${matAvail.length}</div>
         <div class="ov-stat-label">Materials</div>
-        <div class="ov-stat-sub">${oreEntries.length} ore &middot; ${gemEntries.length} fps entries</div>
+        <div class="ov-stat-sub">${oreEntries.length} ore &middot; ${gemEntries.length} gem entries</div>
       </div>
       <div class="ov-stat" style="padding-left:28px;padding-right:28px;">
         <div class="ov-stat-num">${invAvail.length}</div>
@@ -1160,8 +1092,6 @@ function craftItemOptgroups() {
 
 function setCraftSubTab(tab) {
   craftSubTab = tab;
-  currentPage = 'craft';
-  renderNav();
   renderPage();
 }
 
@@ -1171,7 +1101,11 @@ function pageCraft() {
   const iscrafter=u.roles.includes('crafter');
   const isPending=u.roles.includes('crafter_pending');
 
-  const subTabs = ``; // sub-tabs now live in the nav second row
+  const subTabs = `
+    <div class="sub-tabs">
+      <button class="sub-tab${craftSubTab==='craft'?' active':''}" onclick="setCraftSubTab('craft')">Craft</button>
+      <button class="sub-tab${craftSubTab==='items'?' active':''}" onclick="setCraftSubTab('items')">Items</button>
+    </div>`;
 
   if (craftSubTab === 'items') {
     return `
@@ -1974,35 +1908,30 @@ const TASK_TARGET_ROLES = [
 function pageTasks() {
   const u=state.user; const admin=isAdmin(u);
   const openCount=state.tasks.filter(t=>t.status==='open').length;
+  const doneCount=state.tasks.filter(t=>t.status==='completed').length;
+  const cancelCount=state.tasks.filter(t=>t.status==='cancelled').length;
   return `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
       <div>
         <div class="page-title">TASKS</div>
         <div class="page-sub">${openCount} open task${openCount!==1?'s':''}</div>
       </div>
       ${admin?`<button class="btn btn-black" onclick="openCreateTaskModal()">+ Create Task</button>`:''}
     </div>
-    <div id="task-search-bar" class="task-search-bar" style="${tasksSearchActive?'':'display:none;'}">
-      <input type="text" id="task-search-inp" placeholder="Search tasks by title…" value="${esc(tasksSearch)}" style="max-width:420px;"
-        oninput="tasksSearch=this.value;document.getElementById('tasks-list').innerHTML=renderTasksList();">
+    <div class="filter-tabs" style="margin-bottom:28px;">
+      <button class="filter-tab${tasksFilter==='open'?' active':''}" onclick="setTasksFilter('open')">Open (${openCount})</button>
+      <button class="filter-tab${tasksFilter==='completed'?' active':''}" onclick="setTasksFilter('completed')">Completed (${doneCount})</button>
+      <button class="filter-tab${tasksFilter==='cancelled'?' active':''}" onclick="setTasksFilter('cancelled')">Cancelled (${cancelCount})</button>
     </div>
     <div id="tasks-list">${renderTasksList()}</div>`;
 }
 
 function setTasksFilter(f) {
   tasksFilter=f;
-  tasksSearchActive=false;
-  tasksSearch='';
-  renderNav();
+  document.querySelectorAll('#page-wrap .filter-tab').forEach(btn=>{
+    btn.classList.toggle('active',btn.textContent.toLowerCase().startsWith(f));
+  });
   const el=document.getElementById('tasks-list'); if(el) el.innerHTML=renderTasksList();
-  const sb=document.getElementById('task-search-bar'); if(sb) sb.style.display='none';
-}
-function toggleTaskSearch() {
-  tasksSearchActive=!tasksSearchActive;
-  if(!tasksSearchActive) tasksSearch='';
-  renderNav();
-  const el=document.getElementById('tasks-list'); if(el) el.innerHTML=renderTasksList();
-  const sb=document.getElementById('task-search-bar'); if(sb){ sb.style.display=tasksSearchActive?'':'none'; if(tasksSearchActive){const inp=sb.querySelector('input');if(inp)inp.focus();} }
 }
 
 function taskRoleBadge(role) {
@@ -2036,21 +1965,10 @@ function taskTypeDesc(t) {
 
 function renderTasksList() {
   const u=state.user; const admin=isAdmin(u);
-  let tasks;
-  if(tasksSearchActive) {
-    // Search across all statuses
-    tasks=state.tasks;
-    if(!admin) tasks=tasks.filter(t=>t.targetRoles.some(r=>u.roles.includes(r)));
-    if(tasksSearch.trim()) {
-      const q=tasksSearch.trim().toLowerCase();
-      tasks=tasks.filter(t=>t.title.toLowerCase().includes(q)||(t.materialName||'').toLowerCase().includes(q)||(t.itemName||'').toLowerCase().includes(q));
-    }
-    if(!tasks.length) return `<div class="empty">No tasks match "${esc(tasksSearch)}".</div>`;
-  } else {
-    tasks=state.tasks.filter(t=>t.status===tasksFilter);
-    if(!admin) tasks=tasks.filter(t=>t.targetRoles.some(r=>u.roles.includes(r)));
-    if(!tasks.length) return `<div class="empty">No ${tasksFilter} tasks${!admin?' for your role':''} yet.</div>`;
-  }
+  let tasks=state.tasks.filter(t=>t.status===tasksFilter);
+  // Non-admins only see tasks targeted at their roles
+  if(!admin) tasks=tasks.filter(t=>t.targetRoles.some(r=>u.roles.includes(r)));
+  if(!tasks.length) return `<div class="empty">No ${tasksFilter} tasks${!admin?' for your role':''} yet.</div>`;
   tasks=tasks.slice().sort((a,b)=>{
     const po={urgent:0,high:1,normal:2,whenever:3};
     return (po[a.priority]??2)-(po[b.priority]??2)||b._creationTime-a._creationTime;
