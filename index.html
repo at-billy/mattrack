@@ -618,9 +618,10 @@ function renderNav() {
     sub=`<div class="nav-sub-item">Welcome back, ${esc(u.username)}</div>`;
   } else if(main==='task'){
     const u2=state.user; const admin2=isAdmin(u2);
-    const oc=state.tasks.filter(t=>t.status==='open'&&!t.acceptees.some(a=>a.status!=='completed')).length;
+    const isFull=t=>t.acceptees.filter(a=>a.status!=='completed').length>=t.slots;
+    const oc=state.tasks.filter(t=>t.status==='open'&&!isFull(t)).length;
     const dc=state.tasks.filter(t=>t.status==='completed').length;
-    const ac=state.tasks.filter(t=>t.status==='open'&&t.acceptees.some(a=>a.status!=='completed')&&(admin2||t.acceptees.some(a=>a.userId===u2._id&&a.status!=='completed'))).length;
+    const ac=state.tasks.filter(t=>t.status==='open'&&isFull(t)&&(admin2||t.acceptees.some(a=>a.userId===u2._id&&a.status!=='completed'))).length;
     sub=`
       <div class="nav-sub-item${tasksFilter==='open'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('open')">Open${oc?` (${oc})`:''}</div>
       <div class="nav-sub-item${tasksFilter==='accepted'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('accepted')">Accepted${ac?` (${ac})`:''}</div>
@@ -2188,14 +2189,15 @@ function renderTasksList() {
     }
     if(!tasks.length) return `<div class="empty">No tasks match "${esc(tasksSearch)}".</div>`;
   } else if(tasksFilter==='accepted') {
-    // Open tasks with at least one active acceptee; non-admins only see their own accepted tasks
-    tasks=state.tasks.filter(t=>t.status==='open'&&t.acceptees.some(a=>a.status!=='completed'));
+    // Open tasks where all slots are filled; non-admins only see tasks they personally accepted
+    const full=t=>t.acceptees.filter(a=>a.status!=='completed').length>=t.slots;
+    tasks=state.tasks.filter(t=>t.status==='open'&&full(t));
     if(!admin) tasks=tasks.filter(t=>t.acceptees.some(a=>a.userId===u._id&&a.status!=='completed'));
     if(!tasks.length) return `<div class="empty">No accepted tasks yet.</div>`;
   } else {
     tasks=state.tasks.filter(t=>t.status===tasksFilter);
-    // Open tab: exclude tasks that have active acceptees (those live in Accepted tab)
-    if(tasksFilter==='open') tasks=tasks.filter(t=>!t.acceptees.some(a=>a.status!=='completed'));
+    // Open tab: only show tasks that still have available slots
+    if(tasksFilter==='open') {const full=t=>t.acceptees.filter(a=>a.status!=='completed').length>=t.slots; tasks=tasks.filter(t=>!full(t));}
     if(!admin) tasks=tasks.filter(t=>t.targetRoles.some(r=>u.roles.includes(r)));
     if(tasksRoleFilter) tasks=tasks.filter(t=>t.targetRoles.includes(tasksRoleFilter));
     if(!tasks.length) return `<div class="empty">No ${tasksFilter} tasks${tasksRoleFilter?' for '+tasksRoleFilter:(!admin?' for your role':'')} yet.</div>`;
