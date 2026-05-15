@@ -10,15 +10,15 @@
 body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;color:#000;font-size:14px;line-height:1.4;}
 
 /* ── NAV WRAPPER ─────────────────────────────────────────────────── */
-/* fixed so content scrolls under it; background opaque for topbar   */
-#nav{position:fixed;top:0;left:0;right:0;z-index:100;background:#fff;}
+/* transparent so only letter slivers show when items translate up   */
+#nav{position:fixed;top:0;left:0;right:0;z-index:100;background:transparent;}
 
 /* ── NAV TOPBAR (user info) ──────────────────────────────────────── */
-#nav-topbar{display:flex;align-items:center;justify-content:flex-end;padding:7px 40px;gap:12px;font-size:11px;border-bottom:1px solid #e0e0e0;}
+#nav-topbar{display:flex;align-items:center;justify-content:flex-end;padding:7px 40px;gap:12px;font-size:11px;border-bottom:1px solid #e0e0e0;background:#fff;}
 
 /* ── PRIMARY NAV ─────────────────────────────────────────────────── */
 /* overflow:hidden clips items as they translate up (OMA mechanic)   */
-#nav-primary{display:flex;justify-content:space-between;align-items:flex-end;padding:10px 40px 0;overflow:hidden;}
+#nav-primary{display:flex;justify-content:space-between;align-items:flex-end;padding:10px 40px 0;overflow:hidden;background:#fff;}
 .nav-main{font-size:clamp(40px,8vw,220px);font-weight:900;letter-spacing:-0.03em;line-height:1;padding-bottom:10px;cursor:pointer;color:#000;text-transform:uppercase;user-select:none;will-change:transform;transition:opacity .15s;}
 .nav-main:hover{opacity:.45;}
 .nav-main.active{border-bottom:4px solid #000;margin-bottom:-4px;}
@@ -26,7 +26,7 @@ body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;col
 .nav-main.outline.active{border-bottom-color:#000;}
 
 /* ── SUB NAV ─────────────────────────────────────────────────────── */
-#nav-sub{display:flex;align-items:baseline;padding:2px 40px 0;gap:0;}
+#nav-sub{display:flex;align-items:baseline;padding:2px 40px 0;gap:0;background:#fff;}
 .nav-sub-item{font-size:clamp(18px,2.8vw,44px);font-weight:900;letter-spacing:-.5px;text-transform:uppercase;cursor:pointer;color:#000;border-bottom:3px solid transparent;padding-bottom:4px;padding-right:36px;user-select:none;transition:opacity .15s;}
 .nav-sub-item:last-child{padding-right:0;}
 .nav-sub-item:hover{opacity:.45;}
