@@ -9,18 +9,20 @@
 :root{--red:#cc0000;--mid:#888;}
 body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;color:#000;font-size:14px;line-height:1.4;}
 
+/* ── NAV TOPBAR (user info) ──────────────────────────────────────── */
+#nav-topbar{display:flex;align-items:center;justify-content:flex-end;padding:7px 40px;gap:12px;font-size:11px;border-bottom:1px solid #e0e0e0;}
+
 /* ── PRIMARY NAV ─────────────────────────────────────────────────── */
-#nav-primary{display:flex;align-items:flex-end;padding:18px 40px 0;}
-.nav-main{font-size:clamp(26px,4.5vw,66px);font-weight:900;letter-spacing:-1.5px;line-height:1;padding-right:32px;padding-bottom:10px;cursor:pointer;color:#000;text-transform:uppercase;user-select:none;transition:opacity .15s;}
+#nav-primary{display:flex;justify-content:space-between;align-items:flex-end;padding:10px 40px 0;}
+.nav-main{font-size:clamp(26px,4.5vw,66px);font-weight:900;letter-spacing:-1.5px;line-height:1;padding-bottom:10px;cursor:pointer;color:#000;text-transform:uppercase;user-select:none;transition:opacity .15s;}
 .nav-main:hover{opacity:.45;}
 .nav-main.active{border-bottom:4px solid #000;margin-bottom:-4px;}
 .nav-main.outline{-webkit-text-stroke:2px #000;color:transparent;}
 .nav-main.outline.active{border-bottom-color:#000;}
-.nav-user{margin-left:auto;display:flex;align-items:center;gap:10px;font-size:11px;padding-bottom:14px;flex-shrink:0;padding-left:20px;}
 
 /* ── SUB NAV ─────────────────────────────────────────────────────── */
-#nav-sub{display:flex;align-items:baseline;padding:4px 40px 0;gap:28px;}
-.nav-sub-item{font-size:clamp(14px,2.4vw,36px);font-weight:900;letter-spacing:-.5px;text-transform:uppercase;cursor:pointer;color:#000;border-bottom:3px solid transparent;padding-bottom:3px;user-select:none;transition:opacity .15s;}
+#nav-sub{display:flex;align-items:baseline;padding:5px 40px 0;gap:28px;}
+.nav-sub-item{font-size:clamp(14px,2.2vw,34px);font-weight:900;letter-spacing:-.5px;text-transform:uppercase;cursor:pointer;color:#000;border-bottom:3px solid transparent;padding-bottom:3px;user-select:none;transition:opacity .15s;}
 .nav-sub-item:hover{opacity:.45;}
 .nav-sub-item.active{border-bottom:3px solid #000;}
 .nav-divider{border:none;border-top:2px solid #000;margin:0;}
@@ -39,24 +41,26 @@ body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;col
 .live-dot{animation:pulse 2s infinite;}
 
 /* ── PAGE LAYOUT ─────────────────────────────────────────────────── */
-.page{padding:32px 40px 80px;max-width:1400px;}
-.page-title{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#999;margin-bottom:4px;}
-.page-sub{font-size:12px;color:var(--mid);margin-bottom:28px;}
-hr.thick{border:none;border-top:2px solid #000;margin:28px 0;}
+.page{padding:36px 40px 80px;}
+.page-title{font-size:clamp(20px,2.4vw,32px);font-weight:900;letter-spacing:-.5px;line-height:1;margin-bottom:6px;}
+.page-sub{font-size:12px;color:var(--mid);margin-bottom:32px;margin-top:2px;}
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid #e0e0e0;}
+.page-head-left{flex:1;}
+hr.thick{border:none;border-top:2px solid #000;margin:32px 0;}
 hr.thin{border:none;border-top:1px solid #e0e0e0;margin:0;}
 hr.red{border:none;border-top:1px solid var(--red);margin:32px 0;}
 
 /* ── BUTTONS ─────────────────────────────────────────────────────── */
 button{font-family:inherit;cursor:pointer;border:none;outline:none;}
-.btn{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:8px 16px;}
+.btn{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:9px 18px;}
 .btn-black{background:#000;color:#fff;}
 .btn-black:hover{background:#222;}
 .btn-outline{background:#fff;color:#000;border:1.5px solid #000;}
 .btn-outline:hover{background:#f0f0f0;}
 .btn-red{background:var(--red);color:#fff;}
 .btn-red:hover{background:#a00;}
-.btn-sm{padding:4px 10px;font-size:10px;}
-.btn-ghost{background:none;color:var(--mid);border:1px solid #ddd;padding:5px 10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.btn-sm{padding:5px 11px;font-size:10px;}
+.btn-ghost{background:none;color:var(--mid);border:1px solid #ccc;padding:5px 11px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
 .btn-ghost:hover{border-color:#000;color:#000;}
 .btn-max{background:#000;color:#fff;padding:0 16px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1.5px solid #000;white-space:nowrap;}
 .btn-max:hover{background:#333;}
@@ -76,10 +80,10 @@ input::placeholder{color:#bbb;}
 
 /* ── TABLES ──────────────────────────────────────────────────────── */
 table{width:100%;border-collapse:collapse;}
-thead th{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:8px 12px;border-bottom:2px solid #000;text-align:left;white-space:nowrap;}
-tbody td{padding:11px 12px;border-bottom:1px solid #e8e8e8;vertical-align:middle;}
-tbody tr:hover{background:#fafafa;}
-.empty{padding:60px 0;text-align:center;color:var(--mid);font-size:13px;}
+thead th{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:10px 14px;border-bottom:2px solid #000;text-align:left;white-space:nowrap;color:#000;}
+tbody td{padding:14px 14px;border-bottom:1px solid #ebebeb;vertical-align:middle;font-size:13px;}
+tbody tr:hover{background:#f9f9f9;}
+.empty{padding:80px 0;text-align:center;color:#bbb;font-size:13px;letter-spacing:.04em;}
 
 /* ── TAGS ────────────────────────────────────────────────────────── */
 .q{display:inline-block;padding:2px 7px;font-size:11px;font-weight:700;background:#000;color:#fff;}
@@ -110,15 +114,18 @@ tbody tr:hover{background:#fafafa;}
 .inv-row:last-child{border-bottom:none;}
 
 /* ── TASKS ───────────────────────────────────────────────────────── */
-.task-card{padding:20px 24px;border:1.5px solid #e0e0e0;margin-bottom:8px;border-left-width:4px;}
-.task-card:hover{border-color:#aaa;}
-.task-card.urgent{border-left-color:var(--red);}
-.task-card.high{border-left-color:#f97316;}
-.task-card.normal{border-left-color:#3b82f6;}
-.task-card.whenever{border-left-color:#d1d5db;}
-.task-card.completed{opacity:.55;}
-.task-card.cancelled{opacity:.4;}
-.p-badge{display:inline-block;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-right:4px;}
+.task-list{border-top:2px solid #000;}
+.task-card{padding:22px 0;border-bottom:1px solid #e0e0e0;margin-bottom:0;position:relative;padding-left:20px;}
+.task-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+.task-card.urgent::before{background:var(--red);}
+.task-card.high::before{background:#f97316;}
+.task-card.normal::before{background:#3b82f6;}
+.task-card.whenever::before{background:#d1d5db;}
+.task-card:hover{background:#fafafa;}
+.task-card.completed{opacity:.5;}
+.task-card.cancelled{opacity:.35;}
+.task-card-title{font-size:clamp(15px,1.6vw,20px);font-weight:900;letter-spacing:-.3px;line-height:1.2;margin-bottom:6px;}
+.p-badge{display:inline-block;padding:2px 7px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-right:6px;}
 .p-urgent{background:var(--red);color:#fff;}
 .p-high{background:#f97316;color:#fff;}
 .p-normal{background:#3b82f6;color:#fff;}
@@ -137,8 +144,8 @@ tbody tr:hover{background:#fafafa;}
 
 /* ── AUTH ────────────────────────────────────────────────────────── */
 .center-screen{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px;}
-.auth-box{width:100%;max-width:380px;}
-.auth-logo{font-size:clamp(40px,7vw,88px);font-weight:900;letter-spacing:-3px;text-align:center;margin-bottom:48px;}
+.auth-box{width:100%;max-width:400px;}
+.auth-logo{font-size:clamp(44px,8vw,100px);font-weight:900;letter-spacing:-4px;text-align:center;margin-bottom:52px;}
 .tabs{display:flex;border-bottom:2px solid #000;margin-bottom:28px;}
 .tab-btn{flex:1;padding:12px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:center;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;background:none;color:var(--mid);}
 .tab-btn.active{border-bottom-color:#000;color:#000;}
@@ -166,9 +173,9 @@ tbody tr:hover{background:#fafafa;}
 .sys-badge.nyx{background:#005080;}
 
 /* ── FILTER TABS (inline content) ────────────────────────────────── */
-.filter-tabs{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid #e8e8e8;}
-.filter-tab{padding:0;font-size:13px;font-weight:700;border:none;background:none;color:#bbb;cursor:pointer;letter-spacing:0;text-transform:none;}
-.filter-tab.active{color:#000;border-bottom:2px solid #000;padding-bottom:1px;}
+.filter-tabs{display:flex;gap:28px;flex-wrap:wrap;margin-bottom:28px;padding-bottom:14px;border-bottom:1px solid #e0e0e0;}
+.filter-tab{padding:0;font-size:14px;font-weight:700;border:none;background:none;color:#bbb;cursor:pointer;letter-spacing:-.1px;}
+.filter-tab.active{color:#000;border-bottom:2px solid #000;padding-bottom:2px;}
 .filter-tab:hover:not(.active){color:#555;}
 
 /* ── PAGE SUB-TABS (now in nav — keep for compat, invisible) ─────── */
@@ -211,14 +218,14 @@ tbody tr:hover{background:#fafafa;}
 
 /* ── ARCHIVE MONTH GROUPS ────────────────────────────────────────── */
 details.log-month{border-bottom:1px solid #e0e0e0;}
-details.log-month>summary{display:flex;align-items:center;gap:12px;padding:16px 0;cursor:pointer;user-select:none;list-style:none;}
+details.log-month>summary{display:flex;align-items:center;gap:14px;padding:18px 0;cursor:pointer;user-select:none;list-style:none;}
 details.log-month>summary::-webkit-details-marker{display:none;}
 details.log-month>summary::marker{display:none;}
 .log-month-arrow{font-size:9px;color:#999;transition:transform .15s;display:inline-block;flex-shrink:0;}
 details.log-month[open] .log-month-arrow{transform:rotate(90deg);}
-.log-month-name{font-size:13px;font-weight:700;letter-spacing:.04em;}
-.log-month-count{font-size:11px;color:#aaa;margin-left:auto;}
-details.log-month>div{padding-bottom:24px;}
+.log-month-name{font-size:clamp(16px,1.8vw,22px);font-weight:900;letter-spacing:-.3px;}
+.log-month-count{font-size:11px;color:#bbb;margin-left:auto;font-weight:700;letter-spacing:.06em;}
+details.log-month>div{padding-bottom:28px;}
 </style>
 </head>
 <body>
@@ -633,18 +640,18 @@ function renderNav() {
 
   const el=document.getElementById('nav');
   el.innerHTML=`
+    <div id="nav-topbar">
+      <span class="live-dot"></span>
+      <span style="font-weight:700;">${esc(u.username)}</span>
+      ${u.roles.map(r=>roleTagHtml(r)).join('')}
+      ${noAdmin?`<button class="btn-ghost" style="border-color:#f59e0b;color:#92400e;" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
+      <button class="btn-ghost" onclick="doLogout()">Sign out</button>
+    </div>
     <div id="nav-primary">
       <div class="nav-main${main==='mat'?' active':''}" onclick="goTo('overview')">MAT</div>
       <div class="nav-main${main==='task'?' active':''}" onclick="goTo('tasks')">TASK</div>
       <div class="nav-main${main==='craft'?' active':''}" onclick="goTo('craft')">CRAFT</div>
       <div class="nav-main outline${main==='log'?' active':''}" onclick="goTo('archive')">LOG</div>
-      <div class="nav-user">
-        <span class="live-dot"></span>
-        <span style="font-weight:700;">${esc(u.username)}</span>
-        ${u.roles.map(r=>roleTagHtml(r)).join('')}
-        ${noAdmin?`<button class="btn-ghost" style="border-color:#f59e0b;color:#92400e;" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
-        <button class="btn-ghost" onclick="doLogout()">Sign out</button>
-      </div>
     </div>
     ${sub?`<div id="nav-sub">${sub}</div>`:''}
     <hr class="nav-divider">`;
@@ -837,9 +844,9 @@ function pageMaterials() {
   const stock=state.stock.filter(m=>m.status==='available');
   const isProv=u.roles.includes('provider');
   return `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
-      <div>
-        <div class="page-title">MATERIALS</div>
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="page-title">Materials</div>
         <div class="page-sub" id="mat-count">${stock.length} entr${stock.length===1?'y':'ies'} in stock</div>
       </div>
       ${isProv?`<button class="btn btn-black" onclick="togglePanel('add-mat-panel')">+ Add Material</button>`:''}
@@ -1175,13 +1182,10 @@ function pageCraft() {
 
   if (craftSubTab === 'items') {
     return `
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
-        <div>
-          <div class="page-title">CRAFT</div>
-        </div>
+      <div class="page-head">
+        <div class="page-head-left"><div class="page-title">Items</div></div>
         <button class="btn btn-black" onclick="togglePanel('add-item-panel')">+ Add Item</button>
       </div>
-      ${subTabs}
       <div id="add-item-panel" class="collapsible" style="margin-bottom:32px;">
         <div class="panel">
           <div style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">Define Craftable Item</div>
@@ -1216,8 +1220,9 @@ function pageCraft() {
 
   // ── Craft sub-tab ──
   return `
-    <div class="page-title">CRAFT</div>
-    ${subTabs}
+    <div class="page-head" style="margin-bottom:28px;">
+      <div class="page-head-left"><div class="page-title">Craft</div></div>
+    </div>
     ${!iscrafter ? `
     <div style="max-width:480px;">
       ${isPending
@@ -1516,8 +1521,12 @@ async function confirmCraft() {
 // ─── ARCHIVE PAGE ─────────────────────────────────────────────────────────────
 function pageArchive(){
   return `
-    <div class="page-title">LOG</div>
-    <div class="page-sub" id="archive-count">${state.archive.length} action${state.archive.length!==1?'s':''} recorded</div>
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="page-title">Log</div>
+        <div class="page-sub" id="archive-count">${state.archive.length} action${state.archive.length!==1?'s':''} recorded</div>
+      </div>
+    </div>
     <div id="archive-table">${renderArchiveTable()}</div>`;
 }
 
@@ -1698,13 +1707,13 @@ function pageInventory() {
   const avail=state.inventory.filter(i=>i.status==='available');
   const handedOut=state.inventory.filter(i=>i.status==='handed_out');
   return `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
-      <div>
-        <div class="page-title">INVENTORY</div>
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="page-title">Inventory</div>
         <div class="page-sub" id="inv-count">${avail.length} item${avail.length!==1?'s':''} in stock</div>
       </div>
     </div>
-    <div class="filter-tabs" style="margin-bottom:28px;">
+    <div class="filter-tabs">
       <button class="filter-tab${invFilter==='available'?' active':''}" onclick="setInvFilter('available')">In Stock (${avail.length})</button>
       <button class="filter-tab${invFilter==='handed_out'?' active':''}" onclick="setInvFilter('handed_out')">Handed Out (${handedOut.length})</button>
     </div>
@@ -1850,10 +1859,14 @@ async function adminDeleteInventory(id) {
 // ─── ADMIN PAGE ──────────────────────────────────────────────────────────────
 function pageAdmin() {
   const u=state.user;
-  if(!isAdmin(u)) return `<div class="page-title">ADMIN</div><p style="color:#999;margin-top:24px;">Access denied.</p>`;
+  if(!isAdmin(u)) return `<div class="page-head"><div class="page-title">Admin</div></div><p style="color:#999;margin-top:24px;">Access denied.</p>`;
   return `
-    <div class="page-title">ADMIN</div>
-    <div class="page-sub">Manage members and crafter applications</div>
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="page-title">Admin</div>
+        <div class="page-sub">Manage members and role applications</div>
+      </div>
+    </div>
     <div id="admin-wrap">${renderAdminContent()}</div>`;
 }
 
@@ -1975,9 +1988,9 @@ function pageTasks() {
   const u=state.user; const admin=isAdmin(u);
   const openCount=state.tasks.filter(t=>t.status==='open').length;
   return `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;">
-      <div>
-        <div class="page-title">TASKS</div>
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="page-title">Tasks</div>
         <div class="page-sub">${openCount} open task${openCount!==1?'s':''}</div>
       </div>
       ${admin?`<button class="btn btn-black" onclick="openCreateTaskModal()">+ Create Task</button>`:''}
@@ -1986,7 +1999,7 @@ function pageTasks() {
       <input type="text" id="task-search-inp" placeholder="Search tasks by title…" value="${esc(tasksSearch)}" style="max-width:420px;"
         oninput="tasksSearch=this.value;document.getElementById('tasks-list').innerHTML=renderTasksList();">
     </div>
-    <div id="tasks-list">${renderTasksList()}</div>`;
+    <div id="tasks-list" class="task-list">${renderTasksList()}</div>`;
 }
 
 function setTasksFilter(f) {
@@ -2062,25 +2075,25 @@ function renderTasksList() {
     const isFull=slotsLeft<=0;
     const pb=TASK_PRIORITIES.find(p=>p.id===t.priority)||TASK_PRIORITIES[2];
     return `<div class="task-card ${t.priority} ${t.status}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
-        <div style="flex:1;">
-          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
             <span class="p-badge ${pb.cls}">${pb.label}</span>
+            <span class="task-card-title">${esc(t.title)}</span>
             ${t.targetRoles.map(r=>taskRoleBadge(r)).join('')}
-            <span style="font-size:16px;font-weight:700;margin-left:4px;">${esc(t.title)}</span>
           </div>
-          <div style="font-size:13px;color:#555;margin-bottom:10px;">${taskTypeDesc(t)}</div>
-          <div style="font-size:11px;color:#999;">
-            ${t.acceptees.length?`<span>Accepted by: ${t.acceptees.map(a=>`<strong style="color:${a.status==='completed'?'#16a34a':'#000'}">${esc(a.userName)}${a.status==='completed'?' ✓':''}</strong>`).join(', ')}</span>`:'<span>No acceptees yet</span>'}
-            &nbsp;&middot;&nbsp; ${activeSlots}/${t.slots} slots filled
-            &nbsp;&middot;&nbsp; by ${esc(t.createdByName)}
+          <div style="font-size:13px;color:#555;margin-bottom:10px;line-height:1.5;">${taskTypeDesc(t)}</div>
+          <div style="font-size:11px;color:#aaa;display:flex;gap:16px;flex-wrap:wrap;">
+            <span>${activeSlots}/${t.slots} slots</span>
+            <span>${t.acceptees.length?t.acceptees.map(a=>`<strong style="color:${a.status==='completed'?'#16a34a':'#555'};font-size:11px;">${esc(a.userName)}${a.status==='completed'?' ✓':''}</strong>`).join(', '):'no acceptees'}</span>
+            <span style="color:#ccc;">by ${esc(t.createdByName)}</span>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;">
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;padding-top:2px;">
           ${t.status==='open'&&!myAcceptee&&!isFull?`<button class="btn btn-black btn-sm" onclick="acceptTask('${esc(t._id)}')">Accept</button>`:''}
           ${t.status==='open'&&myAcceptee&&myAcceptee.status!=='completed'?`<button class="btn btn-outline btn-sm" onclick="completeTask('${esc(t._id)}')">Mark Done</button>`:''}
           ${t.status==='open'&&myAcceptee&&myAcceptee.status!=='completed'?`<button class="btn-ghost btn-sm" onclick="unacceptTask('${esc(t._id)}')">Withdraw</button>`:''}
-          ${admin&&t.status==='open'?`<button class="btn btn-red btn-sm" onclick="adminCompleteTask('${esc(t._id)}')">Complete Task</button>`:''}
+          ${admin&&t.status==='open'?`<button class="btn btn-red btn-sm" onclick="adminCompleteTask('${esc(t._id)}')">Complete</button>`:''}
           ${admin&&t.status==='open'?`<button class="btn-ghost btn-sm" onclick="adminCancelTask('${esc(t._id)}')">Cancel</button>`:''}
           ${admin?`<button class="btn-del" onclick="adminDeleteTask('${esc(t._id)}')">✕</button>`:''}
         </div>
