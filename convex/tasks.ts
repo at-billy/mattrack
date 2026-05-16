@@ -30,7 +30,8 @@ export const create = mutation({
   },
   handler: async (ctx, { adminId, ...rest }) => {
     const admin = await ctx.db.get(adminId);
-    if (!admin?.roles.includes("admin")) throw new Error("Not authorized");
+    const canCreate = admin?.roles.includes("admin") || admin?.roles.includes("crafter");
+    if (!canCreate) throw new Error("Not authorized");
     const id = await ctx.db.insert("tasks", {
       ...rest,
       status: "open",

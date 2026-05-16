@@ -2204,7 +2204,7 @@ function pageTasks() {
         <div class="page-title">Tasks</div>
         <div class="page-sub">${openCount} open task${openCount!==1?'s':''}</div>
       </div>
-      ${admin?`<button class="btn btn-black" onclick="openCreateTaskModal()">+ Create Task</button>`:''}
+      ${admin||u.roles.includes('crafter')?`<button class="btn btn-black" onclick="openCreateTaskModal()">+ Create Task</button>`:''}
     </div>
     ${!tasksSearchActive?`<div style="display:flex;gap:8px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
       <span style="font-size:18px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg);">Role:</span>
