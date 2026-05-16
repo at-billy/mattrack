@@ -6,7 +6,7 @@
 <title>MATTRACK</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-:root{--red:#cc0000;--mid:#888;}
+:root{--red:#cc0000;--mid:#888;--fg:#000;--bg:#fff;--bg2:#f5f5f5;--border:#000;--border-l:#e0e0e0;--border-m:#e8e8e8;}
 body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;color:#000;font-size:18px;line-height:1.5;}
 
 /* ── NAV WRAPPER ─────────────────────────────────────────────────── */
@@ -214,7 +214,7 @@ tbody tr:hover{background:#f9f9f9;}
 .ov-empty{color:#000;font-size:18px;padding:24px 0;}
 
 /* ── DARK MODE ───────────────────────────────────────────────────── */
-body.dark{background:#111;color:#e0e0e0;}
+body.dark{background:#111;color:#e0e0e0;--fg:#e0e0e0;--bg:#111;--bg2:#1a1a1a;--border:#e0e0e0;--border-l:#333;--border-m:#2a2a2a;}
 body.dark #nav-topbar{background:#111;border-bottom-color:#333;}
 body.dark .nav-main{color:#e0e0e0;}
 body.dark .nav-main.outline{-webkit-text-stroke:2px #e0e0e0;color:transparent;}
@@ -555,7 +555,7 @@ function showSetup() {
     <div class="center-screen">
       <div class="auth-box" style="max-width:480px;">
         <div class="auth-logo">MATTRACK</div>
-        <div style="font-size:18px;color:#000;margin-bottom:24px;text-align:center;">Connect to your Convex backend.</div>
+        <div style="font-size:18px;color:var(--fg);margin-bottom:24px;text-align:center;">Connect to your Convex backend.</div>
         <div class="field">
           <label class="lbl">Convex Deployment URL</label>
           <input type="text" id="setup-url" placeholder="https://happy-animal-123.convex.cloud" value="${esc(CONVEX_URL)}">
@@ -602,7 +602,7 @@ function showAuth(tab='signin') {
           <div class="field"><label class="lbl">Password</label><input id="si-pass" type="password" autocomplete="current-password" placeholder="password"></div>
           <div class="err-msg" id="si-err"></div>
           <button class="btn btn-black" style="width:100%;justify-content:center;" onclick="doSignIn()">Sign In</button>
-          <div style="margin-top:12px;font-size:18px;color:#000;text-align:center;">
+          <div style="margin-top:12px;font-size:18px;color:var(--fg);text-align:center;">
             Wrong URL? <span style="cursor:pointer;text-decoration:underline;" onclick="showSetup()">Change setup</span>
           </div>
         `:`
@@ -830,12 +830,12 @@ function pageOverview() {
       </div>
     </div>
 
-    <div style="border-top:2px solid #000;padding:60px 0;">
+    <div style="border-top:2px solid var(--border);padding:60px 0;">
       <div class="ov-col-head">Open Tasks</div>
       ${topTasks.length ? topTasks.map(t=>{
         const pb=TASK_PRIORITIES.find(p=>p.id===t.priority)||TASK_PRIORITIES[2];
         const activeSlots=t.acceptees.filter(a=>a.status!=='completed').length;
-        return `<div class="ov-task-row" style="display:flex;align-items:baseline;gap:28px;padding:14px 0;border-bottom:1px solid #e0e0e0;">
+        return `<div class="ov-task-row" style="display:flex;align-items:baseline;gap:28px;padding:14px 0;border-bottom:1px solid var(--border-l);">
           <div style="flex:1;display:flex;align-items:baseline;gap:12px;">
             <span class="p-badge ${pb.cls}">${pb.label}</span>
             <span class="ov-task-title" style="font-size:24px;font-weight:900;">${esc(t.title)}</span>
@@ -848,10 +848,10 @@ function pageOverview() {
       ${openTasks.length>6?`<div style="padding-top:20px;"><span style="font-size:18px;cursor:pointer;text-decoration:underline;" onclick="goTo('tasks')">All tasks (${openTasks.length}) →</span></div>`:''}
     </div>
 
-    <div style="border-top:2px solid #000;padding:60px 0;">
+    <div style="border-top:2px solid var(--border);padding:60px 0;">
       <div class="ov-col-head">Stock</div>
       ${matAvail.length===0 ? `<div class="ov-empty" style="padding:40px 0;">No materials in stock.</div>` : `
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;border-bottom:2px solid #000;margin-bottom:40px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0;border-bottom:2px solid var(--border);margin-bottom:40px;">
         <div style="padding:32px 0;">
           <div style="font-size:clamp(42px,6vw,66px);font-weight:900;letter-spacing:-3px;line-height:1;">${oreEntries.length}</div>
           <div style="font-size:18px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-top:8px;">Ore Entries</div>
@@ -864,18 +864,18 @@ function pageOverview() {
         </div>
       </div>
       ${topMats.length?topMats.map(([name,qty])=>`
-        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:14px 0;border-bottom:1px solid #e0e0e0;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:14px 0;border-bottom:1px solid var(--border-l);">
           <span style="font-size:24px;font-weight:700;">${esc(name)}</span>
           <span style="font-size:18px;font-weight:700;">${Math.round(qty*100)/100} ${unitFor(name)}</span>
         </div>`).join(''):''}
       <div style="padding-top:20px;"><span style="font-size:18px;cursor:pointer;text-decoration:underline;" onclick="goTo('materials')">All materials →</span></div>`}
     </div>
 
-    <div style="border-top:2px solid #000;padding:60px 0;">
+    <div style="border-top:2px solid var(--border);padding:60px 0;">
       <div class="ov-col-head">Inventory</div>
       ${recentCrafted.length===0 ? `<div class="ov-empty" style="padding:40px 0;">Nothing crafted yet.</div>` : `
       ${recentCrafted.map(i=>`
-        <div style="display:flex;align-items:baseline;gap:28px;padding:14px 0;border-bottom:1px solid #e0e0e0;">
+        <div style="display:flex;align-items:baseline;gap:28px;padding:14px 0;border-bottom:1px solid var(--border-l);">
           <div style="flex:1;display:flex;align-items:baseline;gap:12px;">
             ${i.category?`<span class="item-cat-tag">${esc(itemCatLabel(i.category))}</span>`:''}
             <span style="font-size:24px;font-weight:700;">${esc(i.itemName)}</span>
@@ -943,9 +943,9 @@ function pageMaterials() {
             <div class="field">
               <label class="lbl" id="mat-qty-lbl">Quantity (SCU)</label>
               <input type="number" id="mat-qty" min="0.01" step="0.01" placeholder="e.g. 50">
-              <div style="font-size:18px;color:#000;margin-top:4px;" id="mat-qty-hint">0.01 SCU increments</div>
+              <div style="font-size:18px;color:var(--fg);margin-top:4px;" id="mat-qty-hint">0.01 SCU increments</div>
             </div>
-            <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;color:#000;">System &amp; Location</div>
+            <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;color:var(--fg);">System &amp; Location</div>
             <div class="field">
               <select id="mat-system" onchange="onSystemChange()">
                 <option value="">Select system…</option>
@@ -992,8 +992,8 @@ function renderMatTable(stock) {
       <td><span class="q">${m.quality}</span></td>
       <td>${m.quantity}<span class="unit-inline">${esc(m.unit)}</span></td>
       <td class="loc-display">${sysBadge(m.system)}${esc(m.location)}</td>
-      <td style="font-size:18px;">${esc(m.ownerName)}${m.ownerId===u._id?' <span style="color:#000;">(you)</span>':''}</td>
-      <td style="font-size:18px;color:#000;">${fmtDate(m._creationTime)}</td>
+      <td style="font-size:18px;">${esc(m.ownerName)}${m.ownerId===u._id?' <span style="color:var(--fg);">(you)</span>':''}</td>
+      <td style="font-size:18px;color:var(--fg);">${fmtDate(m._creationTime)}</td>
       <td style="white-space:nowrap;">
         ${(m.ownerId===u._id||admin)?`<button class="btn-ghost btn-sm" style="margin-right:4px;" onclick="openMoveModal('${esc(m._id)}')">Move</button>`:''}
         ${(m.ownerId===u._id||admin)?`<button class="${admin&&m.ownerId!==u._id?'btn-del':'btn-ghost btn-sm'}" onclick="removeMaterial('${esc(m._id)}')">${admin&&m.ownerId!==u._id?'✕':'Remove'}</button>`:''}
@@ -1145,7 +1145,7 @@ function renderItemsList() {
   if(itemsFilter!=='all') items=items.filter(i=>i.category===itemsFilter);
   if(!items.length) return `<div class="empty">No craftable items defined${itemsFilter!=='all'?' in this category':''}.</div>`;
   return items.map(item=>`
-    <div style="border-bottom:1px solid #e8e8e8;padding:24px 0;">
+    <div style="border-bottom:1px solid var(--border-m);padding:24px 0;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
@@ -1153,12 +1153,12 @@ function renderItemsList() {
             <span style="font-size:24px;font-weight:700;">${esc(item.name)}</span>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;">
-            ${item.requirements.map(r=>`<span style="font-size:18px;padding:4px 12px;border:1px solid #000;">
+            ${item.requirements.map(r=>`<span style="font-size:18px;padding:4px 12px;border:1px solid var(--border);">
               ${esc(r.materialName)} &times; ${r.quantity}<span class="unit-inline">${esc(r.unit)}</span>
             </span>`).join('')}
           </div>
         </div>
-        <div style="text-align:right;font-size:18px;color:#000;flex-shrink:0;margin-left:24px;">
+        <div style="text-align:right;font-size:18px;color:var(--fg);flex-shrink:0;margin-left:24px;">
           ${esc(item.createdByName)}<br>${fmtDate(item._creationTime)}
           ${admin?`<br><button class="btn-del" style="margin-top:8px;" onclick="adminDeleteItem('${esc(item._id)}','${esc(item.name)}')">✕ Delete</button>`:''}
         </div>
@@ -1270,7 +1270,7 @@ function pageCraft() {
           </div>
         </div>
       </div>
-      <div style="margin-bottom:4px;font-size:18px;color:#000;" id="items-count">${state.craftItems.length} item${state.craftItems.length!==1?'s':''} defined</div>
+      <div style="margin-bottom:4px;font-size:18px;color:var(--fg);" id="items-count">${state.craftItems.length} item${state.craftItems.length!==1?'s':''} defined</div>
       <div class="filter-tabs" style="margin:16px 0 24px;">
         <button class="filter-tab${itemsFilter==='all'?' active':''}" onclick="setItemsFilter('all')">All</button>
         ${ITEM_CATEGORIES.map(c=>`<button class="filter-tab${itemsFilter===c.id?' active':''}" onclick="setItemsFilter('${c.id}')">${c.label}</button>`).join('')}
@@ -1287,7 +1287,7 @@ function pageCraft() {
     <div style="max-width:480px;">
       ${isPending
         ?`<div class="pending-note" style="display:block;">⏳ <strong>Crafter approval pending</strong> — An admin needs to approve your crafter application before you can craft items.</div>`
-        :`<div class="pending-note" style="display:block;background:#f5f5f5;border-left-color:#000;color:#000;">You need the Crafter role to craft items. Request access below — an admin will approve it.</div>
+        :`<div class="pending-note" style="display:block;background:var(--bg2);border-left-color:var(--border);color:var(--fg);">You need the Crafter role to craft items. Request access below — an admin will approve it.</div>
         <button class="btn btn-black" style="margin-top:16px;" onclick="requestCrafter()">Request Crafter Access</button>`}
     </div>` : `
     <div class="page-sub" style="margin-bottom:32px;margin-top:-8px;">Select an item and configure quality preferences</div>
@@ -1326,7 +1326,7 @@ function pageCraft() {
         </div>
       </div>
       <div id="craft-summary-area">
-        ${cs.plan?renderCraftSummary(cs.plan):`<div style="padding:32px;border:1px solid #e8e8e8;text-align:center;color:#000;font-size:18px;">Select an item to see crafting details.</div>`}
+        ${cs.plan?renderCraftSummary(cs.plan):`<div style="padding:32px;border:1px solid var(--border-m);text-align:center;color:var(--fg);font-size:18px;">Select an item to see crafting details.</div>`}
       </div>
     </div>
     <div id="craft-detail-area" style="margin-top:32px;">${cs.plan?renderCraftDetail(cs.plan):''}</div>`}`;
@@ -1454,13 +1454,13 @@ function renderCraftSummary(plan, maxCraftable){
   const maxStr=maxCraftable!=null?maxCraftable:calcMaxCrafts(plan.item,state.stock,craftState.mode,craftState.qMin,craftState.qMax);
   return `<div class="craft-box${ok?'':' err'}">
     <div style="font-size:18px;font-weight:700;margin-bottom:2px;">${esc(plan.item.name)}</div>
-    ${catLabel?`<div style="font-size:18px;color:#000;margin-bottom:14px;">${esc(catLabel)}</div>`:''}
+    ${catLabel?`<div style="font-size:18px;color:var(--fg);margin-bottom:14px;">${esc(catLabel)}</div>`:''}
     <div style="font-size:18px;font-weight:700;letter-spacing:.1em;color:${ok?'#000':'var(--red)'};">${ok?`CRAFTABLE &times;${qty}`:'INSUFFICIENT MATERIALS'}</div>
-    ${ok?`<div style="font-size:18px;color:#000;margin-top:4px;margin-bottom:16px;">Max craftable with current stock: <strong style="color:#000;">${maxStr}</strong></div>`:''}
+    ${ok?`<div style="font-size:18px;color:var(--fg);margin-top:4px;margin-bottom:16px;">Max craftable with current stock: <strong style="color:var(--fg);">${maxStr}</strong></div>`:''}
     <hr class="thin" style="margin:16px 0;">
-    <div style="font-size:18px;font-weight:700;letter-spacing:.1em;color:#000;margin-bottom:4px;text-transform:uppercase;">Avg. Craft Quality</div>
+    <div style="font-size:18px;font-weight:700;letter-spacing:.1em;color:var(--fg);margin-bottom:4px;text-transform:uppercase;">Avg. Craft Quality</div>
     <div class="q-big">${ok?plan.avgQuality:'—'}</div>
-    ${ok?`<div style="font-size:18px;color:#000;margin-top:4px;">${qualLabel(plan.avgQuality)}</div>`:''}
+    ${ok?`<div style="font-size:18px;color:var(--fg);margin-top:4px;">${qualLabel(plan.avgQuality)}</div>`:''}
   </div>`;
 }
 
@@ -1468,7 +1468,7 @@ function matCatTag(materialName) {
   const entry=catLookup(materialName);
   if(!entry) return '';
   const label=entry.cat==='Ores'?'ORE':'GEM';
-  return `<span style="font-size:18px;font-weight:700;letter-spacing:.06em;border:1.5px solid #000;padding:1px 5px;margin-left:6px;">${label}</span>`;
+  return `<span style="font-size:18px;font-weight:700;letter-spacing:.06em;border:1.5px solid var(--border);padding:1px 5px;margin-left:6px;">${label}</span>`;
 }
 
 function renderCraftDetail(plan){
@@ -1478,8 +1478,8 @@ function renderCraftDetail(plan){
     Material Requirements &mdash; ${qty}&times; ${esc(plan.item.name).toUpperCase()}
   </div>`;
   for(const req of plan.requirements){
-    const clr=req.ok?'#000':'var(--red)';
-    html+=`<div style="border-bottom:1px solid #e8e8e8;padding:20px 0;">
+    const clr=req.ok?'var(--fg)':'var(--red)';
+    html+=`<div style="border-bottom:1px solid var(--border-m);padding:20px 0;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;">
         <div style="font-size:24px;font-weight:700;">${esc(req.materialName)}${matCatTag(req.materialName)}</div>
         <div style="font-size:18px;color:${clr};">${req.ok
@@ -1492,9 +1492,9 @@ function renderCraftDetail(plan){
         <tbody>${req.batches.map(b=>`<tr>
           <td><span class="q">${b.quality}</span></td>
           <td style="font-weight:600;">${b.quantityUse} <span class="unit-inline">${esc(b.unit)}</span></td>
-          <td style="color:#000;">${b.quantityAvail} total</td>
+          <td style="color:var(--fg);">${b.quantityAvail} total</td>
           <td>${sysBadge(b.system)}</td>
-          <td style="color:#000;">${esc(b.location)}</td>
+          <td style="color:var(--fg);">${esc(b.location)}</td>
           <td>${esc(b.ownerName)}</td>
         </tr>`).join('')}</tbody></table>`;
     } else {
@@ -1503,10 +1503,10 @@ function renderCraftDetail(plan){
     html+=`</div>`;
   }
   if(plan.canCraft){
-    html+=`<div style="margin-top:28px;padding-top:24px;border-top:1px solid #000;">
+    html+=`<div style="margin-top:28px;padding-top:24px;border-top:1px solid var(--border);">
       <button class="btn btn-red" onclick="openCraftLocationModal()">Craft${qty>1?` (${qty}×)`:''}
       </button>
-      <div style="font-size:18px;color:#000;margin-top:8px;">Next: select your crafting location, then materials will be consumed and the item added to inventory.</div>
+      <div style="font-size:18px;color:var(--fg);margin-top:8px;">Next: select your crafting location, then materials will be consumed and the item added to inventory.</div>
     </div>`;
   }
   return html;
@@ -1630,10 +1630,10 @@ function renderMonthRows(entries){
   return `<table>
     <thead><tr><th>Date</th><th>Action</th><th>User</th><th>Details</th>${admin?'<th></th>':''}</tr></thead>
     <tbody>${entries.map(e=>`<tr>
-      <td style="font-size:18px;color:#000;white-space:nowrap;">${fmtDT(e._creationTime)}</td>
+      <td style="font-size:18px;color:var(--fg);white-space:nowrap;">${fmtDT(e._creationTime)}</td>
       <td><span class="badge badge-${e.type}">${labels[e.type]||e.type}</span></td>
       <td style="font-weight:600;font-size:18px;">${esc(e.userName)}</td>
-      <td style="font-size:18px;color:#000;">${fmtArchiveDetails(e)}</td>
+      <td style="font-size:18px;color:var(--fg);">${fmtArchiveDetails(e)}</td>
       ${admin?`<td><button class="btn-del" onclick="adminDeleteLog('${esc(e._id)}')">✕</button></td>`:''}
     </tr>`).join('')}</tbody></table>`;
 }
@@ -1646,7 +1646,7 @@ function fmtArchiveDetails(e){
       return `${esc(d.materialName)} &middot; ${d.quantity} ${esc(d.unit||'')} &middot; ${sysBadge(d.system)}${esc(d.location)}`;
     case 'crafted': {
       const lines=(d.materialsUsed||[]).map(m=>`${esc(m.materialName)} &times;${m.quantityUsed}${esc(m.unit||'')} (q${m.quality}, ${esc(m.ownerName)}, ${sysBadge(m.system)}${esc(m.location)})`).join(' | ');
-      return `<strong>${esc(d.itemName)}</strong> &middot; avg q${d.avgQuality}<br><span style="font-size:18px;color:#000;">${lines}</span>`; }
+      return `<strong>${esc(d.itemName)}</strong> &middot; avg q${d.avgQuality}<br><span style="font-size:18px;color:var(--fg);">${lines}</span>`; }
     case 'item_created':
       return `${esc(d.itemName)} &middot; ${(d.requirements||[]).map(r=>`${esc(r.materialName)}&times;${r.quantity}${esc(r.unit||'')}`).join(', ')}`;
     case 'item_deleted':
@@ -1705,7 +1705,7 @@ function pageMember() {
           ${activeRoles.map(r=>roleTagHtml(r)).join('')}
         </div>
       </div>
-      ${noAdmin?`<button class="btn btn-outline" style="border-color:var(--red);color:#000;font-size:18px;" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
+      ${noAdmin?`<button class="btn btn-outline" style="border-color:var(--red);color:var(--fg);font-size:18px;" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
     </div>
 
     <div class="ov-stats" style="margin-bottom:40px;">
@@ -1733,9 +1733,9 @@ function pageMember() {
 
     ${requestable.length||pending.length?`
     <div style="margin-bottom:40px;">
-      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;color:#000;">Role Requests</div>
+      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;color:var(--fg);">Role Requests</div>
       ${pending.length?`
-      <div style="margin-bottom:12px;font-size:18px;color:#000;">
+      <div style="margin-bottom:12px;font-size:18px;color:var(--fg);">
         ${pending.map(r=>`<span style="margin-right:16px;">⏳ <strong>${r.label}</strong> — pending admin approval</span>`).join('')}
       </div>`:''}
       ${requestable.length?`
@@ -1746,13 +1746,13 @@ function pageMember() {
 
     ${recentActivity.length?`
     <div>
-      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;color:#000;">Recent Activity</div>
+      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;color:var(--fg);">Recent Activity</div>
       <table>
         <thead><tr><th>Date</th><th>Action</th><th>Details</th></tr></thead>
         <tbody>${recentActivity.map(e=>`<tr>
-          <td style="font-size:18px;color:#000;white-space:nowrap;">${fmtDate(e._creationTime)}</td>
+          <td style="font-size:18px;color:var(--fg);white-space:nowrap;">${fmtDate(e._creationTime)}</td>
           <td><span class="badge badge-${e.type}">${logLabels[e.type]||e.type}</span></td>
-          <td style="font-size:18px;color:#000;">${fmtArchiveDetails(e)}</td>
+          <td style="font-size:18px;color:var(--fg);">${fmtArchiveDetails(e)}</td>
         </tr>`).join('')}</tbody>
       </table>
     </div>`:`<div class="empty">No activity recorded yet.</div>`}`;
@@ -1784,10 +1784,10 @@ function openMoveModal(matId) {
   const isGem = m.unit === 'UNIT';
   showModal(`
     <div class="modal-title">Move: ${esc(m.materialName)}</div>
-    <div style="font-size:18px;color:#000;margin-bottom:20px;">
+    <div style="font-size:18px;color:var(--fg);margin-bottom:20px;">
       Currently at: ${sysBadge(m.system)}${esc(m.location)} &middot; ${m.quantity} ${esc(m.unit)} &middot; <span class="q" style="font-size:18px;">${m.quality}</span>
     </div>
-    <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;color:#000;">New Location</div>
+    <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;color:var(--fg);">New Location</div>
     <div class="field">
       <label class="lbl">System</label>
       <select id="mv-sys" onchange="onMVSysChange()">
@@ -1806,7 +1806,7 @@ function openMoveModal(matId) {
       </label>
       <div id="mv-partial-wrap" style="display:none;">
         <input type="number" id="mv-qty" value="${m.quantity}" min="${isGem?1:0.01}" max="${m.quantity}" step="${isGem?1:0.01}" style="max-width:160px;">
-        <div style="font-size:18px;color:#000;margin-top:4px;">Max: ${m.quantity} ${esc(m.unit)}</div>
+        <div style="font-size:18px;color:var(--fg);margin-top:4px;">Max: ${m.quantity} ${esc(m.unit)}</div>
       </div>
     </div>
     <div style="display:flex;gap:10px;margin-top:8px;">
@@ -1923,13 +1923,13 @@ function renderInvList() {
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
             ${item.category?`<span class="item-cat-tag">${esc(itemCatLabel(item.category))}</span>`:''}
             <span style="font-size:24px;font-weight:700;">${esc(item.itemName)}</span>
-            <span style="font-size:18px;font-weight:700;color:#000;">&times;${item.quantity}</span>
+            <span style="font-size:18px;font-weight:700;color:var(--fg);">&times;${item.quantity}</span>
           </div>
-          <div style="display:flex;gap:20px;font-size:18px;color:#000;flex-wrap:wrap;">
-            <span>Avg quality: <strong style="color:#000;">${item.avgQuality}</strong> <span style="color:#000;">${qualLabel(item.avgQuality)}</span></span>
-            <span>Crafted by: <strong style="color:#000;">${esc(item.craftedByName)}</strong></span>
+          <div style="display:flex;gap:20px;font-size:18px;color:var(--fg);flex-wrap:wrap;">
+            <span>Avg quality: <strong style="color:var(--fg);">${item.avgQuality}</strong> <span style="color:var(--fg);">${qualLabel(item.avgQuality)}</span></span>
+            <span>Crafted by: <strong style="color:var(--fg);">${esc(item.craftedByName)}</strong></span>
             <span>${sysBadge(item.system)}${esc(item.location)}</span>
-            <span style="color:#000;">${fmtDate(item._creationTime)}</span>
+            <span style="color:var(--fg);">${fmtDate(item._creationTime)}</span>
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
@@ -1951,7 +1951,7 @@ function renderInvList() {
         <td style="font-size:18px;">${esc(item.craftedByName)}</td>
         <td style="font-weight:600;">${esc(item.handedOutTo||'—')}</td>
         <td style="font-size:18px;">${esc(item.handedOutByName||'—')}</td>
-        <td style="font-size:18px;color:#000;white-space:nowrap;">${fmtDate(item._creationTime)}</td>
+        <td style="font-size:18px;color:var(--fg);white-space:nowrap;">${fmtDate(item._creationTime)}</td>
         ${admin?`<td><button class="btn-del" onclick="adminDeleteInventory('${esc(item._id)}')">✕</button></td>`:''}
       </tr>`).join('')}</tbody></table>`;
   }
@@ -1965,14 +1965,14 @@ function openHandOutModal(invId) {
     .map(u=>`<option value="${esc(u.username)}">${esc(u.username)}</option>`).join('');
   showModal(`
     <div class="modal-title">Hand Out: ${esc(item.itemName)}</div>
-    <div style="font-size:18px;color:#000;margin-bottom:20px;">
+    <div style="font-size:18px;color:var(--fg);margin-bottom:20px;">
       ${item.category?`<span class="item-cat-tag" style="font-size:9px;margin-right:6px;">${esc(itemCatLabel(item.category))}</span>`:''}
       ${item.quantity} available &middot; avg quality ${item.avgQuality}
     </div>
     <div class="field">
       <label class="lbl">Quantity to Hand Out</label>
       <input type="number" id="ho-qty" min="1" max="${item.quantity}" step="1" value="${item.quantity}" style="max-width:140px;">
-      <div style="font-size:18px;color:#000;margin-top:4px;">Max: ${item.quantity}</div>
+      <div style="font-size:18px;color:var(--fg);margin-top:4px;">Max: ${item.quantity}</div>
     </div>
     <div class="field">
       <label class="lbl">Hand Out To</label>
@@ -2037,7 +2037,7 @@ async function adminDeleteInventory(id) {
 // ─── ADMIN PAGE ──────────────────────────────────────────────────────────────
 function pageAdmin() {
   const u=state.user;
-  if(!isAdmin(u)) return `<div class="page-head"><div class="page-title">Admin</div></div><p style="color:#000;margin-top:24px;">Access denied.</p>`;
+  if(!isAdmin(u)) return `<div class="page-head"><div class="page-title">Admin</div></div><p style="color:var(--fg);margin-top:24px;">Access denied.</p>`;
   return `
     <div class="page-head">
       <div class="page-head-left">
@@ -2056,16 +2056,16 @@ function renderAdminContent() {
   return `
     ${pending.length?`
     <div style="margin-bottom:40px;">
-      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000;">
+      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">
         Pending Crafter Applications <span style="background:var(--red);color:#fff;padding:1px 8px;font-size:18px;margin-left:8px;">${pending.length}</span>
       </div>
       ${pending.map(m=>{
         const pendingRoles=PENDING_ROLES.filter(r=>m.roles.includes(r.pending));
         return pendingRoles.map(pr=>`
-        <div style="display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid #e8e8e8;">
+        <div style="display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--border-m);">
           <div style="font-weight:700;font-size:18px;flex:1;">${esc(m.username)}</div>
-          <div style="font-size:18px;color:#000;">requesting <strong>${pr.label}</strong> role</div>
-          <div style="font-size:18px;color:#000;">${m.roles.filter(r=>r!==pr.pending).join(', ')||'—'}</div>
+          <div style="font-size:18px;color:var(--fg);">requesting <strong>${pr.label}</strong> role</div>
+          <div style="font-size:18px;color:var(--fg);">${m.roles.filter(r=>r!==pr.pending).join(', ')||'—'}</div>
           <button class="btn btn-black btn-sm" onclick="adminApproveRole('${esc(m._id)}','${esc(m.username)}','${pr.pending}','${pr.full}')">✓ Approve</button>
           <button class="btn btn-outline btn-sm" onclick="adminDenyRole('${esc(m._id)}','${esc(m.username)}','${pr.pending}')">✕ Deny</button>
         </div>`).join('');
@@ -2073,14 +2073,14 @@ function renderAdminContent() {
     </div>`:''}
 
     <div>
-      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #000;">All Members</div>
+      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">All Members</div>
       ${state.allUsers.map(m=>{
         const isMe = m._id===u._id;
         const removed = m.roles.includes('removed');
         const MANAGEABLE = ['provider','crafter','logistics'];
-        return `<div style="display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-bottom:1px solid #e8e8e8;flex-wrap:wrap;">
+        return `<div style="display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-bottom:1px solid var(--border-m);flex-wrap:wrap;">
           <div style="min-width:140px;">
-            <div style="font-weight:700;font-size:18px;">${esc(m.username)}${isMe?' <span style="color:#000;font-size:18px;">(you)</span>':''}</div>
+            <div style="font-weight:700;font-size:18px;">${esc(m.username)}${isMe?' <span style="color:var(--fg);font-size:18px;">(you)</span>':''}</div>
             <div style="margin-top:4px;">${m.roles.map(r=>roleTagHtml(r)).join(' ')}</div>
           </div>
           ${!removed?`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1;">
@@ -2207,7 +2207,7 @@ function pageTasks() {
       ${admin?`<button class="btn btn-black" onclick="openCreateTaskModal()">+ Create Task</button>`:''}
     </div>
     ${!tasksSearchActive?`<div style="display:flex;gap:8px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
-      <span style="font-size:18px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#000;">Role:</span>
+      <span style="font-size:18px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg);">Role:</span>
       <button class="btn-ghost btn-sm${tasksRoleFilter===''?' active':''}" onclick="setTasksRoleFilter('')">All</button>
       <button class="btn-ghost btn-sm${tasksRoleFilter==='provider'?' active':''}" onclick="setTasksRoleFilter('provider')">Provider</button>
       <button class="btn-ghost btn-sm${tasksRoleFilter==='crafter'?' active':''}" onclick="setTasksRoleFilter('crafter')">Crafter</button>
@@ -2311,11 +2311,11 @@ function renderTasksList() {
             <span class="task-card-title">${esc(t.title)}</span>
             ${t.targetRoles.map(r=>taskRoleBadge(r)).join('')}
           </div>
-          <div style="font-size:18px;color:#000;margin-bottom:10px;line-height:1.5;">${taskTypeDesc(t)}</div>
-          <div style="font-size:18px;color:#000;display:flex;gap:16px;flex-wrap:wrap;">
+          <div style="font-size:18px;color:var(--fg);margin-bottom:10px;line-height:1.5;">${taskTypeDesc(t)}</div>
+          <div style="font-size:18px;color:var(--fg);display:flex;gap:16px;flex-wrap:wrap;">
             <span>${activeSlots}/${t.slots} slots</span>
             <span>${t.acceptees.length?t.acceptees.map(a=>`<strong style="color:${a.status==='completed'?'var(--red)':'#000'};font-size:18px;">${esc(a.userName)}${a.status==='completed'?' ✓':''}</strong>`).join(', '):'no acceptees'}</span>
-            <span style="color:#000;">by ${esc(t.createdByName)}</span>
+            <span style="color:var(--fg);">by ${esc(t.createdByName)}</span>
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex-shrink:0;padding-top:2px;">
@@ -2407,7 +2407,7 @@ function openCreateTaskModal() {
       </div>
     </div>
     <div class="field">
-      <label class="lbl">Available Slots <span style="font-weight:400;color:#000;">(how many members can accept)</span></label>
+      <label class="lbl">Available Slots <span style="font-weight:400;color:var(--fg);">(how many members can accept)</span></label>
       <input type="number" id="ct-slots" value="1" min="1" step="1" style="max-width:100px;">
     </div>
     <div style="display:flex;gap:10px;margin-top:8px;">
@@ -2451,19 +2451,19 @@ function renderCTTypeFields(type) {
         <div class="field"><label class="lbl">Quantity</label><input type="number" id="ct-qty" min="0.01" step="0.01" placeholder="e.g. 50"></div>
         <div class="field"><label class="lbl">Unit</label><select id="ct-unit"><option value="SCU">SCU</option><option value="UNIT">UNIT</option></select></div>
       </div>
-      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:12px 0 8px;color:#000;">From</div>
+      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:12px 0 8px;color:var(--fg);">From</div>
       <div class="grid2" style="gap:12px;">
         <div class="field"><select id="ct-from-sys" onchange="onCTFromSysChange()"><option value="">System…</option>${Object.keys(SYSTEMS).map(s=>`<option value="${s}">${s}</option>`).join('')}</select></div>
         <div class="field"><select id="ct-from-loc"><option value="">Location…</option></select></div>
       </div>
-      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:12px 0 8px;color:#000;">To</div>
+      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:12px 0 8px;color:var(--fg);">To</div>
       <div class="grid2" style="gap:12px;">
         <div class="field"><select id="ct-to-sys" onchange="onCTToSysChange()"><option value="">System…</option>${Object.keys(SYSTEMS).map(s=>`<option value="${s}">${s}</option>`).join('')}</select></div>
         <div class="field"><select id="ct-to-loc"><option value="">Location…</option></select></div>
       </div>`;
     default: return `
       <div class="field"><label class="lbl">Description</label>
-        <textarea id="ct-desc" rows="3" style="width:100%;border:1.5px solid #000;padding:9px 12px;font-size:18px;font-family:inherit;resize:vertical;" placeholder="Describe the task…"></textarea>
+        <textarea id="ct-desc" rows="3" style="width:100%;border:1.5px solid var(--border);padding:9px 12px;font-size:18px;font-family:inherit;resize:vertical;" placeholder="Describe the task…"></textarea>
       </div>`;
   }
 }
