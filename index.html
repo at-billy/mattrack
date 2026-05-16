@@ -900,7 +900,7 @@ function matNameOptions(cat) {
 function pageMaterials() {
   const u=state.user;
   const stock=state.stock.filter(m=>m.status==='available');
-  const isProv=u.roles.includes('provider');
+  const isProv=u.roles.includes('provider')||isAdmin(u);
   return `
     <div class="page-head">
       <div class="page-head-left">
@@ -1087,7 +1087,7 @@ async function removeMaterial(id) {
 
 // ─── ITEMS PAGE ───────────────────────────────────────────────────────────────
 function pageItems() {
-  const u=state.user; const canAddItem=isAdmin(u)||u.roles.includes('crafter');
+  const u=state.user; const canAddItem=isAdmin(u)||u.roles.includes('crafter'); // admin already covered
   return `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
       <div>
@@ -1234,9 +1234,9 @@ function setCraftSubTab(tab) {
 function pageCraft() {
   const u=state.user;
   const cs=craftState;
-  const iscrafter=u.roles.includes('crafter');
+  const iscrafter=u.roles.includes('crafter')||isAdmin(u);
   const isPending=u.roles.includes('crafter_pending');
-  const canAddItem=isAdmin(u)||iscrafter;
+  const canAddItem=iscrafter;
 
   const subTabs = ``; // sub-tabs now live in the nav second row
 
@@ -1906,7 +1906,7 @@ function setInvCatFilter(f) {
 function renderInvList() {
   const u=state.user;
   const admin=isAdmin(u);
-  const canHandOut=u.roles.includes('crafter')||admin;
+  const canHandOut=u.roles.includes('crafter')||u.roles.includes('logistics')||admin;
   let items=state.inventory.filter(i=>i.status===invFilter);
   if(invCatFilter!=='all') items=items.filter(i=>i.category===invCatFilter);
   if(invSearch.trim()) {
