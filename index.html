@@ -1087,13 +1087,14 @@ async function removeMaterial(id) {
 
 // ─── ITEMS PAGE ───────────────────────────────────────────────────────────────
 function pageItems() {
+  const u=state.user; const canAddItem=isAdmin(u)||u.roles.includes('crafter');
   return `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
       <div>
         <div class="page-title">ITEMS</div>
         <div class="page-sub" id="items-count">${state.craftItems.length} item${state.craftItems.length!==1?'s':''} defined</div>
       </div>
-      <button class="btn btn-black" onclick="togglePanel('add-item-panel')">+ Add Item</button>
+      ${canAddItem?`<button class="btn btn-black" onclick="togglePanel('add-item-panel')">+ Add Item</button>`:''}
     </div>
 
     <div id="add-item-panel" class="collapsible" style="margin-bottom:32px;">
@@ -1235,6 +1236,7 @@ function pageCraft() {
   const cs=craftState;
   const iscrafter=u.roles.includes('crafter');
   const isPending=u.roles.includes('crafter_pending');
+  const canAddItem=isAdmin(u)||iscrafter;
 
   const subTabs = ``; // sub-tabs now live in the nav second row
 
@@ -1242,7 +1244,7 @@ function pageCraft() {
     return `
       <div class="page-head">
         <div class="page-head-left"><div class="page-title">Items</div></div>
-        <button class="btn btn-black" onclick="togglePanel('add-item-panel')">+ Add Item</button>
+        ${canAddItem?`<button class="btn btn-black" onclick="togglePanel('add-item-panel')">+ Add Item</button>`:''}
       </div>
       <div id="add-item-panel" class="collapsible" style="margin-bottom:32px;">
         <div class="panel">
