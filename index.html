@@ -1874,7 +1874,7 @@ function pageInventory() {
       <button class="filter-tab${invFilter==='available'?' active':''}" onclick="setInvFilter('available')">In Stock (${avail.length})</button>
       <button class="filter-tab${invFilter==='handed_out'?' active':''}" onclick="setInvFilter('handed_out')">Handed Out (${handedOut.length})</button>
     </div>
-    <div class="filter-tabs" style="margin-bottom:20px;">
+    <div class="filter-tabs" id="inv-cat-tabs" style="margin-bottom:20px;">
       <button class="filter-tab${invCatFilter==='all'?' active':''}" onclick="setInvCatFilter('all')">All</button>
       ${ITEM_CATEGORIES.map(c=>`<button class="filter-tab${invCatFilter===c.id?' active':''}" onclick="setInvCatFilter('${c.id}')">${c.label}</button>`).join('')}
     </div>
@@ -1892,6 +1892,12 @@ function setInvFilter(f) {
 
 function setInvCatFilter(f) {
   invCatFilter=f;
+  const tabs=document.getElementById('inv-cat-tabs');
+  if(tabs) tabs.querySelectorAll('.filter-tab').forEach(btn=>{
+    const isAll=f==='all'&&btn.textContent.trim()==='All';
+    const isCat=ITEM_CATEGORIES.some(c=>c.id===f&&c.label===btn.textContent.trim());
+    btn.classList.toggle('active',isAll||isCat);
+  });
   const el=document.getElementById('inv-list'); if(el) el.innerHTML=renderInvList();
 }
 
