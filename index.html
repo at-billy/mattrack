@@ -448,14 +448,13 @@ function toast(msg, dur=2800) {
 function showErr(id, msg) { const el=document.getElementById(id); if(el){el.textContent=msg;el.style.display='block';} }
 
 // ─── CATALOG SELECT HTML ──────────────────────────────────────────────────────
-function catalogOptgroups(extraOption = '') {
+function catalogOptgroups(selected = '') {
   const cats = [...new Set(SC_CATALOG.map(m => m.cat))];
   return `<option value="">Select material…</option>
     ${cats.map(cat => `<optgroup label="${cat}">
       ${SC_CATALOG.filter(m=>m.cat===cat).map(m=>
-        `<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}
-    </optgroup>`).join('')}
-    ${extraOption}`;
+        `<option value="${esc(m.name)}"${m.name===selected?' selected':''}>${esc(m.name)}</option>`).join('')}
+    </optgroup>`).join('')}`;
 }
 
 // ─── LOCATION SELECT HTML ─────────────────────────────────────────────────────
@@ -1160,7 +1159,10 @@ function renderItemsList() {
         </div>
         <div style="text-align:right;font-size:18px;color:var(--fg);flex-shrink:0;margin-left:24px;">
           ${esc(item.createdByName)}<br>${fmtDate(item._creationTime)}
-          ${admin?`<br><button class="btn-del" style="margin-top:8px;" onclick="adminDeleteItem('${esc(item._id)}','${esc(item.name)}')">✕ Delete</button>`:''}
+          ${admin?`<br><div style="display:flex;gap:6px;justify-content:flex-end;margin-top:8px;">
+            <button class="btn-ghost btn-sm" onclick="openEditItemModal('${esc(item._id)}')">Edit</button>
+            <button class="btn-del" onclick="adminDeleteItem('${esc(item._id)}','${esc(item.name)}')">✕</button>
+          </div>`:''}
         </div>
       </div>
     </div>`).join('');
@@ -2154,6 +2156,75 @@ async function adminDeleteItem(id, name) {
   try {
     await convexMutation('craftItems:remove',{id,adminId:state.user._id});
     toast('Item deleted');
+    await refreshAll();
+  } catch(e){alert(e.message);}
+}
+
+function openEditItemModal(itemId) {
+  const item=state.craftItems.find(i=>i._id===itemId);
+  if(!item) return;
+  showModal(`
+    <div class="modal-title">Edit Item</div>
+    <div class="field">
+      <label class="lbl">Item Name</label>
+      <input type="text" id="ei-name" value="${esc(item.name)}">
+    </div>
+    <div class="field">
+      <label class="lbl">Category</label>
+      <select id="ei-cat">
+        ${ITEM_CATEGORIES.map(c=>`<option value="${c.id}"${item.category===c.id?' selected':''}>${c.label}</option>`).join('')}
+      </select>
+    </div>
+    <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:20px 0 12px;">Required Materials</div>
+    <div id="ei-req-rows">
+      ${item.requirements.map(r=>`
+        <div class="req-row" style="display:flex;gap:10px;margin-bottom:8px;align-items:center;">
+          <select class="req-mat" style="flex:2;margin:0;" onchange="onReqMatChange(this)">
+            ${catalogOptgroups(r.materialName)}
+          </select>
+          <input type="number" class="req-qty" placeholder="Qty" min="0.01" step="0.01" style="flex:1;margin:0;" value="${r.quantity}">
+          <span class="req-unit unit-inline" style="min-width:32px;">${esc(r.unit)}</span>
+          <button class="btn-ghost btn-sm" onclick="this.parentNode.remove()">✕</button>
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-outline btn-sm" style="margin-bottom:20px;" onclick="addEditReqRow()">+ Add Requirement</button>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-black" onclick="confirmEditItem('${esc(itemId)}')">Save</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+
+function addEditReqRow() {
+  const container=document.getElementById('ei-req-rows'); if(!container) return;
+  const div=document.createElement('div');
+  div.className='req-row';
+  div.style.cssText='display:flex;gap:10px;margin-bottom:8px;align-items:center;';
+  div.innerHTML=`
+    <select class="req-mat" style="flex:2;margin:0;" onchange="onReqMatChange(this)">${catalogOptgroups()}</select>
+    <input type="number" class="req-qty" placeholder="Qty" min="0.01" step="0.01" style="flex:1;margin:0;">
+    <span class="req-unit unit-inline" style="min-width:32px;"></span>
+    <button class="btn-ghost btn-sm" onclick="this.parentNode.remove()">✕</button>`;
+  container.appendChild(div);
+  // trigger unit display for first option
+  const sel=div.querySelector('.req-mat'); if(sel) onReqMatChange(sel);
+}
+
+async function confirmEditItem(itemId) {
+  const name=(document.getElementById('ei-name')||{value:''}).value.trim();
+  const category=(document.getElementById('ei-cat')||{value:''}).value;
+  if(!name){alert('Enter item name');return;}
+  const rows=document.querySelectorAll('#ei-req-rows .req-row');
+  const requirements=[];
+  rows.forEach(r=>{
+    const mat=r.querySelector('.req-mat')?.value;
+    const qty=parseFloat(r.querySelector('.req-qty')?.value);
+    if(mat&&!isNaN(qty)&&qty>0) requirements.push({materialName:mat,quantity:qty,unit:unitFor(mat)});
+  });
+  if(!requirements.length){alert('Add at least one requirement');return;}
+  try {
+    await convexMutation('craftItems:update',{id:itemId,adminId:state.user._id,name,category,requirements});
+    toast('Item updated');
+    closeModal();
     await refreshAll();
   } catch(e){alert(e.message);}
 }

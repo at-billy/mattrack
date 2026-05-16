@@ -18,6 +18,23 @@ export const remove = mutation({
   },
 });
 
+export const update = mutation({
+  args: {
+    id: v.id("craftItems"),
+    adminId: v.id("users"),
+    name: v.string(),
+    category: v.optional(v.string()),
+    requirements: v.array(
+      v.object({ materialName: v.string(), quantity: v.number(), unit: v.string() })
+    ),
+  },
+  handler: async (ctx, { id, adminId, name, category, requirements }) => {
+    const admin = await ctx.db.get(adminId);
+    if (!admin || !admin.roles.includes("admin")) throw new Error("Not authorized");
+    await ctx.db.patch(id, { name, category, requirements });
+  },
+});
+
 export const getAll = query({
   args: {},
   handler: async (ctx) => {
