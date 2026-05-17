@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireSession } from "./_helpers";
 
 const DEFAULT_CATALOG = [
   // Ores — SCU
@@ -69,7 +70,7 @@ export const addToCatalog = mutation({
   handler: async (ctx, args) => {
     const exists = await ctx.db
       .query("materialCatalog")
-      .withIndex("by_name", (q) => q.eq("name", args.name))
+      .withIndex("by_name", q => q.eq("name", args.name))
       .first();
     if (!exists) await ctx.db.insert("materialCatalog", args);
   },
@@ -80,13 +81,14 @@ export const getAvailable = query({
   handler: async (ctx) => {
     return await ctx.db
       .query("materialStock")
-      .withIndex("by_status", (q) => q.eq("status", "available"))
+      .withIndex("by_status", q => q.eq("status", "available"))
       .collect();
   },
 });
 
 export const add = mutation({
   args: {
+    sessionToken: v.string(),
     materialName: v.string(),
     category: v.string(),
     unit: v.string(),
@@ -94,27 +96,46 @@ export const add = mutation({
     quantity: v.number(),
     system: v.string(),
     location: v.string(),
-    ownerId: v.id("users"),
-    ownerName: v.string(),
   },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("materialStock", { ...args, status: "available" });
+  handler: async (ctx, { sessionToken, ...data }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    const id = await ctx.db.insert("materialStock", {
+      ...data,
+      ownerId: user._id,
+      ownerName: user.username,
+      status: "available",
+    });
+    await ctx.db.insert("archive", {
+      type: "material_added",
+      userId: user._id,
+      userName: user.username,
+      details: {
+        materialName: data.materialName,
+        category: data.category,
+        unit: data.unit,
+        quality: data.quality,
+        quantity: data.quantity,
+        system: data.system,
+        location: data.location,
+      },
+    });
+    return id;
   },
 });
 
 export const remove = mutation({
-  args: { id: v.id("materialStock"), userId: v.id("users") },
-  handler: async (ctx, { id, userId }) => {
+  args: { sessionToken: v.string(), id: v.id("materialStock") },
+  handler: async (ctx, { sessionToken, id }) => {
+    const user = await requireSession(ctx.db, sessionToken);
     const item = await ctx.db.get(id);
     if (!item) throw new Error("Not found");
-    const actor = await ctx.db.get(userId);
-    const isAdmin = actor?.roles.includes("admin") ?? false;
-    if (item.ownerId !== userId && !isAdmin) throw new Error("Not authorized");
+    const isAdmin = user.roles.includes("admin");
+    if (item.ownerId !== user._id && !isAdmin) throw new Error("Not authorized");
     await ctx.db.patch(id, { status: "removed" });
     await ctx.db.insert("archive", {
       type: "material_removed",
-      userId,
-      userName: item.ownerName,
+      userId: user._id,
+      userName: user.username,
       details: {
         materialName: item.materialName,
         unit: item.unit,
@@ -128,23 +149,22 @@ export const remove = mutation({
 
 export const move = mutation({
   args: {
+    sessionToken: v.string(),
     id: v.id("materialStock"),
-    userId: v.id("users"),
     toSystem: v.string(),
     toLocation: v.string(),
     partialQty: v.optional(v.number()),
   },
-  handler: async (ctx, { id, userId, toSystem, toLocation, partialQty }) => {
+  handler: async (ctx, { sessionToken, id, toSystem, toLocation, partialQty }) => {
+    const user = await requireSession(ctx.db, sessionToken);
     const item = await ctx.db.get(id);
     if (!item) throw new Error("Not found");
-    const actor = await ctx.db.get(userId);
-    const isAdmin = actor?.roles.includes("admin") ?? false;
-    if (item.ownerId !== userId && !isAdmin) throw new Error("Not authorized");
+    const isAdmin = user.roles.includes("admin");
+    if (item.ownerId !== user._id && !isAdmin) throw new Error("Not authorized");
 
     const movedQty = (partialQty && partialQty < item.quantity) ? partialQty : item.quantity;
 
     if (movedQty < item.quantity) {
-      // Partial move: reduce original, create new entry at new location
       await ctx.db.patch(id, { quantity: item.quantity - movedQty });
       await ctx.db.insert("materialStock", {
         materialName: item.materialName,
@@ -159,14 +179,13 @@ export const move = mutation({
         status: "available",
       });
     } else {
-      // Move all
       await ctx.db.patch(id, { system: toSystem, location: toLocation });
     }
 
     await ctx.db.insert("archive", {
       type: "material_moved",
-      userId,
-      userName: actor!.username,
+      userId: user._id,
+      userName: user.username,
       details: {
         materialName: item.materialName,
         quantity: movedQty,
@@ -183,13 +202,12 @@ export const move = mutation({
 
 export const executeCraft = mutation({
   args: {
+    sessionToken: v.string(),
     batches: v.array(
       v.object({ stockId: v.id("materialStock"), quantityUse: v.number() })
     ),
     itemName: v.string(),
     avgQuality: v.number(),
-    userId: v.id("users"),
-    userName: v.string(),
     materialsDetail: v.array(
       v.object({
         materialName: v.string(),
@@ -202,8 +220,9 @@ export const executeCraft = mutation({
       })
     ),
   },
-  handler: async (ctx, args) => {
-    for (const batch of args.batches) {
+  handler: async (ctx, { sessionToken, batches, itemName, avgQuality, materialsDetail }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    for (const batch of batches) {
       const entry = await ctx.db.get(batch.stockId);
       if (!entry) continue;
       if (batch.quantityUse >= entry.quantity) {
@@ -214,13 +233,9 @@ export const executeCraft = mutation({
     }
     await ctx.db.insert("archive", {
       type: "crafted",
-      userId: args.userId,
-      userName: args.userName,
-      details: {
-        itemName: args.itemName,
-        avgQuality: args.avgQuality,
-        materialsUsed: args.materialsDetail,
-      },
+      userId: user._id,
+      userName: user.username,
+      details: { itemName, avgQuality, materialsUsed: materialsDetail },
     });
   },
 });

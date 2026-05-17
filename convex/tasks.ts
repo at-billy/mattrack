@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireSession } from "./_helpers";
 
 export const getAll = query({
   args: {},
@@ -10,7 +11,7 @@ export const getAll = query({
 
 export const create = mutation({
   args: {
-    adminId: v.id("users"),
+    sessionToken: v.string(),
     title: v.string(),
     type: v.string(),
     description: v.optional(v.string()),
@@ -28,21 +29,21 @@ export const create = mutation({
     targetRoles: v.array(v.string()),
     slots: v.number(),
   },
-  handler: async (ctx, { adminId, ...rest }) => {
-    const admin = await ctx.db.get(adminId);
-    const canCreate = admin?.roles.includes("admin") || admin?.roles.includes("crafter");
+  handler: async (ctx, { sessionToken, ...rest }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    const canCreate = user.roles.includes("admin") || user.roles.includes("crafter");
     if (!canCreate) throw new Error("Not authorized");
     const id = await ctx.db.insert("tasks", {
       ...rest,
       status: "open",
-      createdBy: adminId,
-      createdByName: admin.username,
+      createdBy: user._id,
+      createdByName: user.username,
       acceptees: [],
     });
     await ctx.db.insert("archive", {
       type: "task_created",
-      userId: adminId,
-      userName: admin.username,
+      userId: user._id,
+      userName: user.username,
       details: { title: rest.title, type: rest.type, priority: rest.priority },
     });
     return id;
@@ -50,24 +51,23 @@ export const create = mutation({
 });
 
 export const accept = mutation({
-  args: { taskId: v.id("tasks"), userId: v.id("users") },
-  handler: async (ctx, { taskId, userId }) => {
+  args: { sessionToken: v.string(), taskId: v.id("tasks") },
+  handler: async (ctx, { sessionToken, taskId }) => {
+    const user = await requireSession(ctx.db, sessionToken);
     const task = await ctx.db.get(taskId);
     if (!task) throw new Error("Task not found");
     if (task.status !== "open") throw new Error("Task is not open");
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("User not found");
     const canSee = user.roles.some(r => task.targetRoles.includes(r)) || user.roles.includes("admin");
     if (!canSee) throw new Error("Not authorized for this task");
-    if (task.acceptees.some(a => a.userId === userId)) throw new Error("Already accepted");
+    if (task.acceptees.some(a => a.userId === user._id)) throw new Error("Already accepted");
     const activeSlots = task.acceptees.filter(a => a.status !== "completed").length;
     if (activeSlots >= task.slots) throw new Error("No slots available");
     await ctx.db.patch(taskId, {
-      acceptees: [...task.acceptees, { userId, userName: user.username, status: "accepted" }],
+      acceptees: [...task.acceptees, { userId: user._id, userName: user.username, status: "accepted" }],
     });
     await ctx.db.insert("archive", {
       type: "task_accepted",
-      userId,
+      userId: user._id,
       userName: user.username,
       details: { title: task.title },
     });
@@ -75,22 +75,21 @@ export const accept = mutation({
 });
 
 export const complete = mutation({
-  args: { taskId: v.id("tasks"), userId: v.id("users") },
-  handler: async (ctx, { taskId, userId }) => {
+  args: { sessionToken: v.string(), taskId: v.id("tasks") },
+  handler: async (ctx, { sessionToken, taskId }) => {
+    const user = await requireSession(ctx.db, sessionToken);
     const task = await ctx.db.get(taskId);
     if (!task) throw new Error("Task not found");
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("User not found");
     const isAdmin = user.roles.includes("admin");
-    let newAcceptees = task.acceptees.map(a =>
-      (a.userId === userId || isAdmin) ? { ...a, status: "completed" } : a
+    const newAcceptees = task.acceptees.map(a =>
+      a.userId === user._id ? { ...a, status: "completed" } : a
     );
     const allDone = newAcceptees.every(a => a.status === "completed");
-    const newStatus = (isAdmin || allDone) ? "completed" : task.status;
+    const newStatus = allDone ? "completed" : task.status;
     await ctx.db.patch(taskId, { acceptees: newAcceptees, status: newStatus });
     await ctx.db.insert("archive", {
       type: "task_completed",
-      userId,
+      userId: user._id,
       userName: user.username,
       details: { title: task.title },
     });
@@ -98,29 +97,30 @@ export const complete = mutation({
 });
 
 export const unaccept = mutation({
-  args: { taskId: v.id("tasks"), userId: v.id("users") },
-  handler: async (ctx, { taskId, userId }) => {
+  args: { sessionToken: v.string(), taskId: v.id("tasks") },
+  handler: async (ctx, { sessionToken, taskId }) => {
+    const user = await requireSession(ctx.db, sessionToken);
     const task = await ctx.db.get(taskId);
     if (!task) throw new Error("Task not found");
-    const newAcceptees = task.acceptees.filter(a => a.userId !== userId);
+    const newAcceptees = task.acceptees.filter(a => a.userId !== user._id);
     await ctx.db.patch(taskId, { acceptees: newAcceptees });
   },
 });
 
 export const cancel = mutation({
-  args: { taskId: v.id("tasks"), adminId: v.id("users") },
-  handler: async (ctx, { taskId, adminId }) => {
-    const admin = await ctx.db.get(adminId);
-    if (!admin?.roles.includes("admin")) throw new Error("Not authorized");
+  args: { sessionToken: v.string(), taskId: v.id("tasks") },
+  handler: async (ctx, { sessionToken, taskId }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    if (!user.roles.includes("admin")) throw new Error("Not authorized");
     await ctx.db.patch(taskId, { status: "cancelled" });
   },
 });
 
 export const remove = mutation({
-  args: { taskId: v.id("tasks"), adminId: v.id("users") },
-  handler: async (ctx, { taskId, adminId }) => {
-    const admin = await ctx.db.get(adminId);
-    if (!admin?.roles.includes("admin")) throw new Error("Not authorized");
+  args: { sessionToken: v.string(), taskId: v.id("tasks") },
+  handler: async (ctx, { sessionToken, taskId }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    if (!user.roles.includes("admin")) throw new Error("Not authorized");
     await ctx.db.delete(taskId);
   },
 });

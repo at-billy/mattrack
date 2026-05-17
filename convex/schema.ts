@@ -80,6 +80,12 @@ export default defineSchema({
     handedOutByName: v.optional(v.string()),
   }).index("by_status", ["status"]),
 
+  sessions: defineTable({
+    userId: v.id("users"),
+    token: v.string(),
+    createdAt: v.number(),
+  }).index("by_token", ["token"]),
+
   archive: defineTable({
     type: v.string(),
     userId: v.id("users"),

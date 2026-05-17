@@ -398,7 +398,7 @@ function itemCatLabel(id) {
 // ─── CONFIG / STATE ───────────────────────────────────────────────────────────
 let CONVEX_URL = localStorage.getItem('mattrack_url') || 'https://focused-snake-268.convex.cloud';
 let currentPage = 'overview';
-const state = { user: null, stock: [], craftItems: [], archive: [], allUsers: [], inventory: [], tasks: [] };
+const state = { user: null, sessionToken: null, stock: [], craftItems: [], archive: [], allUsers: [], inventory: [], tasks: [] };
 let tasksFilter = 'open';
 let tasksSearchActive = false;
 let tasksSearch = '';
@@ -422,6 +422,16 @@ async function convexQuery(path, args = {}) {
   if (d.status !== 'success') throw new Error(d.errorMessage || 'Query failed');
   return d.value;
 }
+function handleSessionError(e) {
+  if(e.message&&(e.message.includes('SESSION_INVALID')||e.message.includes('SESSION_EXPIRED'))) {
+    state.user=null; state.sessionToken=null;
+    localStorage.removeItem('mattrack_token');
+    showAuth(); toast('Session expired — please sign in again');
+    return true;
+  }
+  return false;
+}
+
 async function convexMutation(path, args = {}) {
   const r = await fetch(`${CONVEX_URL}/api/mutation`, {
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -636,9 +646,10 @@ async function doSignIn() {
   if(!username||!password){showErr('si-err','Fill in all fields');return;}
   try {
     const ph=await hashPwd(password);
-    const user=await convexQuery('users:authenticate',{username,passwordHash:ph});
-    if(!user){showErr('si-err','Invalid username or password');return;}
-    state.user=user; localStorage.setItem('mattrack_uid',user._id); showApp();
+    const res=await convexMutation('users:authenticate',{username,passwordHash:ph});
+    if(!res){showErr('si-err','Invalid username or password');return;}
+    state.user=res; state.sessionToken=res.token;
+    localStorage.setItem('mattrack_token',res.token); showApp();
   } catch(e){showErr('si-err',e.message);}
 }
 
@@ -664,15 +675,22 @@ async function doSignUp() {
   try {
     const ph=await hashPwd(password);
     const roles=[...(isProv?['provider']:[]),...(isCraft?['crafter_pending']:[]),...(isLogi?['logistics_pending']:[])];
-    const user=await convexMutation('users:signUp',{username,passwordHash:ph,roles});
-    await convexMutation('archive:addLog',{type:'user_joined',userId:user._id,userName:username,details:{roles}});
-    state.user=user; localStorage.setItem('mattrack_uid',user._id); showApp();
+    const res=await convexMutation('users:signUp',{username,passwordHash:ph,roles});
+    state.user=res; state.sessionToken=res.token;
+    localStorage.setItem('mattrack_token',res.token); showApp();
   } catch(e){
     showErr('su-err',e.message.includes('USERNAME_TAKEN')?'Username already taken':e.message);
   }
 }
 
-async function doLogout() { stopPolling(); state.user=null; localStorage.removeItem('mattrack_uid'); showAuth(); }
+async function doLogout() {
+  stopPolling();
+  if(state.sessionToken) {
+    try { await convexMutation('sessions:remove',{token:state.sessionToken}); } catch(e){}
+  }
+  state.user=null; state.sessionToken=null;
+  localStorage.removeItem('mattrack_token'); showAuth();
+}
 
 // ─── APP SHELL ────────────────────────────────────────────────────────────────
 function showApp() {
@@ -1067,8 +1085,7 @@ async function addMaterial() {
   try {
     if(!SC_CATALOG.find(m=>m.name===name))
       await convexMutation('materials:addToCatalog',{name,category,unit});
-    await convexMutation('materials:add',{materialName:name,category,unit,quality:qual,quantity:qty,system,location,ownerId:u._id,ownerName:u.username});
-    await convexMutation('archive:addLog',{type:'material_added',userId:u._id,userName:u.username,details:{materialName:name,category,unit,quality:qual,quantity:qty,system,location}});
+    await convexMutation('materials:add',{sessionToken:state.sessionToken,materialName:name,category,unit,quality:qual,quantity:qty,system,location});
     toast('Material added');
     togglePanel('add-mat-panel');
     await refreshAll();
@@ -1078,7 +1095,7 @@ async function addMaterial() {
 async function removeMaterial(id) {
   if(!confirm('Remove this material from stock?')) return;
   try {
-    await convexMutation('materials:remove',{id,userId:state.user._id});
+    await convexMutation('materials:remove',{id,sessionToken:state.sessionToken});
     toast('Removed');
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -1205,7 +1222,7 @@ async function addItem() {
   });
   if(!reqs.length){alert('Add at least one requirement');return;}
   try {
-    await convexMutation('craftItems:add',{name,requirements:reqs,category,userId:u._id,userName:u.username});
+    await convexMutation('craftItems:add',{sessionToken:state.sessionToken,name,requirements:reqs,category});
     toast('Item saved');
     const ep=document.getElementById('add-item-panel'); if(ep) ep.classList.remove('open');
     await refreshAll();
@@ -1336,7 +1353,7 @@ function pageCraft() {
 
 async function requestCrafter() {
   try {
-    await convexMutation('users:addRole',{userId:state.user._id,role:'crafter_pending'});
+    await convexMutation('users:addRole',{sessionToken:state.sessionToken,role:'crafter_pending'});
     if(!state.user.roles.includes('crafter_pending')) state.user.roles.push('crafter_pending');
     toast('Crafter access requested — awaiting admin approval');
     renderNav(); renderPage();
@@ -1559,17 +1576,16 @@ async function confirmCraft() {
   try {
     closeModal();
     await convexMutation('materials:executeCraft',{
-      batches,itemName:plan.item.name,avgQuality:plan.avgQuality,
-      userId:u._id,userName:u.username,materialsDetail,
+      sessionToken:state.sessionToken,
+      batches,itemName:plan.item.name,avgQuality:plan.avgQuality,materialsDetail,
     });
     await convexMutation('inventory:add',{
+      sessionToken:state.sessionToken,
       itemName:plan.item.name,
       itemId:plan.item._id,
       category:plan.item.category,
       quantity:qty,
       avgQuality:plan.avgQuality,
-      craftedBy:u._id,
-      craftedByName:u.username,
       system,
       location,
     });
@@ -1763,7 +1779,7 @@ function pageMember() {
 async function requestRole(role, label) {
   if(!confirm(`Request ${label} role? An admin will need to approve it.`)) return;
   try {
-    await convexMutation('users:requestRole',{userId:state.user._id,role});
+    await convexMutation('users:requestRole',{sessionToken:state.sessionToken,role});
     toast(`${label} role requested — pending admin approval`);
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -1840,7 +1856,7 @@ async function confirmMove(matId) {
     if(isNaN(partialQty)||partialQty<=0){alert('Enter a valid quantity');return;}
   }
   try {
-    await convexMutation('materials:move',{id:matId,userId:state.user._id,toSystem,toLocation,...(partialQty?{partialQty}:{})});
+    await convexMutation('materials:move',{id:matId,sessionToken:state.sessionToken,toSystem,toLocation,...(partialQty?{partialQty}:{})});
     closeModal();
     toast('Material moved');
     await refreshAll();
@@ -2013,11 +2029,10 @@ async function confirmHandOut(invId) {
   const u=state.user;
   try {
     await convexMutation('inventory:handOut',{
+      sessionToken:state.sessionToken,
       id:invId,
       quantity:qty,
       handedOutTo:recipient,
-      handedOutBy:u._id,
-      handedOutByName:u.username,
     });
     closeModal();
     toast(`Handed out to ${recipient}`);
@@ -2030,7 +2045,7 @@ async function confirmHandOut(invId) {
 async function adminDeleteInventory(id) {
   if(!confirm('Delete this inventory entry?')) return;
   try {
-    await convexMutation('inventory:remove',{id,adminId:state.user._id});
+    await convexMutation('inventory:remove',{id,sessionToken:state.sessionToken});
     toast('Entry deleted');
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2107,7 +2122,7 @@ async function adminApproveRole(targetId, targetName, pendingRole, fullRole) {
   const label=fullRole.charAt(0).toUpperCase()+fullRole.slice(1);
   if(!confirm(`Approve ${targetName} as ${label}?`)) return;
   try {
-    await convexMutation('users:approveRole',{adminId:state.user._id,targetUserId:targetId,pendingRole,fullRole});
+    await convexMutation('users:approveRole',{sessionToken:state.sessionToken,targetUserId:targetId,pendingRole,fullRole});
     toast(`${targetName} approved as ${label}`);
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2116,7 +2131,7 @@ async function adminApproveRole(targetId, targetName, pendingRole, fullRole) {
 async function adminDenyRole(targetId, targetName, pendingRole) {
   if(!confirm(`Deny ${targetName}'s ${pendingRole.replace('_pending','')} application?`)) return;
   try {
-    await convexMutation('users:denyRole',{adminId:state.user._id,targetUserId:targetId,pendingRole});
+    await convexMutation('users:denyRole',{sessionToken:state.sessionToken,targetUserId:targetId,pendingRole});
     toast(`${targetName}'s application denied`);
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2126,7 +2141,7 @@ async function adminDirectGrantRole(targetId, targetName, role) {
   const label = role.charAt(0).toUpperCase()+role.slice(1);
   if(!confirm(`Grant ${label} role to ${targetName}?`)) return;
   try {
-    await convexMutation('users:grantRole',{adminId:state.user._id,targetUserId:targetId,role});
+    await convexMutation('users:grantRole',{sessionToken:state.sessionToken,targetUserId:targetId,role});
     toast(`${label} role granted to ${targetName}`);
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2136,7 +2151,7 @@ async function adminRevokeRole(targetId, targetName, role) {
   const label = role.charAt(0).toUpperCase()+role.slice(1);
   if(!confirm(`Revoke ${label} role from ${targetName}?`)) return;
   try {
-    await convexMutation('users:revokeRole',{adminId:state.user._id,targetUserId:targetId,role});
+    await convexMutation('users:revokeRole',{sessionToken:state.sessionToken,targetUserId:targetId,role});
     toast(`${label} role revoked from ${targetName}`);
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2145,7 +2160,7 @@ async function adminRevokeRole(targetId, targetName, role) {
 async function adminGrantAdmin(targetId, targetName) {
   if(!confirm(`Grant admin role to ${targetName}? This cannot be undone.`)) return;
   try {
-    await convexMutation('users:grantAdmin',{adminId:state.user._id,targetUserId:targetId});
+    await convexMutation('users:grantAdmin',{sessionToken:state.sessionToken,targetUserId:targetId});
     toast(`Admin role granted to ${targetName}`);
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2154,7 +2169,7 @@ async function adminGrantAdmin(targetId, targetName) {
 async function adminDeleteItem(id, name) {
   if(!confirm(`Delete item "${name}"? This cannot be undone.`)) return;
   try {
-    await convexMutation('craftItems:remove',{id,adminId:state.user._id});
+    await convexMutation('craftItems:remove',{id,sessionToken:state.sessionToken});
     toast('Item deleted');
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2222,7 +2237,7 @@ async function confirmEditItem(itemId) {
   });
   if(!requirements.length){alert('Add at least one requirement');return;}
   try {
-    await convexMutation('craftItems:update',{id:itemId,adminId:state.user._id,name,category,requirements});
+    await convexMutation('craftItems:update',{id:itemId,sessionToken:state.sessionToken,name,category,requirements});
     toast('Item updated');
     closeModal();
     await refreshAll();
@@ -2232,7 +2247,7 @@ async function confirmEditItem(itemId) {
 async function adminDeleteLog(id) {
   if(!confirm('Delete this log entry?')) return;
   try {
-    await convexMutation('archive:removeLog',{id,adminId:state.user._id});
+    await convexMutation('archive:removeLog',{id,sessionToken:state.sessionToken});
     toast('Log entry deleted');
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2241,7 +2256,7 @@ async function adminDeleteLog(id) {
 async function adminRemoveMember(targetId, targetName) {
   if(!confirm(`Remove member "${targetName}"?\n\nThey will no longer be able to log in. This cannot be undone.`)) return;
   try {
-    await convexMutation('users:removeMember',{adminId:state.user._id,targetUserId:targetId});
+    await convexMutation('users:removeMember',{sessionToken:state.sessionToken,targetUserId:targetId});
     toast(`${targetName} has been removed`);
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2404,14 +2419,14 @@ function renderTasksList() {
 
 async function acceptTask(taskId) {
   try {
-    await convexMutation('tasks:accept',{taskId,userId:state.user._id});
+    await convexMutation('tasks:accept',{taskId,sessionToken:state.sessionToken});
     toast('Task accepted');
     await refreshAll();
   } catch(e){alert(e.message);}
 }
 async function completeTask(taskId) {
   try {
-    await convexMutation('tasks:complete',{taskId,userId:state.user._id});
+    await convexMutation('tasks:complete',{taskId,sessionToken:state.sessionToken});
     toast('Marked as done');
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2419,7 +2434,7 @@ async function completeTask(taskId) {
 async function unacceptTask(taskId) {
   if(!confirm('Withdraw from this task?')) return;
   try {
-    await convexMutation('tasks:unaccept',{taskId,userId:state.user._id});
+    await convexMutation('tasks:unaccept',{taskId,sessionToken:state.sessionToken});
     toast('Withdrawn');
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2427,7 +2442,7 @@ async function unacceptTask(taskId) {
 async function adminCompleteTask(taskId) {
   if(!confirm('Mark this entire task as completed?')) return;
   try {
-    await convexMutation('tasks:complete',{taskId,userId:state.user._id});
+    await convexMutation('tasks:complete',{taskId,sessionToken:state.sessionToken});
     toast('Task completed');
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2435,7 +2450,7 @@ async function adminCompleteTask(taskId) {
 async function adminCancelTask(taskId) {
   if(!confirm('Cancel this task?')) return;
   try {
-    await convexMutation('tasks:cancel',{taskId,adminId:state.user._id});
+    await convexMutation('tasks:cancel',{taskId,sessionToken:state.sessionToken});
     toast('Task cancelled');
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2443,7 +2458,7 @@ async function adminCancelTask(taskId) {
 async function adminDeleteTask(taskId) {
   if(!confirm('Delete this task permanently?')) return;
   try {
-    await convexMutation('tasks:remove',{taskId,adminId:state.user._id});
+    await convexMutation('tasks:remove',{taskId,sessionToken:state.sessionToken});
     toast('Task deleted');
     await refreshAll();
   } catch(e){alert(e.message);}
@@ -2562,7 +2577,7 @@ async function confirmCreateTask() {
   const slots=parseInt((document.getElementById('ct-slots')||{value:'1'}).value)||1;
   if(!title){alert('Enter a task title');return;}
   if(!targetRoles.length){alert('Select at least one target role');return;}
-  const args={adminId:state.user._id,title,type,priority,targetRoles,slots};
+  const args={sessionToken:state.sessionToken,title,type,priority,targetRoles,slots};
   // Type-specific fields
   if(type==='gather'){
     let matSel=(document.getElementById('ct-material')||{value:''}).value;
@@ -2609,7 +2624,7 @@ async function claimBootstrapAdmin() {
   if(hasAdmin()) { toast('An admin already exists.'); renderNav(); return; }
   if(!confirm(`Claim admin role for "${state.user.username}"? This is only possible while no admins exist.`)) return;
   try {
-    const updated=await convexMutation('users:claimBootstrapAdmin',{userId:state.user._id});
+    const updated=await convexMutation('users:claimBootstrapAdmin',{sessionToken:state.sessionToken});
     state.user=updated;
     toast('Admin role claimed!');
     await refreshAll();
@@ -2623,13 +2638,14 @@ async function claimBootstrapAdmin() {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 async function init(){
   if(!CONVEX_URL){showSetup();return;}
-  const uid=localStorage.getItem('mattrack_uid');
-  if(uid){
+  const token=localStorage.getItem('mattrack_token');
+  if(token){
     try{
-      const user=await convexQuery('users:getById',{userId:uid});
-      if(user){state.user=user;showApp();return;}
+      const user=await convexQuery('sessions:whoami',{token});
+      if(user){state.user=user;state.sessionToken=token;showApp();return;}
     }catch(e){/* fall through */}
   }
+  localStorage.removeItem('mattrack_token');
   showAuth();
 }
 init();

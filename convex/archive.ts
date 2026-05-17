@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireSession } from "./_helpers";
 
 export const getAll = query({
   args: {},
@@ -8,23 +9,11 @@ export const getAll = query({
   },
 });
 
-export const addLog = mutation({
-  args: {
-    type: v.string(),
-    userId: v.id("users"),
-    userName: v.string(),
-    details: v.any(),
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.insert("archive", args);
-  },
-});
-
 export const removeLog = mutation({
-  args: { id: v.id("archive"), adminId: v.id("users") },
-  handler: async (ctx, { id, adminId }) => {
-    const admin = await ctx.db.get(adminId);
-    if (!admin || !admin.roles.includes("admin")) throw new Error("Not authorized");
+  args: { sessionToken: v.string(), id: v.id("archive") },
+  handler: async (ctx, { sessionToken, id }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    if (!user.roles.includes("admin")) throw new Error("Not authorized");
     await ctx.db.delete(id);
   },
 });
