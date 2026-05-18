@@ -3630,23 +3630,25 @@ init();
 
 /* ── PRIMARY NAV SCROLL BEHAVIOUR ───────────────────────────────────
    Primary nav (MAT/TASK/CRAFT/LOG):
-     - Snaps to 10% sliver on scroll down past 40px (quick transition)
-     - Returns tracking actual scroll speed — no easing, raw position
+     - Snaps to 10% sliver on scroll down past 40px
+     - On scroll up: slides back in direct proportion to upward scroll
+       distance — no easing, items move at exactly scroll speed.
+       Fully back after RETURN_RANGE px of upscroll from wherever you are.
    Subnav:
      - Hides on scroll down past 40px
      - Only reappears when scrolled back near the top (scrollY < SUBNAV_THRESHOLD)
 ─────────────────────────────────────────────────────────────────── */
 (function(){
-  const TRANSLATE_CAP    = 0.9;         // hide 90%, always show bottom 10%
-  const HIDE_TRANSITION  = '0.18s ease'; // only used when snapping to hidden
-  const SUBNAV_THRESHOLD = 60;           // px — subnav returns only when close to top
+  const TRANSLATE_CAP    = 0.9;   // hide 90%, always show bottom 10%
+  const RETURN_RANGE     = 120;   // px of upscroll needed to fully return
+  const SUBNAV_THRESHOLD = 60;    // px — subnav returns only when close to top
 
-  let HEADER_H      = 0;
-  let MAX_TRANSLATE  = 0;
-  let primaryHidden  = false;
-  let subnavHidden   = false;
-  let hiddenAtY      = 0;               // scrollY when primary was hidden
-  let lastScrollY    = window.scrollY;
+  let HEADER_H     = 0;
+  let MAX_TRANSLATE = 0;
+  let primaryHidden = false;
+  let subnavHidden  = false;
+  let returnAnchor  = null;  // scrollY when upscroll started
+  let lastScrollY   = window.scrollY;
 
   function setup(updateMargin){
     const primary  = document.getElementById('nav-primary');
@@ -3669,7 +3671,7 @@ init();
     const primary = document.getElementById('nav-primary');
     if(!primary) return;
     primary.querySelectorAll('.nav-main').forEach(el => {
-      el.style.transition = withTransition ? `transform ${HIDE_TRANSITION}` : 'none';
+      el.style.transition = withTransition ? 'transform 0.18s ease' : 'none';
       el.style.transform  = el.classList.contains('active')
         ? 'translate(0,0)'
         : `translate(0,-${translateY}px)`;
@@ -3694,17 +3696,25 @@ init();
     lastScrollY     = scrollY;
 
     // Primary nav
-    if(goingDown && scrollY > 40 && !primaryHidden){
-      // Snap to hidden on scroll down
-      primaryHidden = true;
-      hiddenAtY     = scrollY;
-      setPrimaryTranslate(MAX_TRANSLATE, true);
-    } else if(primaryHidden && !goingDown){
-      // Return tracks scroll position directly — no easing
-      const progress   = hiddenAtY > 0 ? Math.max(0, Math.min(1, scrollY / hiddenAtY)) : 0;
-      const translateY = progress * MAX_TRANSLATE;
-      setPrimaryTranslate(translateY, false);
-      if(scrollY <= 0) primaryHidden = false;
+    if(!primaryHidden){
+      if(goingDown && scrollY > 40){
+        primaryHidden = true;
+        returnAnchor  = null;
+        setPrimaryTranslate(MAX_TRANSLATE, true); // snap hidden
+      }
+    } else {
+      if(goingDown){
+        // Scrolled back down while returning — reset anchor, snap hidden
+        returnAnchor = null;
+        setPrimaryTranslate(MAX_TRANSLATE, true);
+      } else {
+        // Scrolling up — track distance from where upscroll started
+        if(returnAnchor === null) returnAnchor = scrollY;
+        const upScrolled = returnAnchor - scrollY;
+        const progress   = Math.min(1, upScrolled / RETURN_RANGE);
+        setPrimaryTranslate((1 - progress) * MAX_TRANSLATE, false);
+        if(progress >= 1){ primaryHidden = false; returnAnchor = null; }
+      }
     }
 
     // Subnav: hide going down, only return when close to top
@@ -3723,8 +3733,9 @@ init();
   window._navScrollUpdate = function(){
     setup(false);
     // Re-apply current states without transition after re-render
-    const progress   = primaryHidden && hiddenAtY > 0 ? Math.max(0, Math.min(1, window.scrollY / hiddenAtY)) : (primaryHidden ? 1 : 0);
-    setPrimaryTranslate(progress * MAX_TRANSLATE, false);
+    const upScrolled = (returnAnchor !== null) ? (returnAnchor - window.scrollY) : 0;
+    const progress   = primaryHidden ? Math.min(1, upScrolled / RETURN_RANGE) : 1;
+    setPrimaryTranslate(primaryHidden ? (1 - progress) * MAX_TRANSLATE : 0, false);
     const sub = document.getElementById('nav-sub');
     if(sub){
       sub.style.transition    = 'none';
