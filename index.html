@@ -3266,8 +3266,13 @@ function renderExtNameRow(l, pkgs, name) {
     <span style="font-size:18px;font-weight:700;min-width:160px;">${esc(name)}</span>
     <span style="font-size:18px;color:var(--fg);">${entered.length?'Entered: '+entered.map(p=>'Pkg '+p.pkgId.replace('pkg_','')).join(', '):'Not entered yet'}</span>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
-      ${pkgs.filter(p=>!(p.interested||[]).some(i=>i.id==='ext_'+name)).map(p=>`<button class="btn-ghost btn-sm" onclick="doThrowHat('${esc(l._id)}','${esc(p.pkgId)}','${esc(name)}')">Enter Pkg ${p.pkgId.replace('pkg_','')}</button>`).join('')}
-      ${entered.map(p=>`<button class="btn-del" style="padding:3px 8px;" onclick="doRemoveHat('${esc(l._id)}','${esc(p.pkgId)}','ext_${esc(name)}')">Leave Pkg ${p.pkgId.replace('pkg_','')}</button>`).join('')}
+      ${pkgs.map(p=>{
+        const isIn=(p.interested||[]).some(i=>i.id==='ext_'+name);
+        const n=p.pkgId.replace('pkg_','');
+        return isIn
+          ? `<button class="btn-del" style="padding:3px 8px;" onclick="doRemoveHat('${esc(l._id)}','${esc(p.pkgId)}','ext_${esc(name)}')">Leave Pkg ${n}</button>`
+          : `<button class="btn-ghost btn-sm" onclick="doThrowHat('${esc(l._id)}','${esc(p.pkgId)}','${esc(name)}')">Enter Pkg ${n}</button>`;
+      }).join('')}
       <button class="btn-del" onclick="doRemoveExternalName('${esc(l._id)}','${esc(name)}')">Remove</button>
     </div>
   </div>`;
