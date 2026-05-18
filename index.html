@@ -2761,7 +2761,7 @@ function renderTasksList() {
           <div style="font-size:18px;color:var(--fg);margin-bottom:10px;line-height:1.5;">${taskTypeDesc(t)}</div>
           <div style="font-size:18px;color:var(--fg);display:flex;gap:16px;flex-wrap:wrap;">
             <span>${activeSlots}/${t.slots} slots</span>
-            <span>${t.acceptees.length?t.acceptees.map(a=>`<strong style="color:${a.status==='completed'?'var(--red)':'#000'};font-size:18px;">${esc(a.userName)}${a.status==='completed'?' ✓':''}</strong>`).join(', '):'no acceptees'}</span>
+            <span>${t.acceptees.length?t.acceptees.map(a=>`<strong style="color:${a.status==='completed'?'var(--red)':'#000'};font-size:18px;">${a.status==='completed'?`completed ${esc(a.userName)}`:esc(a.userName)}</strong>`).join(', '):'no acceptees'}</span>
             <span style="color:var(--fg);">by ${esc(t.createdByName)}</span>
           </div>
         </div>
