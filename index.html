@@ -3628,67 +3628,65 @@ async function init(){
 }
 init();
 
-/* ── OMA-STYLE FIXED NAV — exact spec implementation ─────────────── */
+/* ── PRIMARY NAV SCROLL BEHAVIOUR ───────────────────────────────────
+   Inactive nav items translate upward continuously with scroll.
+   Cap: HEADER_H * 0.9 — they never fully leave the header.
+   Return: same progress value in reverse — proportional, no snap.
+   Formula:
+     progress  = Math.min(scrollY / SCROLL_RANGE, 1)   // 0 → 1, hard-capped
+     translateY = progress * MAX_TRANSLATE              // 0 → HEADER_H * 0.9
+─────────────────────────────────────────────────────────────────── */
 (function(){
-  const SCROLL_RANGE  = 100;   // px of scroll to reach full translation
-  const TRANSLATE_CAP = 0.9;   // 90% up → bottom 10% sliver always visible
+  const SCROLL_RANGE  = 100;  // px of scroll to reach full translation
+  const TRANSLATE_CAP = 0.9;  // items slide up at most 90% of their height
 
-  /* nav-primary item height (vw-based, remeasured on resize) */
-  let ITEM_H      = 0;
+  let HEADER_H     = 0;
   let MAX_TRANSLATE = 0;
 
-  /* ── measure & lock the primary-nav height ──────────────────────── */
-  function setup(updateMargin=true){
+  /* measure the primary nav item height and lock the container */
+  function setup(updateMargin){
     const primary  = document.getElementById('nav-primary');
     const pageWrap = document.getElementById('page-wrap');
     const nav      = document.getElementById('nav');
     if(!primary || !pageWrap || !nav) return;
 
-    /* unlock height so we can remeasure after re-render */
-    primary.style.height = '';
+    primary.style.height = '';               // unlock before measuring
     const item = primary.querySelector('.nav-main');
-    ITEM_H       = item ? item.offsetHeight : 120;
-    MAX_TRANSLATE = ITEM_H * TRANSLATE_CAP;
+    HEADER_H      = item ? item.offsetHeight : 160;
+    MAX_TRANSLATE = HEADER_H * TRANSLATE_CAP; // e.g. 160 * 0.9 = 144 px
 
-    /* lock nav-primary to measured height so overflow:hidden clips correctly */
-    primary.style.height = ITEM_H + 'px';
+    primary.style.height = HEADER_H + 'px'; // lock — overflow:hidden clips the rest
 
-    /* push page content below the entire fixed nav — only on first load & resize
-       to avoid a vertical jump whenever subnav changes between sections */
     if(updateMargin || !pageWrap.style.marginTop){
       pageWrap.style.marginTop = nav.offsetHeight + 'px';
     }
   }
 
-  /* ── scroll handler (rAF-throttled, direction-aware) ────────────── */
-  let lastScrollY = window.scrollY;
-  let ticking     = false;
+  /* continuous, bidirectional scroll mapping — no early exits, no thresholds */
+  let ticking = false;
 
   function update(){
-    const scrollY  = window.scrollY;
-    const progress = Math.min(scrollY / SCROLL_RANGE, 1);
-    const translateY  = progress * MAX_TRANSLATE;
+    const progress   = Math.min(window.scrollY / SCROLL_RANGE, 1); // never > 1
+    const translateY = progress * MAX_TRANSLATE;                    // never > HEADER_H * 0.9
 
-    /* inactive .nav-main items: translate up, clip in overflow:hidden */
     const primary = document.getElementById('nav-primary');
     if(primary){
       primary.querySelectorAll('.nav-main').forEach(el => {
         el.style.transition = 'none';
         el.style.transform  = el.classList.contains('active')
-          ? 'translate(0px,0px)'
-          : `translate(0px,-${translateY}px)`;
+          ? 'translate(0,0)'
+          : `translate(0,-${translateY}px)`;
       });
     }
 
-    /* topbar + subnav: fade out (doesn't affect layout) */
+    /* topbar + subnav fade with the same progress */
     const topbar = document.getElementById('nav-topbar');
     const sub    = document.getElementById('nav-sub');
     const alpha  = 1 - progress;
     if(topbar){ topbar.style.opacity = alpha; topbar.style.pointerEvents = progress > 0.5 ? 'none' : ''; }
     if(sub)   { sub.style.opacity    = alpha; sub.style.pointerEvents    = progress > 0.5 ? 'none' : ''; }
 
-    lastScrollY = scrollY;
-    ticking     = false;
+    ticking = false;
   }
 
   window.addEventListener('scroll', () => {
@@ -3697,8 +3695,7 @@ init();
 
   window.addEventListener('resize', () => { setup(true); update(); }, { passive: true });
 
-  /* called by renderNav() after every re-render — re-syncs transforms but does NOT
-     recalculate margin-top (that would shift the page on every navigation) */
+  /* called by renderNav() after every re-render */
   window._navScrollUpdate = function(){ setup(false); update(); };
 })();
 </script>
