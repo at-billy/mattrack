@@ -3629,17 +3629,22 @@ async function init(){
 init();
 
 /* ── PRIMARY NAV SCROLL BEHAVIOUR ───────────────────────────────────
-   Direction-based: scroll down → inactive items retract to 10% sliver.
-   Scroll up (anywhere) → they return to full position immediately.
-   CSS transition handles the animation.
+   Primary nav (MAT/TASK/CRAFT/LOG):
+     - Hides (inactive items retract to 10% sliver) on scroll down past 40px
+     - Reappears on any upward scroll
+   Subnav:
+     - Hides on scroll down past 40px (same trigger)
+     - Only reappears when scrolled back near the top (scrollY < SUBNAV_THRESHOLD)
 ─────────────────────────────────────────────────────────────────── */
 (function(){
-  const TRANSLATE_CAP = 0.9;           // hide 90%, always show bottom 10%
-  const TRANSITION    = '0.22s ease';  // slide speed
+  const TRANSLATE_CAP     = 0.9;    // hide 90%, always show bottom 10%
+  const TRANSITION        = '0.22s ease';
+  const SUBNAV_THRESHOLD  = 60;     // px — subnav returns only when scrolled back this close to top
 
-  let HEADER_H     = 0;
+  let HEADER_H    = 0;
   let MAX_TRANSLATE = 0;
-  let isHidden      = false;
+  let primaryHidden = false;
+  let subnavHidden  = false;
   let lastScrollY   = window.scrollY;
 
   function setup(updateMargin){
@@ -3659,42 +3664,43 @@ init();
     }
   }
 
-  function applyState(hide){
-    if(isHidden === hide) return;
-    isHidden = hide;
-
+  function applyPrimary(hide){
+    if(primaryHidden === hide) return;
+    primaryHidden = hide;
     const primary = document.getElementById('nav-primary');
-    if(primary){
-      primary.querySelectorAll('.nav-main').forEach(el => {
-        el.style.transition = `transform ${TRANSITION}`;
-        el.style.transform  = (!hide || el.classList.contains('active'))
-          ? 'translate(0,0)'
-          : `translate(0,-${MAX_TRANSLATE}px)`;
-      });
-    }
-
-    const topbar = document.getElementById('nav-topbar');
-    const sub    = document.getElementById('nav-sub');
-    [topbar, sub].forEach(el => {
-      if(!el) return;
-      el.style.transition   = `opacity ${TRANSITION}`;
-      el.style.opacity      = hide ? '0' : '1';
-      el.style.pointerEvents = hide ? 'none' : '';
+    if(!primary) return;
+    primary.querySelectorAll('.nav-main').forEach(el => {
+      el.style.transition = `transform ${TRANSITION}`;
+      el.style.transform  = (!hide || el.classList.contains('active'))
+        ? 'translate(0,0)'
+        : `translate(0,-${MAX_TRANSLATE}px)`;
     });
+  }
+
+  function applySubnav(hide){
+    if(subnavHidden === hide) return;
+    subnavHidden = hide;
+    const sub = document.getElementById('nav-sub');
+    if(!sub) return;
+    sub.style.transition    = `opacity ${TRANSITION}`;
+    sub.style.opacity       = hide ? '0' : '1';
+    sub.style.pointerEvents = hide ? 'none' : '';
   }
 
   let ticking = false;
 
   function update(){
-    const scrollY    = window.scrollY;
-    const goingDown  = scrollY > lastScrollY;
-    lastScrollY      = scrollY;
+    const scrollY   = window.scrollY;
+    const goingDown = scrollY > lastScrollY;
+    lastScrollY     = scrollY;
 
-    if(goingDown && scrollY > 40){
-      applyState(true);   // hide on downward scroll (past small deadzone)
-    } else if(!goingDown){
-      applyState(false);  // show immediately on any upward scroll
-    }
+    // Primary: hide going down, show on any upward movement
+    if(goingDown && scrollY > 40) applyPrimary(true);
+    else if(!goingDown)            applyPrimary(false);
+
+    // Subnav: hide going down, only return when close to top
+    if(goingDown && scrollY > 40)         applySubnav(true);
+    else if(scrollY < SUBNAV_THRESHOLD)   applySubnav(false);
 
     ticking = false;
   }
@@ -3705,18 +3711,22 @@ init();
 
   window.addEventListener('resize', () => { setup(true); }, { passive: true });
 
-  /* called by renderNav() after every re-render — re-measure but keep current state */
   window._navScrollUpdate = function(){
     setup(false);
-    // re-apply current hidden state without transition so positions are in sync
     const primary = document.getElementById('nav-primary');
     if(primary){
       primary.querySelectorAll('.nav-main').forEach(el => {
         el.style.transition = 'none';
-        el.style.transform  = (!isHidden || el.classList.contains('active'))
+        el.style.transform  = (!primaryHidden || el.classList.contains('active'))
           ? 'translate(0,0)'
           : `translate(0,-${MAX_TRANSLATE}px)`;
       });
+    }
+    const sub = document.getElementById('nav-sub');
+    if(sub){
+      sub.style.transition    = 'none';
+      sub.style.opacity       = subnavHidden ? '0' : '1';
+      sub.style.pointerEvents = subnavHidden ? 'none' : '';
     }
   };
 })();
