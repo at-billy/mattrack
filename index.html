@@ -3004,7 +3004,7 @@ function pageLotteryList() {
 
     ${active.length?`
     <div style="margin-bottom:48px;">
-      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">Open for Hat Throws</div>
+      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">Open for Entry</div>
       ${active.map(l=>lotteryCardHtml(l)).join('')}
     </div>`:''}
 
@@ -3037,7 +3037,7 @@ function lotteryCardHtml(l) {
   const myHatCount=pkgs.filter(p=>(p.interested||[]).some(i=>i.id===u._id)).length;
   let statusBadge=l.status;
   let statusExtra='';
-  if(l.status==='open'&&myHatCount>0) statusExtra=`<span style="font-size:18px;font-weight:700;color:#22c55e;">(hat in ${myHatCount} package${myHatCount!==1?'s':''})</span>`;
+  if(l.status==='open'&&myHatCount>0) statusExtra=`<span style="font-size:18px;font-weight:700;color:#22c55e;">(entered in ${myHatCount} package${myHatCount!==1?'s':''})</span>`;
   if(l.status==='drawn'&&myWin) statusExtra=`<span style="font-size:18px;font-weight:700;color:#22c55e;">(you won Package ${myWin.pkgId.replace('pkg_','')})</span>`;
   return `<div class="lottery-card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;">
@@ -3090,7 +3090,7 @@ function pageLotteryDetail() {
         <div class="page-sub">${l.items.length} components &middot; total value ${totalVal.toLocaleString()} pts &middot; by ${esc(l.createdByName)}</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;">
-        ${admin&&l.status==='draft'&&pkgs.length?`<button class="btn btn-black" onclick="confirmOpenLottery('${esc(l._id)}')">Open for Hat Throws</button>`:''}
+        ${admin&&l.status==='draft'&&pkgs.length?`<button class="btn btn-black" onclick="confirmOpenLottery('${esc(l._id)}')">Open for Entry</button>`:''}
         ${admin&&l.status==='open'?`<button class="btn btn-black" onclick="doRunDraw('${esc(l._id)}')">Run Lottery Draw</button>`:''}
         ${admin&&(l.status==='drawn'||l.status==='open')?`<button class="btn btn-outline" onclick="confirmCloseLottery('${esc(l._id)}')">Close Lottery</button>`:''}
         ${admin&&l.status!=='draft'?`<button class="btn-ghost btn-sm" onclick="confirmBackToDraft('${esc(l._id)}')">Back to Draft</button>`:''}
@@ -3235,9 +3235,9 @@ function renderLotteryOpenDetail(l) {
 
   return `
     <div style="margin-bottom:24px;padding:20px;background:var(--bg2);border-left:4px solid #22c55e;">
-      <div style="font-size:18px;font-weight:700;">Lottery is open for hat throws.</div>
-      <div style="margin-top:6px;font-size:18px;">Throw your hat into any packages you want. Admin will run the draw when ready.</div>
-      <div style="margin-top:6px;font-size:18px;color:var(--fg);">${totalHats} hat${totalHats!==1?'s':''} thrown across ${pkgs.length} packages.</div>
+      <div style="font-size:18px;font-weight:700;">Lottery is open for entries.</div>
+      <div style="margin-top:6px;font-size:18px;">Enter the packages you want. Admin will run the draw when ready.</div>
+      <div style="margin-top:6px;font-size:18px;color:var(--fg);">${totalHats} entr${totalHats!==1?'ies':'y'} across ${pkgs.length} packages.</div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:40px;">
       ${pkgs.map(pkg=>renderPackageCard(pkg,l,false)).join('')}
@@ -3256,10 +3256,10 @@ function renderLotteryOpenDetail(l) {
           const hatPkgs=pkgs.filter(p=>(p.interested||[]).some(i=>i.id==='ext_'+name));
           return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-m);flex-wrap:wrap;">
             <span style="font-size:18px;font-weight:700;min-width:160px;">${esc(name)}</span>
-            <span style="font-size:18px;color:var(--fg);">${hatPkgs.length?'Hat in: '+hatPkgs.map(p=>'Pkg '+p.pkgId.replace('pkg_','')).join(', '):'No hats thrown yet'}</span>
+            <span style="font-size:18px;color:var(--fg);">${hatPkgs.length?'Entered: '+hatPkgs.map(p=>'Pkg '+p.pkgId.replace('pkg_','')).join(', '):'Not entered yet'}</span>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
-              ${pkgs.filter(p=>!(p.interested||[]).some(i=>i.id==='ext_'+name)).map(p=>`<button class="btn-ghost btn-sm" onclick="doThrowHat('${esc(l._id)}','${esc(p.pkgId)}','${esc(name)}')">+Pkg ${p.pkgId.replace('pkg_','')}</button>`).join('')}
-              ${hatPkgs.map(p=>`<button class="btn-del" style="padding:3px 8px;" onclick="doRemoveHat('${esc(l._id)}','${esc(p.pkgId)}','ext_${esc(name)}')">-Pkg ${p.pkgId.replace('pkg_','')}</button>`).join('')}
+              ${pkgs.filter(p=>!(p.interested||[]).some(i=>i.id==='ext_'+name)).map(p=>`<button class="btn-ghost btn-sm" onclick="doThrowHat('${esc(l._id)}','${esc(p.pkgId)}','${esc(name)}')">Enter Pkg ${p.pkgId.replace('pkg_','')}</button>`).join('')}
+              ${hatPkgs.map(p=>`<button class="btn-del" style="padding:3px 8px;" onclick="doRemoveHat('${esc(l._id)}','${esc(p.pkgId)}','ext_${esc(name)}')">Leave Pkg ${p.pkgId.replace('pkg_','')}</button>`).join('')}
               <button class="btn-del" onclick="doRemoveExternalName('${esc(l._id)}','${esc(name)}')">Remove</button>
             </div>
           </div>`;
@@ -3271,7 +3271,7 @@ function renderLotteryOpenDetail(l) {
 function renderLotteryDrawnDetail(l) {
   const pkgs=(l.packages||[]).slice().sort((a,b)=>b.totalValue-a.totalValue);
   const winnerCount=pkgs.filter(p=>p.winner).length;
-  // Collect all participants who threw a hat but didn't win
+  // Collect all participants who entered but didn't win
   const allParticipantIds=new Set();
   pkgs.forEach(p=>(p.interested||[]).forEach(i=>allParticipantIds.add(i.id)));
   const winnerIds=new Set(pkgs.filter(p=>p.winner).map(p=>p.winner.id));
@@ -3341,8 +3341,8 @@ function renderPackageCard(pkg, lottery, readOnly) {
     <div style="margin-top:8px;">
       <div style="font-size:18px;margin-bottom:8px;color:var(--fg);">${interested.length} interested${interested.length?': '+interested.map(i=>esc(i.name)).join(', '):''}.</div>
       ${iHaveHat
-        ?`<button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;" onclick="doRemoveHat('${esc(lottery._id)}','${esc(pkg.pkgId)}','${u._id}')">Remove Hat</button>`
-        :`<button class="btn btn-black" style="width:100%;justify-content:center;" onclick="doThrowHat('${esc(lottery._id)}','${esc(pkg.pkgId)}')">Throw Hat</button>`}
+        ?`<button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;" onclick="doRemoveHat('${esc(lottery._id)}','${esc(pkg.pkgId)}','${u._id}')">Leave</button>`
+        :`<button class="btn btn-black" style="width:100%;justify-content:center;" onclick="doThrowHat('${esc(lottery._id)}','${esc(pkg.pkgId)}')">Enter</button>`}
     </div>`:''}
     ${isDrawn&&interested.length?`
     <div style="margin-top:8px;font-size:18px;color:var(--fg);">
@@ -3449,7 +3449,7 @@ async function doGeneratePackages(lotteryId) {
 }
 
 async function confirmOpenLottery(lotteryId) {
-  if(!confirm('Open this lottery for hat throws? Members will be able to express interest in packages.')) return;
+  if(!confirm('Open this lottery for entry? Members will be able to register interest in packages.')) return;
   try {
     await convexMutation('lotteries:openLottery',{sessionToken:state.sessionToken,lotteryId});
     toast('Lottery opened');
@@ -3469,7 +3469,7 @@ async function confirmCloseLottery(lotteryId) {
 }
 
 async function confirmBackToDraft(lotteryId) {
-  if(!confirm('Revert to draft? This will clear all hat throws, winners, and external participants.')) return;
+  if(!confirm('Revert to draft? This will clear all entries, winners, and external participants.')) return;
   try {
     await convexMutation('lotteries:backToDraft',{sessionToken:state.sessionToken,lotteryId});
     toast('Reverted to draft');
