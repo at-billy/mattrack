@@ -1078,13 +1078,11 @@ function renderNav() {
     sub=`<div class="nav-sub-item" style="cursor:default;">Welcome back, ${esc(u.username)}</div><div class="nav-sub-item" onclick="toggleDark()">${dark?'DAYTIME':'NIGHTTIME'}</div>`;
   } else if(main==='task'){
     const u2=state.user; const admin2=isAdmin(u2);
-    const oc=state.tasks.filter(t=>t.status==='open'&&t.acceptees.filter(a=>a.status!=='completed').length<t.slots).length;
-    const dc=state.tasks.filter(t=>t.status==='completed').length;
-    const ac=state.tasks.filter(t=>t.status==='open'&&t.acceptees.some(a=>a.status!=='completed')&&(admin2||t.acceptees.some(a=>a.userId===u2._id&&a.status!=='completed'))).length;
+    const oc=state.tasks.filter(t=>t.status==='open').length;
     sub=`
-      <div class="nav-sub-item${tasksFilter==='open'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('open')">Open${oc?` (${oc})`:''}</div>
-      <div class="nav-sub-item${tasksFilter==='accepted'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('accepted')">Accepted${ac?` (${ac})`:''}</div>
-      <div class="nav-sub-item${tasksFilter==='completed'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('completed')">Completed${dc?` (${dc})`:''}</div>
+      <div class="nav-sub-item${tasksFilter==='open'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('open')">Open (${oc})</div>
+      <div class="nav-sub-item${tasksFilter==='accepted'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('accepted')">Accepted</div>
+      <div class="nav-sub-item${tasksFilter==='completed'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('completed')">Completed</div>
       <div class="nav-sub-item${tasksSearchActive?' active':''}" onclick="toggleTaskSearch()">Search</div>`;
   } else if(main==='craft'){
     sub=`
