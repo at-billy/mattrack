@@ -884,12 +884,13 @@ function parseComponentsCatalog() {
 }
 const COMPONENTS_CATALOG = parseComponentsCatalog();
 
-// Value = base(type) + size multiplier + grade multiplier
+// Value = base(type) + size + tier + class multipliers
 function compDefaultValue(comp) {
-  const base     = {COOL:10, POWR:15, QDRV:18, SHLD:15}[comp.type] || 10;
-  const sizeMult = {1:10, 2:15, 3:20}[comp.size] || 10;
-  const gradeMult= {A:25, B:15, C:10}[comp.tier] || 10;
-  return base + sizeMult + gradeMult;
+  const base      = {COOL:10, POWR:15, QDRV:18, SHLD:15}[comp.type] || 10;
+  const sizeMult  = {1:10, 2:15, 3:20}[comp.size] || 10;
+  const tierMult  = {A:25, B:15, C:10}[comp.tier] || 10;
+  const classMult = {Mil:20, Sth:15, Civ:10, Ind:10, Cmp:10}[comp.grade] || 10;
+  return base + sizeMult + tierMult + classMult;
 }
 
 // ─── CONFIG / STATE ───────────────────────────────────────────────────────────
@@ -913,6 +914,7 @@ let lotteryDetailId = null; // id of lottery being viewed
 let lotteryCompTypeFilter = 'all'; // 'all' | 'COOL' | 'POWR' | 'QDRV' | 'SHLD'
 let lotteryCompSizeFilter = 'all'; // 'all' | '1' | '2' | '3'
 let lotteryCompGradeFilter = 'all'; // 'all' | 'A' | 'B' | 'C'
+let lotteryCompClassFilter = 'all'; // 'all' | 'Mil' | 'Civ' | 'Ind' | 'Cmp' | 'Sth'
 let lotteryCompSearch = ''; // search in add-item UI
 
 // ─── CONVEX HTTP HELPERS ──────────────────────────────────────────────────────
@@ -3212,6 +3214,7 @@ function openLotteryDetail(id) {
   lotteryCompTypeFilter='all';
   lotteryCompSizeFilter='all';
   lotteryCompGradeFilter='all';
+  lotteryCompClassFilter='all';
   lotteryCompSearch='';
   renderPage();
 }
@@ -3307,17 +3310,21 @@ function renderLotteryDraftDetail(l) {
 
         <!-- Size + Grade sub-filters (only when a type is selected) -->
         ${lotteryCompTypeFilter!=='all'?`
-        <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
-          <div style="display:flex;gap:4px;align-items:center;">
-            <span style="font-size:18px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-right:4px;">Size:</span>
-            ${['all','1','2','3'].map(s=>`<button class="btn-ghost btn-sm${lotteryCompSizeFilter===s?' active':''}"
-              onclick="setLotCompSize('${esc(l._id)}','${s}')">${s==='all'?'All':'S'+s}</button>`).join('')}
-          </div>
-          <div style="display:flex;gap:4px;align-items:center;">
-            <span style="font-size:18px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-right:4px;">Grade:</span>
-            ${['all','A','B','C'].map(g=>`<button class="btn-ghost btn-sm${lotteryCompGradeFilter===g?' active':''}"
-              onclick="setLotCompGrade('${esc(l._id)}','${g}')">${g==='all'?'All':g}</button>`).join('')}
-          </div>
+        <div style="display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
+          <span style="font-size:18px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;min-width:42px;">Size:</span>
+          ${['all','1','2','3'].map(s=>`<button class="btn-ghost btn-sm${lotteryCompSizeFilter===s?' active':''}"
+            onclick="setLotCompSize('${esc(l._id)}','${s}')">${s==='all'?'All':'S'+s}</button>`).join('')}
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
+          <span style="font-size:18px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;min-width:42px;">Tier:</span>
+          ${['all','A','B','C'].map(g=>`<button class="btn-ghost btn-sm${lotteryCompGradeFilter===g?' active':''}"
+            onclick="setLotCompGrade('${esc(l._id)}','${g}')">${g==='all'?'All':g}</button>`).join('')}
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+          <span style="font-size:18px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;min-width:42px;">Class:</span>
+          ${[{id:'all',label:'All'},{id:'Mil',label:'Military'},{id:'Civ',label:'Civilian'},{id:'Ind',label:'Industrial'},{id:'Cmp',label:'Competition'},{id:'Sth',label:'Stealth'}]
+            .map(c=>`<button class="btn-ghost btn-sm${lotteryCompClassFilter===c.id?' active':''}"
+              onclick="setLotCompClass('${esc(l._id)}','${c.id}')">${c.label}</button>`).join('')}
         </div>`:``}
 
         <!-- Search -->
@@ -3346,6 +3353,7 @@ function renderCompCatalogList(lotteryId) {
   if(lotteryCompTypeFilter!=='all') filtered=filtered.filter(c=>c.type===lotteryCompTypeFilter);
   if(lotteryCompSizeFilter!=='all') filtered=filtered.filter(c=>c.size===parseInt(lotteryCompSizeFilter));
   if(lotteryCompGradeFilter!=='all') filtered=filtered.filter(c=>c.tier===lotteryCompGradeFilter);
+  if(lotteryCompClassFilter!=='all') filtered=filtered.filter(c=>c.grade===lotteryCompClassFilter);
   if(lotteryCompSearch.trim()) {
     const q=lotteryCompSearch.trim().toLowerCase();
     filtered=filtered.filter(c=>c.name.toLowerCase().includes(q)||c.gradeName.toLowerCase().includes(q));
@@ -3430,6 +3438,7 @@ function setLotCompType(lotteryId, t) {
   // Reset sub-filters when type changes
   lotteryCompSizeFilter='all';
   lotteryCompGradeFilter='all';
+  lotteryCompClassFilter='all';
   lotteryCompSearch='';
   // Re-render the right panel only by re-rendering the full detail page
   const pw=document.getElementById('page-wrap');
@@ -3442,6 +3451,11 @@ function setLotCompSize(lotteryId, s) {
 }
 function setLotCompGrade(lotteryId, g) {
   lotteryCompGradeFilter=g;
+  const pw=document.getElementById('page-wrap');
+  if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+}
+function setLotCompClass(lotteryId, c) {
+  lotteryCompClassFilter=c;
   const pw=document.getElementById('page-wrap');
   if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
 }
