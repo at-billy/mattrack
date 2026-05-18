@@ -18,8 +18,8 @@ body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;col
 
 /* ── PRIMARY NAV ─────────────────────────────────────────────────── */
 /* overflow:hidden clips items as they translate up (OMA mechanic)   */
-#nav-primary{display:flex;justify-content:space-between;align-items:flex-end;padding:10px 40px 0;overflow:hidden;background:#fff;}
-.nav-main{font-size:clamp(40px,8vw,220px);font-weight:900;letter-spacing:-0.03em;line-height:1;padding-bottom:10px;cursor:pointer;color:#000;text-transform:uppercase;user-select:none;will-change:transform;transition:opacity .15s;}
+#nav-primary{display:flex;justify-content:space-between;align-items:stretch;padding:0 40px;overflow:hidden;}
+.nav-main{height:100%;display:flex;align-items:flex-end;font-size:clamp(40px,8vw,220px);font-weight:900;letter-spacing:-0.03em;line-height:1;padding-bottom:10px;cursor:pointer;color:#000;text-transform:uppercase;user-select:none;will-change:transform;transition:opacity .15s;}
 .nav-main:hover{opacity:.45;}
 .nav-main.outline{-webkit-text-stroke:2px #000;color:transparent;}
 
@@ -216,7 +216,6 @@ tbody tr:hover{background:#f9f9f9;}
 /* ── DARK MODE ───────────────────────────────────────────────────── */
 body.dark{background:#111;color:#e0e0e0;--fg:#e0e0e0;--bg:#111;--bg2:#1a1a1a;--border:#e0e0e0;--border-l:#333;--border-m:#2a2a2a;}
 body.dark #nav-topbar{background:#111;border-bottom-color:#333;}
-body.dark #nav-primary{background:#111;}
 body.dark .nav-main{color:#e0e0e0;}
 body.dark .nav-main.outline{-webkit-text-stroke:2px #e0e0e0;color:transparent;}
 body.dark .nav-sub-item{color:#e0e0e0;}
@@ -3630,18 +3629,18 @@ async function init(){
 init();
 
 /* ── PRIMARY NAV SCROLL BEHAVIOUR ───────────────────────────────────
-   Direction-based: scroll down → inactive items retract to 10% sliver.
-   Scroll up (anywhere) → they return to full position immediately.
-   CSS transition handles the animation.
+   Position-based (OMA pattern): inactive items translate up proportional
+   to scroll position. Active item stays fixed. Scroll back up → items
+   proportionally return. Container overflow:hidden clips them; items
+   fill full container height with text at bottom, so the sliver that
+   peeks through shows the base of each word.
 ─────────────────────────────────────────────────────────────────── */
 (function(){
-  const TRANSLATE_CAP = 0.9;           // hide 90%, always show bottom 10%
-  const TRANSITION    = '0.22s ease';  // slide speed
+  const SCROLL_RANGE  = 120;   // px of scroll to reach full retract
+  const TRANSLATE_CAP = 0.9;   // hide 90 %, bottom 10 % always peeks
 
-  let HEADER_H     = 0;
+  let HEADER_H    = 0;
   let MAX_TRANSLATE = 0;
-  let isHidden      = false;
-  let lastScrollY   = window.scrollY;
 
   function setup(updateMargin){
     const primary  = document.getElementById('nav-primary');
@@ -3649,10 +3648,13 @@ init();
     const nav      = document.getElementById('nav');
     if(!primary || !pageWrap || !nav) return;
 
+    // Measure natural text height with no forced height on container
     primary.style.height = '';
     const item = primary.querySelector('.nav-main');
     HEADER_H      = item ? item.offsetHeight : 160;
     MAX_TRANSLATE = HEADER_H * TRANSLATE_CAP;
+
+    // Lock the container — overflow:hidden clips translated items
     primary.style.height = HEADER_H + 'px';
 
     if(updateMargin || !pageWrap.style.marginTop){
@@ -3660,57 +3662,37 @@ init();
     }
   }
 
-  function applyState(hide){
-    if(isHidden === hide) return;
-    isHidden = hide;
+  function update(){
+    const progress   = Math.min(window.scrollY / SCROLL_RANGE, 1);
+    const translateY = progress * MAX_TRANSLATE;
 
-    // Only the inactive primary nav items move — subnav stays put always
     const primary = document.getElementById('nav-primary');
-    if(primary){
-      primary.querySelectorAll('.nav-main').forEach(el => {
-        el.style.transition = `transform ${TRANSITION}`;
-        el.style.transform  = (!hide || el.classList.contains('active'))
-          ? 'translate(0,0)'
-          : `translate(0,-${MAX_TRANSLATE}px)`;
-      });
-    }
+    if(!primary) return;
+
+    primary.querySelectorAll('.nav-main').forEach(el => {
+      el.style.transition = 'none';
+      el.style.transform  = el.classList.contains('active')
+        ? 'translate(0,0)'
+        : `translate(0,-${translateY}px)`;
+    });
   }
 
   let ticking = false;
-
-  function update(){
-    const scrollY    = window.scrollY;
-    const goingDown  = scrollY > lastScrollY;
-    lastScrollY      = scrollY;
-
-    if(goingDown && scrollY > 40){
-      applyState(true);   // hide on downward scroll (past small deadzone)
-    } else if(!goingDown){
-      applyState(false);  // show immediately on any upward scroll
-    }
-
-    ticking = false;
-  }
-
   window.addEventListener('scroll', () => {
     if(!ticking){ requestAnimationFrame(update); ticking = true; }
   }, { passive: true });
 
-  window.addEventListener('resize', () => { setup(true); }, { passive: true });
+  window.addEventListener('resize', () => { setup(true); update(); }, { passive: true });
 
-  /* called by renderNav() after every re-render — re-measure, keep current hidden state */
+  /* called by renderNav() after every re-render — re-measure and re-apply */
   window._navScrollUpdate = function(){
     setup(false);
-    const primary = document.getElementById('nav-primary');
-    if(primary){
-      primary.querySelectorAll('.nav-main').forEach(el => {
-        el.style.transition = 'none';
-        el.style.transform  = (!isHidden || el.classList.contains('active'))
-          ? 'translate(0,0)'
-          : `translate(0,-${MAX_TRANSLATE}px)`;
-      });
-    }
+    update();
   };
+
+  // Initial setup (nav already rendered by init() above)
+  setup(true);
+  update();
 })();
 </script>
 </body>
