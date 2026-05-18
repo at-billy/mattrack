@@ -18,7 +18,7 @@ body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;col
 
 /* ── PRIMARY NAV ─────────────────────────────────────────────────── */
 /* overflow:hidden clips items as they translate up (OMA mechanic)   */
-#nav-primary{display:flex;justify-content:space-between;align-items:flex-end;padding:10px 40px 0;overflow:hidden;}
+#nav-primary{display:flex;justify-content:space-between;align-items:flex-end;padding:10px 40px 0;overflow:hidden;background:#fff;}
 .nav-main{font-size:clamp(40px,8vw,220px);font-weight:900;letter-spacing:-0.03em;line-height:1;padding-bottom:10px;cursor:pointer;color:#000;text-transform:uppercase;user-select:none;will-change:transform;transition:opacity .15s;}
 .nav-main:hover{opacity:.45;}
 .nav-main.outline{-webkit-text-stroke:2px #000;color:transparent;}
@@ -216,6 +216,7 @@ tbody tr:hover{background:#f9f9f9;}
 /* ── DARK MODE ───────────────────────────────────────────────────── */
 body.dark{background:#111;color:#e0e0e0;--fg:#e0e0e0;--bg:#111;--bg2:#1a1a1a;--border:#e0e0e0;--border-l:#333;--border-m:#2a2a2a;}
 body.dark #nav-topbar{background:#111;border-bottom-color:#333;}
+body.dark #nav-primary{background:#111;}
 body.dark .nav-main{color:#e0e0e0;}
 body.dark .nav-main.outline{-webkit-text-stroke:2px #e0e0e0;color:transparent;}
 body.dark .nav-sub-item{color:#e0e0e0;}
@@ -3663,6 +3664,7 @@ init();
     if(isHidden === hide) return;
     isHidden = hide;
 
+    // Only the inactive primary nav items move — subnav stays put always
     const primary = document.getElementById('nav-primary');
     if(primary){
       primary.querySelectorAll('.nav-main').forEach(el => {
@@ -3672,15 +3674,6 @@ init();
           : `translate(0,-${MAX_TRANSLATE}px)`;
       });
     }
-
-    const topbar = document.getElementById('nav-topbar');
-    const sub    = document.getElementById('nav-sub');
-    [topbar, sub].forEach(el => {
-      if(!el) return;
-      el.style.transition   = `opacity ${TRANSITION}`;
-      el.style.opacity      = hide ? '0' : '1';
-      el.style.pointerEvents = hide ? 'none' : '';
-    });
   }
 
   let ticking = false;
@@ -3705,10 +3698,9 @@ init();
 
   window.addEventListener('resize', () => { setup(true); }, { passive: true });
 
-  /* called by renderNav() after every re-render — re-measure but keep current state */
+  /* called by renderNav() after every re-render — re-measure, keep current hidden state */
   window._navScrollUpdate = function(){
     setup(false);
-    // re-apply current hidden state without transition so positions are in sync
     const primary = document.getElementById('nav-primary');
     if(primary){
       primary.querySelectorAll('.nav-main').forEach(el => {
