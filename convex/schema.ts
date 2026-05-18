@@ -86,6 +86,39 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_token", ["token"]),
 
+  lotteries: defineTable({
+    title: v.string(),
+    status: v.string(), // "draft" | "open" | "closed"
+    createdBy: v.id("users"),
+    createdByName: v.string(),
+    items: v.array(v.object({
+      id: v.string(),
+      name: v.string(),
+      type: v.string(),
+      typeName: v.string(),
+      grade: v.string(),
+      size: v.number(),
+      tier: v.string(),
+      value: v.number(),
+    })),
+    packages: v.optional(v.array(v.object({
+      pkgId: v.string(),
+      totalValue: v.number(),
+      items: v.array(v.object({
+        id: v.string(),
+        name: v.string(),
+        type: v.string(),
+        typeName: v.string(),
+        grade: v.string(),
+        size: v.number(),
+        tier: v.string(),
+        value: v.number(),
+      })),
+      pickedBy: v.optional(v.id("users")),
+      pickedByName: v.optional(v.string()),
+    }))),
+  }).index("by_status", ["status"]),
+
   archive: defineTable({
     type: v.string(),
     userId: v.id("users"),
