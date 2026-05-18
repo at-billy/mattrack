@@ -370,8 +370,15 @@ export const runDraw = mutation({
 
     const packages = [...(lottery.packages ?? [])].map(p => ({ ...p, interested: [...(p.interested ?? [])] }));
 
-    // Sort packages by totalValue descending (most valuable first)
-    packages.sort((a, b) => b.totalValue - a.totalValue);
+    // Sort packages: most entries first; tiebreak by highest single item value
+    packages.sort((a, b) => {
+      const entriesA = (a.interested ?? []).length;
+      const entriesB = (b.interested ?? []).length;
+      if (entriesB !== entriesA) return entriesB - entriesA;
+      const topA = Math.max(0, ...(a.items ?? []).map((i: any) => i.value));
+      const topB = Math.max(0, ...(b.items ?? []).map((i: any) => i.value));
+      return topB - topA;
+    });
 
     const winners = new Set<string>();
 
