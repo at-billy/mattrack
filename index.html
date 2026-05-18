@@ -3630,22 +3630,23 @@ init();
 
 /* ── PRIMARY NAV SCROLL BEHAVIOUR ───────────────────────────────────
    Primary nav (MAT/TASK/CRAFT/LOG):
-     - Hides (inactive items retract to 10% sliver) on scroll down past 40px
-     - Reappears on any upward scroll
+     - Snaps to 10% sliver on scroll down past 40px (quick transition)
+     - Returns tracking actual scroll speed — no easing, raw position
    Subnav:
-     - Hides on scroll down past 40px (same trigger)
+     - Hides on scroll down past 40px
      - Only reappears when scrolled back near the top (scrollY < SUBNAV_THRESHOLD)
 ─────────────────────────────────────────────────────────────────── */
 (function(){
-  const TRANSLATE_CAP     = 0.9;    // hide 90%, always show bottom 10%
-  const TRANSITION        = '0.22s ease';
-  const SUBNAV_THRESHOLD  = 60;     // px — subnav returns only when scrolled back this close to top
+  const TRANSLATE_CAP    = 0.9;         // hide 90%, always show bottom 10%
+  const HIDE_TRANSITION  = '0.18s ease'; // only used when snapping to hidden
+  const SUBNAV_THRESHOLD = 60;           // px — subnav returns only when close to top
 
-  let HEADER_H    = 0;
-  let MAX_TRANSLATE = 0;
-  let primaryHidden = false;
-  let subnavHidden  = false;
-  let lastScrollY   = window.scrollY;
+  let HEADER_H      = 0;
+  let MAX_TRANSLATE  = 0;
+  let primaryHidden  = false;
+  let subnavHidden   = false;
+  let hiddenAtY      = 0;               // scrollY when primary was hidden
+  let lastScrollY    = window.scrollY;
 
   function setup(updateMargin){
     const primary  = document.getElementById('nav-primary');
@@ -3664,16 +3665,14 @@ init();
     }
   }
 
-  function applyPrimary(hide){
-    if(primaryHidden === hide) return;
-    primaryHidden = hide;
+  function setPrimaryTranslate(translateY, withTransition){
     const primary = document.getElementById('nav-primary');
     if(!primary) return;
     primary.querySelectorAll('.nav-main').forEach(el => {
-      el.style.transition = `transform ${TRANSITION}`;
-      el.style.transform  = (!hide || el.classList.contains('active'))
+      el.style.transition = withTransition ? `transform ${HIDE_TRANSITION}` : 'none';
+      el.style.transform  = el.classList.contains('active')
         ? 'translate(0,0)'
-        : `translate(0,-${MAX_TRANSLATE}px)`;
+        : `translate(0,-${translateY}px)`;
     });
   }
 
@@ -3682,7 +3681,7 @@ init();
     subnavHidden = hide;
     const sub = document.getElementById('nav-sub');
     if(!sub) return;
-    sub.style.transition    = `opacity ${TRANSITION}`;
+    sub.style.transition    = 'opacity 0.18s ease';
     sub.style.opacity       = hide ? '0' : '1';
     sub.style.pointerEvents = hide ? 'none' : '';
   }
@@ -3694,13 +3693,23 @@ init();
     const goingDown = scrollY > lastScrollY;
     lastScrollY     = scrollY;
 
-    // Primary: hide going down, show on any upward movement
-    if(goingDown && scrollY > 40) applyPrimary(true);
-    else if(!goingDown)            applyPrimary(false);
+    // Primary nav
+    if(goingDown && scrollY > 40 && !primaryHidden){
+      // Snap to hidden on scroll down
+      primaryHidden = true;
+      hiddenAtY     = scrollY;
+      setPrimaryTranslate(MAX_TRANSLATE, true);
+    } else if(primaryHidden && !goingDown){
+      // Return tracks scroll position directly — no easing
+      const progress   = hiddenAtY > 0 ? Math.max(0, Math.min(1, scrollY / hiddenAtY)) : 0;
+      const translateY = progress * MAX_TRANSLATE;
+      setPrimaryTranslate(translateY, false);
+      if(scrollY <= 0) primaryHidden = false;
+    }
 
     // Subnav: hide going down, only return when close to top
-    if(goingDown && scrollY > 40)         applySubnav(true);
-    else if(scrollY < SUBNAV_THRESHOLD)   applySubnav(false);
+    if(goingDown && scrollY > 40)       applySubnav(true);
+    else if(scrollY < SUBNAV_THRESHOLD) applySubnav(false);
 
     ticking = false;
   }
@@ -3713,15 +3722,9 @@ init();
 
   window._navScrollUpdate = function(){
     setup(false);
-    const primary = document.getElementById('nav-primary');
-    if(primary){
-      primary.querySelectorAll('.nav-main').forEach(el => {
-        el.style.transition = 'none';
-        el.style.transform  = (!primaryHidden || el.classList.contains('active'))
-          ? 'translate(0,0)'
-          : `translate(0,-${MAX_TRANSLATE}px)`;
-      });
-    }
+    // Re-apply current states without transition after re-render
+    const progress   = primaryHidden && hiddenAtY > 0 ? Math.max(0, Math.min(1, window.scrollY / hiddenAtY)) : (primaryHidden ? 1 : 0);
+    setPrimaryTranslate(progress * MAX_TRANSLATE, false);
     const sub = document.getElementById('nav-sub');
     if(sub){
       sub.style.transition    = 'none';
