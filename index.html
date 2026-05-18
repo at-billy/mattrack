@@ -421,115 +421,267 @@ function itemCatLabel(id) {
 }
 
 // ─── COMPONENTS CATALOG (parsed from components.ini) ─────────────────────────
-const COMPONENTS_RAW = `item_Name_COOL_ACOM_S01_ZeroRush=Cmp/1/B ZeroRush
-item_Name_COOL_AEGS_S01_Glacier=Mil/1/A Glacier
-item_Name_COOL_AEGS_S01_Tundra=Mil/1/D Tundra
-item_Name_COOL_AEGS_S02_Avalanche=Mil/2/A Avalanche
-item_Name_COOL_AEGS_S02_Boreal=Mil/2/D Boreal
-item_Name_COOL_AEGS_S02_Permafrost=Mil/2/B Permafrost
-item_Name_COOL_AEGS_S03_Tempest=Mil/3/B Tempest
-item_Name_COOL_JSPN_S00_CryoStarSL=Civ/0/B Cryo-Star SL
-item_Name_COOL_JSPN_S01_CryoStar=Civ/1/B Cryo-Star
-item_Name_COOL_JSPN_S02_CryoStarEX=Civ/2/B Cryo-Star EX
-item_Name_COOL_JSPN_S03_CryoStarXL=Civ/3/B Cryo-Star XL
-item_Name_COOL_JUST_S01_EcoFlow=Ind/1/B Eco-Flow
-item_Name_COOL_JUST_S01_UltraFlow=Ind/1/A Ultra-Flow
-item_Name_COOL_JUST_S02_Snowfall=Ind/2/B Snowfall
-item_Name_COOL_JUST_S03_IceFlush=Ind/3/B Ice-Flush
-item_Name_COOL_LPLT_S01_FlashFreeze=Civ/1/B FlashFreeze
-item_Name_COOL_LPLT_S02_FullFrost=Civ/2/B FullFrost
-item_Name_COOL_LPLT_S02_WhiteOut=Civ/2/D WhiteOut
-item_Name_COOL_LPLT_S03_FrostBite=Civ/3/B FrostBite
-item_Name_COOL_TYDT_S01_SnowBlind=Sth/1/A SnowBlind
-item_Name_COOL_WCPR_S00_Kelvid=Civ/0/B Kelvid
-item_Name_COOL_WCPR_S01_Gelid=Civ/1/A Gelid
-item_Name_COOL_WCPR_S02_Graupel=Civ/2/C Graupel
-item_Name_COOL_WCPR_S02_Taiga=Civ/2/B Taiga
-item_Name_POWR_ACOM_S01_LumaCore=Cmp/1/A LumaCore
-item_Name_POWR_ACOM_S02_SolarFlare=Cmp/2/C SolarFlare
-item_Name_POWR_AEGS_S01_QuadraCell=Mil/1/A QuadraCell
-item_Name_POWR_AEGS_S02_Bolide=Mil/2/B Bolide
-item_Name_POWR_AEGS_S02_Vortex=Mil/2/D Vortex
-item_Name_POWR_AEGS_S03_Centurion=Mil/3/C Centurion
-item_Name_POWR_AEGS_S03_Fulgur=Mil/3/B Fulgur
-item_Name_POWR_AMRS_S01_DynaFlux=Mil/1/B DynaFlux
-item_Name_POWR_AMRS_S02_ExoGen=Mil/2/D ExoGen
-item_Name_POWR_AMRS_S02_TurboDrive=Mil/2/C TurboDrive
-item_Name_POWR_AMRS_S03_MegaFlux=Mil/3/B MegaFlux
-item_Name_POWR_AMRS_S03_SmartGen=Mil/3/D SmartGen
-item_Name_POWR_JUST_S00_Defiant=Ind/0/B Defiant
-item_Name_POWR_JUST_S01_Breton=Ind/1/A Breton
-item_Name_POWR_JUST_S02_Diligence=Ind/2/C Diligence
-item_Name_POWR_JUST_S02_Sedulity=Ind/2/B Sedulity
-item_Name_POWR_JUST_S03_Durango=Ind/3/A Durango
-item_Name_POWR_JUST_S03_Reliance=Ind/3/B Reliance
-item_Name_POWR_LPLT_S00_IonWave=Civ/0/B IonWave
-item_Name_POWR_LPLT_S01_IonBurst=Civ/1/B IonBurst
-item_Name_POWR_LPLT_S02_FullForce=Civ/2/C FullForce
-item_Name_POWR_LPLT_S02_SparkJet=Civ/2/D SparkJet
-item_Name_POWR_LPLT_S03_IonSurgePro=Civ/3/B IonSurge Pro
-item_Name_POWR_SASU_S01_MagnaBloom=Civ/1/B MagnaBloom
-item_Name_POWR_SASU_S02_Radiance=Civ/2/B Radiance
-item_Name_POWR_SASU_S03_Celestial=Civ/3/B Celestial
-item_Name_POWR_SASU_S03_NewDawn=Civ/3/C NewDawn
-item_Name_POWR_TYDT_S01_Slipstream=Sth/1/A Slipstream
-item_Name_POWR_TYDT_S02_Cirrus=Sth/2/C Cirrus
-item_Name_QDRV_ARCC_S01_Burst=Civ/1/B Burst
-item_Name_QDRV_ARCC_S02_Flash=Civ/2/B Flash
-item_Name_QDRV_ARCC_S02_Torrent=Civ/2/C Torrent
-item_Name_QDRV_JUST_S01_Colossus=Ind/1/B Colossus
-item_Name_QDRV_JUST_S02_Yaluk=Ind/2/D Yaluk
-item_Name_QDRV_RACO_S01_Zephyr=Sth/1/B Zephyr
-item_Name_QDRV_RSI_S01_Atlas=Civ/1/A Atlas
-item_Name_QDRV_RSI_S02_Hemera=Civ/2/A Hemera
-item_Name_QDRV_TARS_S01_Voyage=Civ/1/B Voyage
-item_Name_QDRV_TARS_S02_Sojourn=Civ/2/B Sojourn
-item_Name_QDRV_WETK_S01_VK00=Mil/1/A VK-00
-item_Name_QDRV_WETK_S02_Yeager=Mil/2/B Yeager
-item_Name_QRDV_ACAS_S01_Foxfire=Cmp/1/B FoxFire
-item_Name_QRDV_ACAS_S01_LightFire=Cmp/1/C LightFire
-item_Name_SHLD_ASAS_S01_Mirage=Sth/1/A Mirage
-item_Name_SHLD_ASAS_S01_Veil=Sth/1/B Veil
-item_Name_SHLD_ASAS_S02_Obscura=Sth/2/C Obscura
-item_Name_SHLD_ASAS_S02_Sheut=Sth/2/B Sheut
-item_Name_SHLD_ASAS_S02_Umbra=Sth/2/A Umbra
-item_Name_SHLD_BASL_S00_Bastion=Ind/0/D Bastion
-item_Name_SHLD_BASL_S00_Siege=Ind/0/B Siege
-item_Name_SHLD_BASL_S01_Guardian=Ind/1/B Guardian
-item_Name_SHLD_BASL_S01_Palisade=Ind/1/A Palisade
-item_Name_SHLD_BASL_S01_Steward=Ind/1/D Steward
-item_Name_SHLD_BASL_S02_Armada=Ind/2/D Armada
-item_Name_SHLD_BASL_S02_Citadel=Ind/2/B Citadel
-item_Name_SHLD_BASL_S02_Rampart=Ind/2/A Rampart
-item_Name_SHLD_BASL_S03_Barbican=Ind/3/B Barbican
-item_Name_SHLD_BASL_S03_Parapet=Ind/3/A Parapet
-item_Name_SHLD_BASL_S03_Ward=Ind/3/D Ward
-item_Name_SHLD_BEHR_S01_6SA=Civ/1/B 6SA 'Arbiter'
-item_Name_SHLD_BEHR_S01_7SA=Civ/1/A 7SA 'Concord'
-item_Name_SHLD_BEHR_S02_6MA=Civ/2/B 6MA 'Kozane'
-item_Name_SHLD_BEHR_S02_7MA=Civ/2/A 7MA 'Lorica'
-item_Name_SHLD_BEHR_S03_6CA=Civ/3/B 6CA 'Bila'
-item_Name_SHLD_BEHR_S03_7CA=Civ/3/A 7CA 'Nargun'
-item_Name_SHLD_GODI_S01_FR66=Mil/1/A FR-66
-item_Name_SHLD_GODI_S02_CoverAll=Mil/2/B CoverAll
-item_Name_SHLD_GODI_S02_FR76=Mil/2/A FR-76
-item_Name_SHLD_GODI_S02_SecureShield=Mil/2/D SecureShield
-item_Name_SHLD_GODI_S03_FR86=Mil/3/A FR-86
-item_Name_SHLD_GODI_S03_FullBlock=Mil/3/B FullBlock
-item_Name_SHLD_GODI_S03_SecureScreen=Mil/3/D SecureScreen
-item_Name_SHLD_GODI_S03_SureStop=Mil/3/C SureStop
-item_Name_SHLD_SECO_S00_LOC=Civ/0/B LOC
-item_Name_SHLD_SECO_S00_RED=Civ/0/D RED
-item_Name_SHLD_SECO_S01_HEX=Civ/1/B HEX
-item_Name_SHLD_SECO_S02_BLOC=Civ/2/B BLOC
-item_Name_SHLD_SECO_S02_RPEL=Civ/2/D RPEL
-item_Name_SHLD_SECO_S03_ARMOR=Civ/3/B ARMOR
-item_Name_SHLD_SECO_S03_GUARD=Civ/3/C GUARD
-item_Name_SHLD_SECO_S03_HAVEN=Civ/3/D HAVEN
-item_Name_SHLD_YORM_S01_Jaghte=Cmp/1/B Jaghte
-item_Name_SHLD_YORM_S02_Bamoty=Cmp/2/D Bamoty
-item_Name_SHLD_YORM_S02_Haltur=Cmp/2/B Haltur
-item_Name_SHLD_YORM_S02_Trenta=Cmp/2/C Trenta`;
+const COMPONENTS_JSON = [
+  {name:'IcePlunge',category:'cooler',field:'Cmp',size:1,grade:'C'},
+  {name:'QuikCool',category:'cooler',field:'Cmp',size:1,grade:'D'},
+  {name:'AbsoluteZero',category:'cooler',field:'Cmp',size:2,grade:'B'},
+  {name:'IceDive',category:'cooler',field:'Cmp',size:2,grade:'C'},
+  {name:'RapidCool',category:'cooler',field:'Cmp',size:2,grade:'D'},
+  {name:'ZeroRush',category:'cooler',field:'Cmp',size:1,grade:'B'},
+  {name:'Bracer',category:'cooler',field:'Mil',size:1,grade:'C'},
+  {name:'Glacier',category:'cooler',field:'Mil',size:1,grade:'A'},
+  {name:'Polar',category:'cooler',field:'Mil',size:1,grade:'B'},
+  {name:'Tundra',category:'cooler',field:'Mil',size:1,grade:'D'},
+  {name:'Arctic',category:'cooler',field:'Mil',size:2,grade:'C'},
+  {name:'Boreal',category:'cooler',field:'Mil',size:2,grade:'D'},
+  {name:'Avalanche',category:'cooler',field:'Mil',size:2,grade:'A'},
+  {name:'Permafrost',category:'cooler',field:'Mil',size:2,grade:'B'},
+  {name:'Blizzard',category:'cooler',field:'Mil',size:3,grade:'A'},
+  {name:'Galinstan',category:'cooler',field:'Mil',size:3,grade:'D'},
+  {name:'Mercury',category:'cooler',field:'Mil',size:3,grade:'C'},
+  {name:'Tempest',category:'cooler',field:'Mil',size:3,grade:'B'},
+  {name:'Frost-Star SL',category:'cooler',field:'Civ',size:0,grade:'C'},
+  {name:'Winter-Star SL',category:'cooler',field:'Civ',size:0,grade:'D'},
+  {name:'Cryo-Star SL',category:'cooler',field:'Civ',size:0,grade:'B'},
+  {name:'Fridan',category:'cooler',field:'Civ',size:0,grade:'C'},
+  {name:'Tepilo',category:'cooler',field:'Civ',size:0,grade:'A'},
+  {name:'Kelvid',category:'cooler',field:'Civ',size:0,grade:'B'},
+  {name:'Cryo-Star',category:'cooler',field:'Civ',size:1,grade:'B'},
+  {name:'Frost-Star',category:'cooler',field:'Civ',size:1,grade:'C'},
+  {name:'Winter-Star',category:'cooler',field:'Civ',size:1,grade:'D'},
+  {name:'ArcticStorm',category:'cooler',field:'Civ',size:1,grade:'C'},
+  {name:'BlastChill',category:'cooler',field:'Civ',size:1,grade:'D'},
+  {name:'FlashFreeze',category:'cooler',field:'Civ',size:1,grade:'B'},
+  {name:'Berian',category:'cooler',field:'Civ',size:1,grade:'C'},
+  {name:'Endo',category:'cooler',field:'Civ',size:1,grade:'B'},
+  {name:'Gelid',category:'cooler',field:'Civ',size:1,grade:'A'},
+  {name:'Cryo-Star EX',category:'cooler',field:'Civ',size:2,grade:'B'},
+  {name:'Frost-Star EX',category:'cooler',field:'Civ',size:2,grade:'C'},
+  {name:'Winter-Star EX',category:'cooler',field:'Civ',size:2,grade:'D'},
+  {name:'ColdSnap',category:'cooler',field:'Civ',size:2,grade:'C'},
+  {name:'Aufeis',category:'cooler',field:'Civ',size:2,grade:'A'},
+  {name:'Graupel',category:'cooler',field:'Civ',size:2,grade:'C'},
+  {name:'Taiga',category:'cooler',field:'Civ',size:2,grade:'B'},
+  {name:'FullFrost',category:'cooler',field:'Civ',size:2,grade:'B'},
+  {name:'WhiteOut',category:'cooler',field:'Civ',size:2,grade:'D'},
+  {name:'Frost-Star XL',category:'cooler',field:'Civ',size:3,grade:'C'},
+  {name:'Winter-Star XL',category:'cooler',field:'Civ',size:3,grade:'D'},
+  {name:'ColdSurge',category:'cooler',field:'Civ',size:3,grade:'D'},
+  {name:'FrostBurn',category:'cooler',field:'Civ',size:3,grade:'C'},
+  {name:'Draug',category:'cooler',field:'Civ',size:3,grade:'C'},
+  {name:'Elsen',category:'cooler',field:'Civ',size:3,grade:'B'},
+  {name:'Kragen',category:'cooler',field:'Civ',size:3,grade:'A'},
+  {name:'Cryo-Star XL',category:'cooler',field:'Civ',size:3,grade:'B'},
+  {name:'FrostBite',category:'cooler',field:'Civ',size:3,grade:'B'},
+  {name:'EcoFlow',category:'cooler',field:'Ind',size:1,grade:'B'},
+  {name:'Hydrocel',category:'cooler',field:'Ind',size:1,grade:'D'},
+  {name:'Thermax',category:'cooler',field:'Ind',size:1,grade:'C'},
+  {name:'Eco-Flow',category:'cooler',field:'Ind',size:1,grade:'B'},
+  {name:'Ultra-Flow',category:'cooler',field:'Ind',size:1,grade:'A'},
+  {name:'CoolCore',category:'cooler',field:'Ind',size:2,grade:'C'},
+  {name:'HydroJet',category:'cooler',field:'Ind',size:2,grade:'D'},
+  {name:'Snowpack',category:'cooler',field:'Ind',size:2,grade:'A'},
+  {name:'Snowfall',category:'cooler',field:'Ind',size:2,grade:'B'},
+  {name:'Chill-Max',category:'cooler',field:'Ind',size:3,grade:'A'},
+  {name:'Hydropulse',category:'cooler',field:'Ind',size:3,grade:'D'},
+  {name:'ThermalCore',category:'cooler',field:'Ind',size:3,grade:'C'},
+  {name:'Ice-Flush',category:'cooler',field:'Ind',size:3,grade:'B'},
+  {name:'HeatSafe',category:'cooler',field:'Sth',size:1,grade:'C'},
+  {name:'VaporBlock',category:'cooler',field:'Sth',size:1,grade:'B'},
+  {name:'SnowBlind',category:'cooler',field:'Sth',size:1,grade:'A'},
+  {name:'HeatSink',category:'cooler',field:'Sth',size:2,grade:'C'},
+  {name:'IceBox',category:'cooler',field:'Sth',size:2,grade:'B'},
+  {name:'NightFall',category:'cooler',field:'Sth',size:2,grade:'A'},
+  {name:'StarHeart',category:'power',field:'Cmp',size:1,grade:'B'},
+  {name:'Sunflare',category:'power',field:'Cmp',size:1,grade:'C'},
+  {name:'LumaCore',category:'power',field:'Cmp',size:1,grade:'A'},
+  {name:'LuxCore',category:'power',field:'Cmp',size:2,grade:'A'},
+  {name:'StarBurn',category:'power',field:'Cmp',size:2,grade:'B'},
+  {name:'SolarFlare',category:'power',field:'Cmp',size:2,grade:'C'},
+  {name:'Charger',category:'power',field:'Mil',size:1,grade:'D'},
+  {name:'Fierell Cascade',category:'power',field:'Mil',size:1,grade:'B'},
+  {name:'Regulus',category:'power',field:'Mil',size:1,grade:'C'},
+  {name:'HyperGen',category:'power',field:'Mil',size:1,grade:'D'},
+  {name:'JS-300',category:'power',field:'Mil',size:1,grade:'A'},
+  {name:'OverDrive',category:'power',field:'Mil',size:1,grade:'C'},
+  {name:'QuadraCell',category:'power',field:'Mil',size:1,grade:'A'},
+  {name:'DynaFlux',category:'power',field:'Mil',size:1,grade:'B'},
+  {name:'Maelstrom',category:'power',field:'Mil',size:2,grade:'C'},
+  {name:'QuadraCell MT',category:'power',field:'Mil',size:2,grade:'A'},
+  {name:'Vortex',category:'power',field:'Mil',size:2,grade:'D'},
+  {name:'ExoGen',category:'power',field:'Mil',size:2,grade:'D'},
+  {name:'JS-400',category:'power',field:'Mil',size:2,grade:'A'},
+  {name:'UltraFlux',category:'power',field:'Mil',size:2,grade:'B'},
+  {name:'Bolide',category:'power',field:'Mil',size:2,grade:'B'},
+  {name:'TurboDrive',category:'power',field:'Mil',size:2,grade:'C'},
+  {name:'Drassik',category:'power',field:'Mil',size:3,grade:'D'},
+  {name:'QuadraCell MX',category:'power',field:'Mil',size:3,grade:'A'},
+  {name:'JS-500',category:'power',field:'Mil',size:3,grade:'A'},
+  {name:'SuperDrive',category:'power',field:'Mil',size:3,grade:'C'},
+  {name:'MegaFlux',category:'power',field:'Mil',size:3,grade:'B'},
+  {name:'SmartGen',category:'power',field:'Mil',size:3,grade:'D'},
+  {name:'Centurion',category:'power',field:'Mil',size:3,grade:'C'},
+  {name:'Fulgur',category:'power',field:'Mil',size:3,grade:'B'},
+  {name:'Jennet',category:'power',field:'Ind',size:0,grade:'D'},
+  {name:'Steadfast',category:'power',field:'Ind',size:0,grade:'C'},
+  {name:'Defiant',category:'power',field:'Ind',size:0,grade:'B'},
+  {name:'Endurance',category:'power',field:'Ind',size:1,grade:'B'},
+  {name:'Roughneck',category:'power',field:'Ind',size:1,grade:'D'},
+  {name:'Breton',category:'power',field:'Ind',size:1,grade:'A'},
+  {name:'Genoa',category:'power',field:'Ind',size:2,grade:'A'},
+  {name:'Trommel',category:'power',field:'Ind',size:2,grade:'D'},
+  {name:'Diligence',category:'power',field:'Ind',size:2,grade:'C'},
+  {name:'Sedulity',category:'power',field:'Ind',size:2,grade:'B'},
+  {name:'Ginzel',category:'power',field:'Ind',size:3,grade:'C'},
+  {name:'Durango',category:'power',field:'Ind',size:3,grade:'A'},
+  {name:'Reliance',category:'power',field:'Ind',size:3,grade:'B'},
+  {name:'DuraJet',category:'power',field:'Civ',size:0,grade:'D'},
+  {name:'Radix',category:'power',field:'Civ',size:0,grade:'C'},
+  {name:'IonWave',category:'power',field:'Civ',size:0,grade:'B'},
+  {name:'IonBurst',category:'power',field:'Civ',size:1,grade:'B'},
+  {name:'PowerBolt',category:'power',field:'Civ',size:1,grade:'C'},
+  {name:'ZapJet',category:'power',field:'Civ',size:1,grade:'D'},
+  {name:'LightBlossom',category:'power',field:'Civ',size:1,grade:'C'},
+  {name:'WhiteRose',category:'power',field:'Civ',size:1,grade:'A'},
+  {name:'MagnaBloom',category:'power',field:'Civ',size:1,grade:'B'},
+  {name:'FullForce',category:'power',field:'Civ',size:2,grade:'C'},
+  {name:'IonSurge',category:'power',field:'Civ',size:2,grade:'B'},
+  {name:'DayBreak',category:'power',field:'Civ',size:2,grade:'C'},
+  {name:'Lotus',category:'power',field:'Civ',size:2,grade:'A'},
+  {name:'Radiance',category:'power',field:'Civ',size:2,grade:'B'},
+  {name:'SparkJet',category:'power',field:'Civ',size:2,grade:'D'},
+  {name:'FullForce Pro',category:'power',field:'Civ',size:3,grade:'C'},
+  {name:'SparkJet Pro',category:'power',field:'Civ',size:3,grade:'D'},
+  {name:'TigerLilly',category:'power',field:'Civ',size:3,grade:'A'},
+  {name:'Celestial',category:'power',field:'Civ',size:3,grade:'B'},
+  {name:'NewDawn',category:'power',field:'Civ',size:3,grade:'C'},
+  {name:'IonSurge Pro',category:'power',field:'Civ',size:3,grade:'B'},
+  {name:'DeltaMax',category:'power',field:'Sth',size:1,grade:'B'},
+  {name:'SonicLite',category:'power',field:'Sth',size:1,grade:'C'},
+  {name:'Slipstream',category:'power',field:'Sth',size:1,grade:'A'},
+  {name:'Eclipse',category:'power',field:'Sth',size:2,grade:'A'},
+  {name:'GammaMax',category:'power',field:'Sth',size:2,grade:'B'},
+  {name:'Cirrus',category:'power',field:'Sth',size:2,grade:'C'},
+  {name:'FoxFire',category:'quantum',field:'Cmp',size:1,grade:'B'},
+  {name:'LightFire',category:'quantum',field:'Cmp',size:1,grade:'C'},
+  {name:'SparkFire',category:'quantum',field:'Cmp',size:2,grade:'C'},
+  {name:'SunFire',category:'quantum',field:'Cmp',size:2,grade:'B'},
+  {name:'Burst',category:'quantum',field:'Civ',size:1,grade:'B'},
+  {name:'Flood',category:'quantum',field:'Civ',size:1,grade:'D'},
+  {name:'Rush',category:'quantum',field:'Civ',size:1,grade:'C'},
+  {name:'Atlas',category:'quantum',field:'Civ',size:1,grade:'A'},
+  {name:'Eos',category:'quantum',field:'Civ',size:1,grade:'C'},
+  {name:'Hyperion',category:'quantum',field:'Civ',size:1,grade:'B'},
+  {name:'Expedition',category:'quantum',field:'Civ',size:1,grade:'C'},
+  {name:'Voyage',category:'quantum',field:'Civ',size:1,grade:'B'},
+  {name:'Wayfare',category:'quantum',field:'Civ',size:1,grade:'D'},
+  {name:'Aither',category:'quantum',field:'Civ',size:2,grade:'B'},
+  {name:'Hemera',category:'quantum',field:'Civ',size:2,grade:'A'},
+  {name:'Cascade',category:'quantum',field:'Civ',size:2,grade:'D'},
+  {name:'Flash',category:'quantum',field:'Civ',size:2,grade:'B'},
+  {name:'Torrent',category:'quantum',field:'Civ',size:2,grade:'C'},
+  {name:'Khaos',category:'quantum',field:'Civ',size:2,grade:'C'},
+  {name:'Odyssey',category:'quantum',field:'Civ',size:2,grade:'C'},
+  {name:'Quest',category:'quantum',field:'Civ',size:2,grade:'D'},
+  {name:'Sojourn',category:'quantum',field:'Civ',size:2,grade:'B'},
+  {name:'Drifter',category:'quantum',field:'Civ',size:3,grade:'D'},
+  {name:'Echo',category:'quantum',field:'Civ',size:3,grade:'D'},
+  {name:'Erebos',category:'quantum',field:'Civ',size:3,grade:'A'},
+  {name:'Fissure',category:'quantum',field:'Civ',size:3,grade:'C'},
+  {name:'Impulse',category:'quantum',field:'Civ',size:3,grade:'B'},
+  {name:'Metis',category:'quantum',field:'Civ',size:3,grade:'C'},
+  {name:'Ranger',category:'quantum',field:'Civ',size:3,grade:'B'},
+  {name:'Tyche',category:'quantum',field:'Civ',size:3,grade:'B'},
+  {name:'Wanderer',category:'quantum',field:'Civ',size:3,grade:'C'},
+  {name:'Agni',category:'quantum',field:'Ind',size:3,grade:'B'},
+  {name:'Bolon',category:'quantum',field:'Ind',size:2,grade:'C'},
+  {name:'Colossus',category:'quantum',field:'Ind',size:1,grade:'B'},
+  {name:'Goliath',category:'quantum',field:'Ind',size:1,grade:'C'},
+  {name:'Huracan',category:'quantum',field:'Ind',size:2,grade:'B'},
+  {name:'Kama',category:'quantum',field:'Ind',size:3,grade:'C'},
+  {name:'Vesta',category:'quantum',field:'Ind',size:3,grade:'D'},
+  {name:'Vulcan',category:'quantum',field:'Ind',size:1,grade:'D'},
+  {name:'Yaluk',category:'quantum',field:'Ind',size:2,grade:'D'},
+  {name:'Beacon',category:'quantum',field:'Mil',size:1,grade:'C'},
+  {name:'Siren',category:'quantum',field:'Mil',size:1,grade:'B'},
+  {name:'VK-00',category:'quantum',field:'Mil',size:1,grade:'A'},
+  {name:'Crossfield',category:'quantum',field:'Mil',size:2,grade:'C'},
+  {name:'XL-1',category:'quantum',field:'Mil',size:2,grade:'A'},
+  {name:'Yeager',category:'quantum',field:'Mil',size:2,grade:'B'},
+  {name:'Balandin',category:'quantum',field:'Mil',size:3,grade:'B'},
+  {name:'Pontes',category:'quantum',field:'Mil',size:3,grade:'C'},
+  {name:'TS-2',category:'quantum',field:'Mil',size:3,grade:'A'},
+  {name:'Bolt',category:'quantum',field:'Sth',size:2,grade:'B'},
+  {name:'Drift',category:'quantum',field:'Sth',size:1,grade:'C'},
+  {name:'Nova',category:'quantum',field:'Sth',size:2,grade:'C'},
+  {name:'Spectre',category:'quantum',field:'Sth',size:1,grade:'A'},
+  {name:'Spicule',category:'quantum',field:'Sth',size:2,grade:'A'},
+  {name:'Zephyr',category:'quantum',field:'Sth',size:1,grade:'B'},
+  {name:'AllStop',category:'shield',field:'Mil',size:1,grade:'C'},
+  {name:'ForceWall',category:'shield',field:'Mil',size:1,grade:'B'},
+  {name:'FR-66',category:'shield',field:'Mil',size:1,grade:'A'},
+  {name:'SecureHyde',category:'shield',field:'Mil',size:1,grade:'D'},
+  {name:'Suldrath',category:'shield',field:'Mil',size:1,grade:'C'},
+  {name:'CoverAll',category:'shield',field:'Mil',size:2,grade:'B'},
+  {name:'FR-76',category:'shield',field:'Mil',size:2,grade:'A'},
+  {name:'FullStop',category:'shield',field:'Mil',size:2,grade:'C'},
+  {name:'SecureShield',category:'shield',field:'Mil',size:2,grade:'D'},
+  {name:'Sukoran',category:'shield',field:'Mil',size:2,grade:'C'},
+  {name:'FR-86',category:'shield',field:'Mil',size:3,grade:'A'},
+  {name:'FullBlock',category:'shield',field:'Mil',size:3,grade:'B'},
+  {name:'SecureScreen',category:'shield',field:'Mil',size:3,grade:'D'},
+  {name:'SureStop',category:'shield',field:'Mil',size:3,grade:'C'},
+  {name:'Aspis',category:'shield',field:'Ind',size:2,grade:'C'},
+  {name:'Armada',category:'shield',field:'Ind',size:2,grade:'D'},
+  {name:'Barbican',category:'shield',field:'Ind',size:3,grade:'B'},
+  {name:'Bastion',category:'shield',field:'Ind',size:0,grade:'D'},
+  {name:'Bulwark',category:'shield',field:'Ind',size:1,grade:'C'},
+  {name:'Castra',category:'shield',field:'Ind',size:0,grade:'C'},
+  {name:'Citadel',category:'shield',field:'Ind',size:2,grade:'B'},
+  {name:'Guardian',category:'shield',field:'Ind',size:1,grade:'B'},
+  {name:'Palisade',category:'shield',field:'Ind',size:1,grade:'A'},
+  {name:'Parapet',category:'shield',field:'Ind',size:3,grade:'A'},
+  {name:'Rampart',category:'shield',field:'Ind',size:2,grade:'A'},
+  {name:'Siege',category:'shield',field:'Ind',size:0,grade:'B'},
+  {name:'Steward',category:'shield',field:'Ind',size:1,grade:'D'},
+  {name:'Stronghold',category:'shield',field:'Ind',size:3,grade:'C'},
+  {name:'Ward',category:'shield',field:'Ind',size:3,grade:'D'},
+  {name:'5SA \'Rhada\'',category:'shield',field:'Civ',size:1,grade:'C'},
+  {name:'5MA \'Chimalli\'',category:'shield',field:'Civ',size:2,grade:'C'},
+  {name:'5CA \'Akura\'',category:'shield',field:'Civ',size:3,grade:'C'},
+  {name:'6SA \'Arbiter\'',category:'shield',field:'Civ',size:1,grade:'B'},
+  {name:'6MA \'Kozane\'',category:'shield',field:'Civ',size:2,grade:'B'},
+  {name:'6CA \'Bila\'',category:'shield',field:'Civ',size:3,grade:'B'},
+  {name:'7SA \'Concord\'',category:'shield',field:'Civ',size:1,grade:'A'},
+  {name:'7MA \'Lorica\'',category:'shield',field:'Civ',size:2,grade:'A'},
+  {name:'7CA \'Nargun\'',category:'shield',field:'Civ',size:3,grade:'A'},
+  {name:'ARMOR',category:'shield',field:'Civ',size:3,grade:'B'},
+  {name:'BLOC',category:'shield',field:'Civ',size:2,grade:'B'},
+  {name:'GUARD',category:'shield',field:'Civ',size:3,grade:'C'},
+  {name:'HAVEN',category:'shield',field:'Civ',size:3,grade:'D'},
+  {name:'HEX',category:'shield',field:'Civ',size:1,grade:'B'},
+  {name:'INK',category:'shield',field:'Civ',size:1,grade:'D'},
+  {name:'LOC',category:'shield',field:'Civ',size:0,grade:'B'},
+  {name:'PIN',category:'shield',field:'Civ',size:0,grade:'C'},
+  {name:'RED',category:'shield',field:'Civ',size:0,grade:'D'},
+  {name:'RPEL',category:'shield',field:'Civ',size:2,grade:'D'},
+  {name:'STOP',category:'shield',field:'Civ',size:2,grade:'C'},
+  {name:'WEB',category:'shield',field:'Civ',size:1,grade:'C'},
+  {name:'Bamoty',category:'shield',field:'Cmp',size:2,grade:'D'},
+  {name:'Falco',category:'shield',field:'Cmp',size:1,grade:'D'},
+  {name:'Haltur',category:'shield',field:'Cmp',size:2,grade:'B'},
+  {name:'Jaghte',category:'shield',field:'Cmp',size:1,grade:'B'},
+  {name:'Targa',category:'shield',field:'Cmp',size:1,grade:'C'},
+  {name:'Trenta',category:'shield',field:'Cmp',size:2,grade:'C'},
+  {name:'Cloak',category:'shield',field:'Sth',size:1,grade:'D'},
+  {name:'Mirage',category:'shield',field:'Sth',size:1,grade:'A'},
+  {name:'Obscura',category:'shield',field:'Sth',size:2,grade:'C'},
+  {name:'Sheut',category:'shield',field:'Sth',size:2,grade:'B'},
+  {name:'Shimmer',category:'shield',field:'Sth',size:1,grade:'C'},
+  {name:'Shroud',category:'shield',field:'Sth',size:2,grade:'D'},
+  {name:'Umbra',category:'shield',field:'Sth',size:2,grade:'A'},
+  {name:'Veil',category:'shield',field:'Sth',size:1,grade:'B'}
+];;
 
 const COMP_TYPE_MAP = {
   COOL:'Cooler', POWR:'Power Plant', QDRV:'Quantum Drive', QRDV:'Quantum Drive',
@@ -543,31 +695,19 @@ const COMP_GRADE_MAP = {
 const LOTTERY_TYPES = ['COOL','POWR','QDRV','SHLD'];
 
 function parseComponentsCatalog() {
-  const TYPES = Object.keys(COMP_TYPE_MAP);
+  const TYPE_MAP = { cooler:'COOL', power:'POWR', quantum:'QDRV', shield:'SHLD' };
   const seen = new Set();
   const out = [];
-  for (const line of COMPONENTS_RAW.trim().split('\n')) {
-    const eq = line.indexOf('=');
-    if (eq < 0) continue;
-    const key = line.slice(0, eq).trim().toUpperCase();
-    const val = line.slice(eq + 1).trim();
-    const m = val.match(/^(\w+)\/(\d+)\/([A-D])\s+(.+)$/);
-    if (!m) continue;
-    const [, grade, sizeStr, tier, name] = m;
-    const size = parseInt(sizeStr);
-    let type = null;
-    for (const t of TYPES) {
-      if (key.includes('_' + t + '_') || key.endsWith('_' + t) || key.includes('_' + t)) { type = t; break; }
-    }
+  for (const c of COMPONENTS_JSON) {
+    const type = TYPE_MAP[c.category];
     if (!type) continue;
-    // Only COOL, POWR, QDRV, SHLD — sizes 1–3 — grades A, B, C
     if (!LOTTERY_TYPES.includes(type)) continue;
-    if (size < 1 || size > 3) continue;
-    if (!['A','B','C'].includes(tier)) continue;
-    const dk = `${type}|${name.trim()}|${grade}|${size}|${tier}`;
+    if (c.size < 0 || c.size > 3) continue;
+    if (!['A','B','C'].includes(c.grade)) continue;
+    const dk = `${type}|${c.name}|${c.field}|${c.size}|${c.grade}`;
     if (seen.has(dk)) continue;
     seen.add(dk);
-    out.push({ name: name.trim(), type, typeName: COMP_TYPE_MAP[type]||type, grade, gradeName: COMP_GRADE_MAP[grade]||grade, size, tier });
+    out.push({ name: c.name, type, typeName: COMP_TYPE_MAP[type]||type, grade: c.field, gradeName: COMP_GRADE_MAP[c.field]||c.field, size: c.size, tier: c.grade });
   }
   return out.sort((a,b) => {
     if(a.typeName!==b.typeName) return a.typeName.localeCompare(b.typeName);
@@ -581,7 +721,7 @@ const COMPONENTS_CATALOG = parseComponentsCatalog();
 // Value = base(type) + size + tier + class multipliers
 function compDefaultValue(comp) {
   const base      = {COOL:10, POWR:15, QDRV:18, SHLD:15}[comp.type] || 10;
-  const sizeMult  = {1:10, 2:15, 3:20}[comp.size] || 10;
+  const sizeMult  = {0:8, 1:10, 2:15, 3:20}[comp.size] ?? 8;
   const tierMult  = {A:25, B:15, C:10}[comp.tier] || 10;
   const classMult = {Mil:20, Sth:15, Civ:10, Ind:10, Cmp:10}[comp.grade] || 10;
   return base + sizeMult + tierMult + classMult;
@@ -606,7 +746,7 @@ let pendingCraft = null; // holds craft data while user picks location
 let lotteryView = 'list'; // 'list' | 'detail'
 let lotteryDetailId = null; // id of lottery being viewed
 let lotteryCompTypeFilter = 'all'; // 'all' | 'COOL' | 'POWR' | 'QDRV' | 'SHLD'
-let lotteryCompSizeFilter = 'all'; // 'all' | '1' | '2' | '3'
+let lotteryCompSizeFilter = 'all'; // 'all' | '0' | '1' | '2' | '3'
 let lotteryCompGradeFilter = 'all'; // 'all' | 'A' | 'B' | 'C'
 let lotteryCompClassFilter = 'all'; // 'all' | 'Mil' | 'Civ' | 'Ind' | 'Cmp' | 'Sth'
 let lotteryCompSearch = ''; // search in add-item UI
@@ -3006,7 +3146,7 @@ function renderLotteryDraftDetail(l) {
         ${lotteryCompTypeFilter!=='all'?`
         <div style="display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
           <span style="font-size:18px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;min-width:42px;">Size:</span>
-          ${['all','1','2','3'].map(s=>`<button class="btn-ghost btn-sm${lotteryCompSizeFilter===s?' active':''}"
+          ${['all','0','1','2','3'].map(s=>`<button class="btn-ghost btn-sm${lotteryCompSizeFilter===s?' active':''}"
             onclick="setLotCompSize('${esc(l._id)}','${s}')">${s==='all'?'All':'S'+s}</button>`).join('')}
         </div>
         <div style="display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
