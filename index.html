@@ -654,8 +654,8 @@ item_NameSHLD_BASL_S01_Palisade=Ind/1/A Palisade
 item_NameSHLD_BASL_S02_Aspis=Ind/2/C Aspis
 item_NameSHLD_BASL_S03_Stronghold=Ind/3/C Stronghold
 item_NameSHLD_BEHR_S01_5SA=Civ/1/C 5SA Rhada
-item_NameSHLD_BEHR_S01_6SA=Civ/1/B 6SA
-item_NameSHLD_BEHR_S01_7SA=Civ/1/A 7SA
+item_NameSHLD_BEHR_S01_6SA=Civ/1/B 6SA Arbiter
+item_NameSHLD_BEHR_S01_7SA=Civ/1/A 7SA Concord
 item_NameSHLD_BEHR_S02_5MA=Civ/2/C 5MA Chimalli
 item_NameSHLD_BEHR_S03_5CA=Civ/3/C 5CA Akura
 item_NameSHLD_GODI_S01_AllStop=Mil/1/C AllStop
@@ -710,6 +710,7 @@ item_Name_COMP_WLOP_S01_Baier=Civ/1/C Baier
 item_Name_COMP_WLOP_S01_Mitre=Civ/1/B Mitre
 item_Name_COMP_WLOP_S02_Baas=Civ/2/C Baas
 item_Name_COMP_WLOP_S02_Dado=Civ/2/D Dado
+item_Name_COOL_ACOM_S01_ZeroRush=Cmp/1/B ZeroRush
 item_Name_COOL_AEGS_S02_Avalanche=Mil/2/A Avalanche
 item_Name_COOL_AEGS_S02_Permafrost=Mil/2/B Permafrost
 item_Name_COOL_AEGS_S03_Tempest=Mil/3/B Tempest
@@ -845,6 +846,8 @@ const COMP_GRADE_MAP = {
   Mil:'Military', Civ:'Civilian', Ind:'Industrial', Cmp:'Competition', Sth:'Stealth'
 };
 
+const LOTTERY_TYPES = ['COOL','POWR','QDRV','SHLD'];
+
 function parseComponentsCatalog() {
   const TYPES = Object.keys(COMP_TYPE_MAP);
   const seen = new Set();
@@ -863,6 +866,10 @@ function parseComponentsCatalog() {
       if (key.includes('_' + t + '_') || key.endsWith('_' + t) || key.includes('_' + t)) { type = t; break; }
     }
     if (!type) continue;
+    // Only COOL, POWR, QDRV, SHLD — sizes 1–3 — grades A, B, C
+    if (!LOTTERY_TYPES.includes(type)) continue;
+    if (size < 1 || size > 3) continue;
+    if (!['A','B','C'].includes(tier)) continue;
     const dk = `${type}|${name.trim()}|${grade}|${size}|${tier}`;
     if (seen.has(dk)) continue;
     seen.add(dk);
@@ -877,10 +884,12 @@ function parseComponentsCatalog() {
 }
 const COMPONENTS_CATALOG = parseComponentsCatalog();
 
+// Value = base(type) + size multiplier + grade multiplier
 function compDefaultValue(comp) {
-  const gradeMult = {Mil:2.0, Sth:1.8, Cmp:1.6, Civ:1.2, Ind:1.0}[comp.grade] || 1.0;
-  const tierMult  = {A:2.0, B:1.5, C:1.0, D:0.7}[comp.tier] || 1.0;
-  return Math.round((comp.size + 1) * 100 * gradeMult * tierMult);
+  const base     = {COOL:10, POWR:15, QDRV:18, SHLD:15}[comp.type] || 10;
+  const sizeMult = {1:10, 2:15, 3:20}[comp.size] || 10;
+  const gradeMult= {A:25, B:15, C:10}[comp.tier] || 10;
+  return base + sizeMult + gradeMult;
 }
 
 // ─── CONFIG / STATE ───────────────────────────────────────────────────────────
@@ -901,7 +910,9 @@ let pollTimer = null;
 let pendingCraft = null; // holds craft data while user picks location
 let lotteryView = 'list'; // 'list' | 'detail'
 let lotteryDetailId = null; // id of lottery being viewed
-let lotteryCompTypeFilter = 'all'; // filter in add-item UI
+let lotteryCompTypeFilter = 'all'; // 'all' | 'COOL' | 'POWR' | 'QDRV' | 'SHLD'
+let lotteryCompSizeFilter = 'all'; // 'all' | '1' | '2' | '3'
+let lotteryCompGradeFilter = 'all'; // 'all' | 'A' | 'B' | 'C'
 let lotteryCompSearch = ''; // search in add-item UI
 
 // ─── CONVEX HTTP HELPERS ──────────────────────────────────────────────────────
@@ -3199,6 +3210,8 @@ function openLotteryDetail(id) {
   lotteryDetailId=id;
   lotteryView='detail';
   lotteryCompTypeFilter='all';
+  lotteryCompSizeFilter='all';
+  lotteryCompGradeFilter='all';
   lotteryCompSearch='';
   renderPage();
 }
@@ -3239,14 +3252,7 @@ function renderLotteryDraftDetail(l) {
   const pkgs=l.packages||[];
   const totalVal=l.items.reduce((s,i)=>s+i.value,0);
 
-  // Build catalog for add-item section
-  let filtered=COMPONENTS_CATALOG;
-  if(lotteryCompTypeFilter!=='all') filtered=filtered.filter(c=>c.typeName===lotteryCompTypeFilter);
-  if(lotteryCompSearch.trim()) {
-    const q=lotteryCompSearch.trim().toLowerCase();
-    filtered=filtered.filter(c=>c.name.toLowerCase().includes(q)||c.typeName.toLowerCase().includes(q));
-  }
-  const typeNames=[...new Set(COMPONENTS_CATALOG.map(c=>c.typeName))].sort();
+  // (catalog rendered by renderCompCatalogList)
 
   return `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;">
@@ -3287,15 +3293,40 @@ function renderLotteryDraftDetail(l) {
       <!-- RIGHT: component catalog -->
       <div>
         <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border);">Component Catalog</div>
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-          <input type="text" placeholder="Search components…" value="${esc(lotteryCompSearch)}" style="max-width:200px;margin:0;padding:6px 10px;font-size:18px;"
-            oninput="lotteryCompSearch=this.value;document.getElementById('comp-catalog-list').innerHTML=renderCompCatalogList('${esc(l._id)}');">
-          <select style="margin:0;padding:6px 10px;font-size:18px;" onchange="lotteryCompTypeFilter=this.value;document.getElementById('comp-catalog-list').innerHTML=renderCompCatalogList('${esc(l._id)}');">
-            <option value="all">All types</option>
-            ${typeNames.map(t=>`<option value="${esc(t)}"${lotteryCompTypeFilter===t?' selected':''}>${esc(t)}</option>`).join('')}
-          </select>
+
+        <!-- Category tabs -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+          ${[{id:'all',label:'All'},
+             {id:'COOL',label:'Cooler'},
+             {id:'POWR',label:'Power Plant'},
+             {id:'QDRV',label:'Quantum Drive'},
+             {id:'SHLD',label:'Shield'}
+            ].map(c=>`<button class="btn-ghost btn-sm${lotteryCompTypeFilter===c.id?' active':''}"
+              onclick="setLotCompType('${esc(l._id)}','${c.id}')">${c.label}</button>`).join('')}
         </div>
-        <div id="comp-catalog-list" style="max-height:520px;overflow-y:auto;border:1px solid var(--border-l);">
+
+        <!-- Size + Grade sub-filters (only when a type is selected) -->
+        ${lotteryCompTypeFilter!=='all'?`
+        <div style="display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span style="font-size:18px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-right:4px;">Size:</span>
+            ${['all','1','2','3'].map(s=>`<button class="btn-ghost btn-sm${lotteryCompSizeFilter===s?' active':''}"
+              onclick="setLotCompSize('${esc(l._id)}','${s}')">${s==='all'?'All':'S'+s}</button>`).join('')}
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span style="font-size:18px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-right:4px;">Grade:</span>
+            ${['all','A','B','C'].map(g=>`<button class="btn-ghost btn-sm${lotteryCompGradeFilter===g?' active':''}"
+              onclick="setLotCompGrade('${esc(l._id)}','${g}')">${g==='all'?'All':g}</button>`).join('')}
+          </div>
+        </div>`:``}
+
+        <!-- Search -->
+        <div style="margin-bottom:10px;">
+          <input type="text" placeholder="Search by name…" value="${esc(lotteryCompSearch)}" style="margin:0;padding:6px 10px;font-size:18px;"
+            oninput="lotteryCompSearch=this.value;document.getElementById('comp-catalog-list').innerHTML=renderCompCatalogList('${esc(l._id)}');">
+        </div>
+
+        <div id="comp-catalog-list" style="max-height:460px;overflow-y:auto;border:1px solid var(--border-l);">
           ${renderCompCatalogList(l._id)}
         </div>
       </div>
@@ -3312,10 +3343,12 @@ function renderLotteryDraftDetail(l) {
 
 function renderCompCatalogList(lotteryId) {
   let filtered=COMPONENTS_CATALOG;
-  if(lotteryCompTypeFilter!=='all') filtered=filtered.filter(c=>c.typeName===lotteryCompTypeFilter);
+  if(lotteryCompTypeFilter!=='all') filtered=filtered.filter(c=>c.type===lotteryCompTypeFilter);
+  if(lotteryCompSizeFilter!=='all') filtered=filtered.filter(c=>c.size===parseInt(lotteryCompSizeFilter));
+  if(lotteryCompGradeFilter!=='all') filtered=filtered.filter(c=>c.tier===lotteryCompGradeFilter);
   if(lotteryCompSearch.trim()) {
     const q=lotteryCompSearch.trim().toLowerCase();
-    filtered=filtered.filter(c=>c.name.toLowerCase().includes(q)||c.typeName.toLowerCase().includes(q)||c.gradeName.toLowerCase().includes(q));
+    filtered=filtered.filter(c=>c.name.toLowerCase().includes(q)||c.gradeName.toLowerCase().includes(q));
   }
   if(!filtered.length) return `<div style="padding:20px;font-size:18px;color:var(--fg);">No components match.</div>`;
   return filtered.map(c=>{
@@ -3390,6 +3423,27 @@ function renderPackageCard(pkg, lottery, myPick, readOnly) {
     </div>
     ${canPick?`<button class="btn btn-black" style="width:100%;justify-content:center;" onclick="doPickPackage('${esc(lottery._id)}','${esc(pkg.pkgId)}')">Pick this Package</button>`:''}
   </div>`;
+}
+
+function setLotCompType(lotteryId, t) {
+  lotteryCompTypeFilter=t;
+  // Reset sub-filters when type changes
+  lotteryCompSizeFilter='all';
+  lotteryCompGradeFilter='all';
+  lotteryCompSearch='';
+  // Re-render the right panel only by re-rendering the full detail page
+  const pw=document.getElementById('page-wrap');
+  if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+}
+function setLotCompSize(lotteryId, s) {
+  lotteryCompSizeFilter=s;
+  const pw=document.getElementById('page-wrap');
+  if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+}
+function setLotCompGrade(lotteryId, g) {
+  lotteryCompGradeFilter=g;
+  const pw=document.getElementById('page-wrap');
+  if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
 }
 
 function backToLotteryList() {
