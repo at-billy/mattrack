@@ -3629,62 +3629,72 @@ async function init(){
 init();
 
 /* ── PRIMARY NAV SCROLL BEHAVIOUR ───────────────────────────────────
-   Inactive nav items translate upward continuously with scroll.
-   Cap: HEADER_H * 0.9 — they never fully leave the header.
-   Return: same progress value in reverse — proportional, no snap.
-   Formula:
-     progress  = Math.min(scrollY / SCROLL_RANGE, 1)   // 0 → 1, hard-capped
-     translateY = progress * MAX_TRANSLATE              // 0 → HEADER_H * 0.9
+   Direction-based: scroll down → inactive items retract to 10% sliver.
+   Scroll up (anywhere) → they return to full position immediately.
+   CSS transition handles the animation.
 ─────────────────────────────────────────────────────────────────── */
 (function(){
-  const SCROLL_RANGE  = 100;  // px of scroll to reach full translation
-  const TRANSLATE_CAP = 0.9;  // items slide up at most 90% of their height
+  const TRANSLATE_CAP = 0.9;           // hide 90%, always show bottom 10%
+  const TRANSITION    = '0.22s ease';  // slide speed
 
   let HEADER_H     = 0;
   let MAX_TRANSLATE = 0;
+  let isHidden      = false;
+  let lastScrollY   = window.scrollY;
 
-  /* measure the primary nav item height and lock the container */
   function setup(updateMargin){
     const primary  = document.getElementById('nav-primary');
     const pageWrap = document.getElementById('page-wrap');
     const nav      = document.getElementById('nav');
     if(!primary || !pageWrap || !nav) return;
 
-    primary.style.height = '';               // unlock before measuring
+    primary.style.height = '';
     const item = primary.querySelector('.nav-main');
     HEADER_H      = item ? item.offsetHeight : 160;
-    MAX_TRANSLATE = HEADER_H * TRANSLATE_CAP; // e.g. 160 * 0.9 = 144 px
-
-    primary.style.height = HEADER_H + 'px'; // lock — overflow:hidden clips the rest
+    MAX_TRANSLATE = HEADER_H * TRANSLATE_CAP;
+    primary.style.height = HEADER_H + 'px';
 
     if(updateMargin || !pageWrap.style.marginTop){
       pageWrap.style.marginTop = nav.offsetHeight + 'px';
     }
   }
 
-  /* continuous, bidirectional scroll mapping — no early exits, no thresholds */
-  let ticking = false;
-
-  function update(){
-    const progress   = Math.min(window.scrollY / SCROLL_RANGE, 1); // never > 1
-    const translateY = progress * MAX_TRANSLATE;                    // never > HEADER_H * 0.9
+  function applyState(hide){
+    if(isHidden === hide) return;
+    isHidden = hide;
 
     const primary = document.getElementById('nav-primary');
     if(primary){
       primary.querySelectorAll('.nav-main').forEach(el => {
-        el.style.transition = 'none';
-        el.style.transform  = el.classList.contains('active')
+        el.style.transition = `transform ${TRANSITION}`;
+        el.style.transform  = (!hide || el.classList.contains('active'))
           ? 'translate(0,0)'
-          : `translate(0,-${translateY}px)`;
+          : `translate(0,-${MAX_TRANSLATE}px)`;
       });
     }
 
-    /* topbar + subnav fade with the same progress */
     const topbar = document.getElementById('nav-topbar');
     const sub    = document.getElementById('nav-sub');
-    const alpha  = 1 - progress;
-    if(topbar){ topbar.style.opacity = alpha; topbar.style.pointerEvents = progress > 0.5 ? 'none' : ''; }
-    if(sub)   { sub.style.opacity    = alpha; sub.style.pointerEvents    = progress > 0.5 ? 'none' : ''; }
+    [topbar, sub].forEach(el => {
+      if(!el) return;
+      el.style.transition   = `opacity ${TRANSITION}`;
+      el.style.opacity      = hide ? '0' : '1';
+      el.style.pointerEvents = hide ? 'none' : '';
+    });
+  }
+
+  let ticking = false;
+
+  function update(){
+    const scrollY    = window.scrollY;
+    const goingDown  = scrollY > lastScrollY;
+    lastScrollY      = scrollY;
+
+    if(goingDown && scrollY > 40){
+      applyState(true);   // hide on downward scroll (past small deadzone)
+    } else if(!goingDown){
+      applyState(false);  // show immediately on any upward scroll
+    }
 
     ticking = false;
   }
@@ -3693,10 +3703,22 @@ init();
     if(!ticking){ requestAnimationFrame(update); ticking = true; }
   }, { passive: true });
 
-  window.addEventListener('resize', () => { setup(true); update(); }, { passive: true });
+  window.addEventListener('resize', () => { setup(true); }, { passive: true });
 
-  /* called by renderNav() after every re-render */
-  window._navScrollUpdate = function(){ setup(false); update(); };
+  /* called by renderNav() after every re-render — re-measure but keep current state */
+  window._navScrollUpdate = function(){
+    setup(false);
+    // re-apply current hidden state without transition so positions are in sync
+    const primary = document.getElementById('nav-primary');
+    if(primary){
+      primary.querySelectorAll('.nav-main').forEach(el => {
+        el.style.transition = 'none';
+        el.style.transform  = (!isHidden || el.classList.contains('active'))
+          ? 'translate(0,0)'
+          : `translate(0,-${MAX_TRANSLATE}px)`;
+      });
+    }
+  };
 })();
 </script>
 </body>
