@@ -159,12 +159,17 @@ export const openLottery = mutation({
     if (!lottery) throw new Error("Lottery not found");
     if (!lottery.packages?.length) throw new Error("Generate packages first");
     if (lottery.status !== "draft") throw new Error("Lottery must be in draft status to open");
-    await ctx.db.patch(lotteryId, { status: "open" });
+    // Clear any existing hat-throw state when opening
+    const packages = (lottery.packages ?? []).map(p => {
+      const { interested: _i, winner: _w, ...rest } = p as any;
+      return rest;
+    });
+    await ctx.db.patch(lotteryId, { status: "open", packages, externalNames: [] });
     await ctx.db.insert("archive", {
       type: "lottery_opened",
       userId: user._id,
       userName: user.username,
-      details: { title: lottery.title, packages: lottery.packages.length },
+      details: { title: lottery.title, packages: packages.length },
     });
   },
 });
@@ -213,6 +218,7 @@ export const closeLottery = mutation({
     if (!user.roles.includes("admin")) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
+    if (lottery.status !== "open" && lottery.status !== "drawn") throw new Error("Lottery must be open or drawn to close");
     await ctx.db.patch(lotteryId, { status: "closed" });
   },
 });
@@ -227,12 +233,12 @@ export const backToDraft = mutation({
     if (!user.roles.includes("admin")) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
-    // Clear all picks when reverting to draft
+    // Clear all picks/hat-throws/winners when reverting to draft
     const packages = (lottery.packages ?? []).map(p => {
-      const { pickedBy: _pb, pickedByName: _pbn, ...rest } = p;
+      const { pickedBy: _pb, pickedByName: _pbn, interested: _i, winner: _w, ...rest } = p as any;
       return rest;
     });
-    await ctx.db.patch(lotteryId, { status: "draft", packages });
+    await ctx.db.patch(lotteryId, { status: "draft", packages, externalNames: [] });
   },
 });
 
@@ -245,5 +251,144 @@ export const remove = mutation({
     const user = await requireSession(ctx.db, sessionToken);
     if (!user.roles.includes("admin")) throw new Error("Not authorized");
     await ctx.db.delete(lotteryId);
+  },
+});
+
+export const addExternalName = mutation({
+  args: { sessionToken: v.string(), lotteryId: v.id("lotteries"), name: v.string() },
+  handler: async (ctx, { sessionToken, lotteryId, name }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    const lottery = await ctx.db.get(lotteryId);
+    if (!lottery) throw new Error("Lottery not found");
+    if (lottery.status !== "open") throw new Error("Can only add names to open lotteries");
+    const existing = lottery.externalNames ?? [];
+    const trimmed = name.trim();
+    if (!trimmed) throw new Error("Name cannot be empty");
+    if (existing.some(n => n.toLowerCase() === trimmed.toLowerCase())) throw new Error("Name already added");
+    await ctx.db.patch(lotteryId, { externalNames: [...existing, trimmed] });
+  },
+});
+
+export const removeExternalName = mutation({
+  args: { sessionToken: v.string(), lotteryId: v.id("lotteries"), name: v.string() },
+  handler: async (ctx, { sessionToken, lotteryId, name }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    const lottery = await ctx.db.get(lotteryId);
+    if (!lottery) throw new Error("Lottery not found");
+    if (lottery.status !== "open") throw new Error("Can only modify open lotteries");
+    const existing = lottery.externalNames ?? [];
+    // Also remove this person's hat throws from all packages
+    const packages = (lottery.packages ?? []).map(p => ({
+      ...p,
+      interested: (p.interested ?? []).filter((i: { id: string; name: string }) => i.id !== `ext_${name}`),
+    }));
+    await ctx.db.patch(lotteryId, {
+      externalNames: existing.filter(n => n !== name),
+      packages,
+    });
+  },
+});
+
+export const throwHat = mutation({
+  args: {
+    sessionToken: v.string(),
+    lotteryId: v.id("lotteries"),
+    pkgId: v.string(),
+    externalName: v.optional(v.string()),
+  },
+  handler: async (ctx, { sessionToken, lotteryId, pkgId, externalName }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    const lottery = await ctx.db.get(lotteryId);
+    if (!lottery) throw new Error("Lottery not found");
+    if (lottery.status !== "open") throw new Error("Lottery is not open");
+
+    let participantId: string;
+    let participantName: string;
+
+    if (externalName) {
+      if (!user.roles.includes("admin")) throw new Error("Only admins can throw hat for external names");
+      const ext = lottery.externalNames ?? [];
+      if (!ext.includes(externalName)) throw new Error("External name not found in lottery");
+      participantId = `ext_${externalName}`;
+      participantName = externalName;
+    } else {
+      participantId = user._id;
+      participantName = user.username;
+    }
+
+    const packages = lottery.packages ?? [];
+    const pkg = packages.find(p => p.pkgId === pkgId);
+    if (!pkg) throw new Error("Package not found");
+
+    const interested = pkg.interested ?? [];
+    if (interested.some((i: { id: string; name: string }) => i.id === participantId)) throw new Error("Already interested in this package");
+
+    const newPackages = packages.map(p =>
+      p.pkgId === pkgId
+        ? { ...p, interested: [...(p.interested ?? []), { id: participantId, name: participantName }] }
+        : p
+    );
+    await ctx.db.patch(lotteryId, { packages: newPackages });
+  },
+});
+
+export const removeHat = mutation({
+  args: {
+    sessionToken: v.string(),
+    lotteryId: v.id("lotteries"),
+    pkgId: v.string(),
+    participantId: v.string(),
+  },
+  handler: async (ctx, { sessionToken, lotteryId, pkgId, participantId }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    const lottery = await ctx.db.get(lotteryId);
+    if (!lottery) throw new Error("Lottery not found");
+    if (lottery.status !== "open") throw new Error("Lottery is not open");
+
+    const isOwn = participantId === user._id || participantId === `ext_${user.username}`;
+    if (!isOwn && !user.roles.includes("admin")) throw new Error("Not authorized");
+
+    const packages = (lottery.packages ?? []).map(p =>
+      p.pkgId === pkgId
+        ? { ...p, interested: (p.interested ?? []).filter((i: { id: string; name: string }) => i.id !== participantId) }
+        : p
+    );
+    await ctx.db.patch(lotteryId, { packages });
+  },
+});
+
+export const runDraw = mutation({
+  args: { sessionToken: v.string(), lotteryId: v.id("lotteries") },
+  handler: async (ctx, { sessionToken, lotteryId }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    const lottery = await ctx.db.get(lotteryId);
+    if (!lottery) throw new Error("Lottery not found");
+    if (lottery.status !== "open") throw new Error("Lottery must be open to run draw");
+
+    const packages = [...(lottery.packages ?? [])].map(p => ({ ...p, interested: [...(p.interested ?? [])] }));
+
+    // Sort packages by totalValue descending (most valuable first)
+    packages.sort((a, b) => b.totalValue - a.totalValue);
+
+    const winners = new Set<string>();
+
+    for (const pkg of packages) {
+      const eligible = (pkg.interested ?? []).filter((i: { id: string; name: string }) => !winners.has(i.id));
+      if (eligible.length === 0) continue;
+      const winner = eligible[Math.floor(Math.random() * eligible.length)];
+      (pkg as any).winner = winner;
+      winners.add(winner.id);
+    }
+
+    await ctx.db.patch(lotteryId, { packages, status: "drawn" });
+    await ctx.db.insert("archive", {
+      type: "lottery_drawn",
+      userId: user._id,
+      userName: user.username,
+      details: { title: lottery.title, packagesCount: packages.length },
+    });
   },
 });

@@ -88,7 +88,7 @@ export default defineSchema({
 
   lotteries: defineTable({
     title: v.string(),
-    status: v.string(), // "draft" | "open" | "closed"
+    status: v.string(), // "draft" | "open" | "drawn" | "closed"
     createdBy: v.id("users"),
     createdByName: v.string(),
     items: v.array(v.object({
@@ -114,9 +114,15 @@ export default defineSchema({
         tier: v.string(),
         value: v.number(),
       })),
+      // Legacy pick fields (backward compat)
       pickedBy: v.optional(v.id("users")),
       pickedByName: v.optional(v.string()),
+      // New hat-throw fields
+      interested: v.optional(v.array(v.object({ id: v.string(), name: v.string() }))),
+      winner: v.optional(v.object({ id: v.string(), name: v.string() })),
     }))),
+    // External (non-signed-up) participant names
+    externalNames: v.optional(v.array(v.string())),
   }).index("by_status", ["status"]),
 
   archive: defineTable({

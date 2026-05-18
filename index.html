@@ -292,6 +292,7 @@ body.dark .ov-greeting-sub{color:#e0e0e0;}
 .lottery-status{display:inline-block;padding:2px 8px;font-size:18px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-left:12px;}
 .lottery-status.draft{background:#f0f0f0;color:#555;}
 .lottery-status.open{background:#22c55e;color:#fff;}
+.lottery-status.drawn{background:#f59e0b;color:#fff;}
 .lottery-status.closed{background:#555;color:#fff;}
 body.dark .lottery-status.draft{background:#2a2a2a;color:#aaa;}
 .pkg-card{border:1.5px solid var(--border-l);padding:20px;margin-bottom:12px;}
@@ -878,9 +879,14 @@ function updateLiveView() {
     renderNav(); // keep sub-nav counts updated
   }
   if (currentPage==='lottery') {
-    const pw=document.getElementById('page-wrap');
-    if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
-    renderNav();
+    // Don't blast the DOM if user is typing
+    const active = document.activeElement;
+    const typing = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA') && document.getElementById('page-wrap')?.contains(active);
+    if (!typing) {
+      const pw=document.getElementById('page-wrap');
+      if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+      renderNav();
+    }
   }
   if (currentPage==='overview') {
     const pw=document.getElementById('page-wrap');
@@ -1086,7 +1092,7 @@ function renderNav() {
       <div class="nav-sub-item${currentPage==='craft'&&craftSubTab==='items'?' active':''}" onclick="setCraftSubTab('items')">Items</div>
       <div class="nav-sub-item${currentPage==='inventory'?' active':''}" onclick="goTo('inventory')">Inventory</div>`;
   } else if(main==='log'){
-    const openLotteries=state.lotteries.filter(l=>l.status==='open').length;
+    const openLotteries=state.lotteries.filter(l=>l.status==='open'||l.status==='drawn').length;
     sub=`
       <div class="nav-sub-item${currentPage==='archive'?' active':''}" onclick="goTo('archive')">Log</div>
       ${isAdmin(u)?`<div class="nav-sub-item${currentPage==='admin'?' active':''}" onclick="goTo('admin')">Admin</div>`:''}
@@ -2980,14 +2986,16 @@ function pageLottery() {
 function pageLotteryList() {
   const u=state.user; const admin=isAdmin(u);
   const active=state.lotteries.filter(l=>l.status==='open');
+  const drawn=state.lotteries.filter(l=>l.status==='drawn');
   const drafts=state.lotteries.filter(l=>l.status==='draft');
   const closed=state.lotteries.filter(l=>l.status==='closed');
+  const activeCount=active.length+drawn.length;
 
   return `
     <div class="page-head">
       <div class="page-head-left">
         <div class="page-title">Lottery</div>
-        <div class="page-sub">${active.length} active &middot; ${state.lotteries.length} total</div>
+        <div class="page-sub">${activeCount} active &middot; ${state.lotteries.length} total</div>
       </div>
       ${admin?`<button class="btn btn-black" onclick="openCreateLotteryModal()">+ New Lottery</button>`:''}
     </div>
@@ -2996,8 +3004,14 @@ function pageLotteryList() {
 
     ${active.length?`
     <div style="margin-bottom:48px;">
-      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">Open for Picking</div>
+      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">Open for Hat Throws</div>
       ${active.map(l=>lotteryCardHtml(l)).join('')}
+    </div>`:''}
+
+    ${drawn.length?`
+    <div style="margin-bottom:48px;">
+      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">Draw Complete</div>
+      ${drawn.map(l=>lotteryCardHtml(l)).join('')}
     </div>`:''}
 
     ${drafts.length&&admin?`
@@ -3018,25 +3032,30 @@ function pageLotteryList() {
 function lotteryCardHtml(l) {
   const u=state.user; const admin=isAdmin(u);
   const pkgs=l.packages||[];
-  const pickedCount=pkgs.filter(p=>p.pickedBy).length;
-  const myPick=pkgs.find(p=>p.pickedBy===u._id);
+  const winnerCount=pkgs.filter(p=>p.winner).length;
+  const myWin=pkgs.find(p=>p.winner&&p.winner.id===u._id);
+  const myHatCount=pkgs.filter(p=>(p.interested||[]).some(i=>i.id===u._id)).length;
+  let statusBadge=l.status;
+  let statusExtra='';
+  if(l.status==='open'&&myHatCount>0) statusExtra=`<span style="font-size:18px;font-weight:700;color:#22c55e;">(hat in ${myHatCount} package${myHatCount!==1?'s':''})</span>`;
+  if(l.status==='drawn'&&myWin) statusExtra=`<span style="font-size:18px;font-weight:700;color:#22c55e;">(you won Package ${myWin.pkgId.replace('pkg_','')})</span>`;
   return `<div class="lottery-card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;">
       <div style="flex:1;">
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
           <span style="font-size:24px;font-weight:900;">${esc(l.title)}</span>
-          <span class="lottery-status ${l.status}">${l.status}</span>
-          ${myPick?`<span style="font-size:18px;font-weight:700;color:#22c55e;">✓ You picked Package ${myPick.pkgId.replace('pkg_','#')}</span>`:''}
+          <span class="lottery-status ${l.status}">${statusBadge}</span>
+          ${statusExtra}
         </div>
         <div style="font-size:18px;color:var(--fg);display:flex;gap:20px;flex-wrap:wrap;">
-          <span>${l.items.length} component${l.items!==1?'s':''}</span>
-          ${pkgs.length?`<span>${pkgs.length} packages &middot; ${pickedCount}/${pkgs.length} picked</span>`:''}
+          <span>${l.items.length} component${l.items.length!==1?'s':''}</span>
+          ${pkgs.length?`<span>${pkgs.length} packages${l.status==='drawn'?' &middot; '+winnerCount+' winners':''}</span>`:''}
           <span>by ${esc(l.createdByName)}</span>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
         <button class="btn btn-black btn-sm" onclick="openLotteryDetail('${esc(l._id)}')">View</button>
-        ${admin&&l.status==='draft'?`<button class="btn-del" onclick="deleteLottery('${esc(l._id)}')">✕</button>`:''}
+        ${admin?`<button class="btn-del" onclick="deleteLottery('${esc(l._id)}')">x</button>`:''}
       </div>
     </div>
   </div>`;
@@ -3060,8 +3079,6 @@ function pageLotteryDetail() {
 
   const pkgs=l.packages||[];
   const totalVal=l.items.reduce((s,i)=>s+i.value,0);
-  const myPick=pkgs.find(p=>p.pickedBy===u._id);
-  const allPicked=pkgs.length>0&&pkgs.every(p=>p.pickedBy);
 
   return `
     <div class="page-head">
@@ -3070,17 +3087,20 @@ function pageLotteryDetail() {
           <span style="font-size:18px;cursor:pointer;font-weight:700;letter-spacing:.06em;text-transform:uppercase;" onclick="backToLotteryList()">← Lotteries</span>
         </div>
         <div class="page-title">${esc(l.title)} <span class="lottery-status ${l.status}">${l.status}</span></div>
-        <div class="page-sub">${l.items.length} components &middot; total value ${totalVal.toLocaleString()} &middot; by ${esc(l.createdByName)}</div>
+        <div class="page-sub">${l.items.length} components &middot; total value ${totalVal.toLocaleString()} pts &middot; by ${esc(l.createdByName)}</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;">
-        ${admin&&l.status==='draft'&&pkgs.length?`<button class="btn btn-black" onclick="confirmOpenLottery('${esc(l._id)}')">Open for Picking</button>`:''}
-        ${admin&&l.status==='open'?`<button class="btn btn-outline" onclick="confirmCloseLottery('${esc(l._id)}')">Close Lottery</button>`:''}
+        ${admin&&l.status==='draft'&&pkgs.length?`<button class="btn btn-black" onclick="confirmOpenLottery('${esc(l._id)}')">Open for Hat Throws</button>`:''}
+        ${admin&&l.status==='open'?`<button class="btn btn-black" onclick="doRunDraw('${esc(l._id)}')">Run Lottery Draw</button>`:''}
+        ${admin&&(l.status==='drawn'||l.status==='open')?`<button class="btn btn-outline" onclick="confirmCloseLottery('${esc(l._id)}')">Close Lottery</button>`:''}
         ${admin&&l.status!=='draft'?`<button class="btn-ghost btn-sm" onclick="confirmBackToDraft('${esc(l._id)}')">Back to Draft</button>`:''}
+        ${admin?`<button class="btn-del" onclick="deleteLottery('${esc(l._id)}')">x</button>`:''}
       </div>
     </div>
 
     ${l.status==='draft'?renderLotteryDraftDetail(l):''}
-    ${l.status==='open'?renderLotteryOpenDetail(l,myPick):''}
+    ${l.status==='open'?renderLotteryOpenDetail(l):''}
+    ${l.status==='drawn'?renderLotteryDrawnDetail(l):''}
     ${l.status==='closed'?renderLotteryClosedDetail(l):''}`;
 }
 
@@ -3108,10 +3128,9 @@ function renderLotteryDraftDetail(l) {
               <span style="margin-left:6px;font-size:18px;color:var(--fg);">S${item.size} / <span class="tier-${item.tier.toLowerCase()}">${item.tier}</span></span>
             </div>
             <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-              <input type="number" value="${item.value}" min="1" step="1" style="width:80px;margin:0;padding:4px 6px;font-size:18px;"
-                onchange="updateItemValue('${esc(l._id)}','${esc(item.id)}',this.value)">
-              <span style="font-size:18px;color:var(--fg);min-width:20px;">pts</span>
-              <button class="btn-del" style="padding:3px 8px;" onclick="removeLotteryItem('${esc(l._id)}','${esc(item.id)}')">✕</button>
+              <span style="font-size:18px;font-weight:700;min-width:60px;text-align:right;">${item.value}</span>
+              <span style="font-size:18px;color:var(--fg);">pts</span>
+              <button class="btn-del" style="padding:3px 8px;" onclick="removeLotteryItem('${esc(l._id)}','${esc(item.id)}')">x</button>
             </div>
           </div>`).join('')}
 
@@ -3123,7 +3142,7 @@ function renderLotteryDraftDetail(l) {
             <input type="number" id="pkg-count" min="2" max="20" value="2" style="width:70px;margin:0;padding:6px;font-size:18px;">
             <button class="btn btn-black btn-sm" onclick="doGeneratePackages('${esc(l._id)}')">Generate</button>
           </div>
-          ${pkgs.length?`<div style="margin-top:10px;font-size:18px;color:#22c55e;font-weight:700;">✓ ${pkgs.length} packages generated</div>`:''}
+          ${pkgs.length?`<div style="margin-top:10px;font-size:18px;color:#22c55e;font-weight:700;">${pkgs.length} packages generated</div>`:''}
         </div>`:''}
       </div>
 
@@ -3177,7 +3196,7 @@ function renderLotteryDraftDetail(l) {
     <div style="margin-top:48px;">
       <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">Generated Packages Preview</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
-        ${pkgs.map(pkg=>renderPackageCard(pkg,l,null,true)).join('')}
+        ${pkgs.map(pkg=>renderPackageCard(pkg,l,true)).join('')}
       </div>
     </div>`:''}`;
 }
@@ -3194,7 +3213,6 @@ function renderCompCatalogList(lotteryId) {
   }
   if(!filtered.length) return `<div style="padding:20px;font-size:18px;color:var(--fg);">No components match.</div>`;
   return filtered.map(c=>{
-    const defVal=compDefaultValue(c);
     const itemId=`${c.type}_${c.name.replace(/\s+/g,'_')}_${c.grade}_${c.size}_${c.tier}`;
     return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border-m);">
       <div style="flex:1;min-width:0;">
@@ -3204,66 +3222,135 @@ function renderCompCatalogList(lotteryId) {
         </div>
         <div style="font-size:18px;color:var(--fg);opacity:.7;">${esc(c.typeName)} &middot; ${esc(c.gradeName)}</div>
       </div>
-      <input type="number" id="add-val-${esc(itemId)}" value="${defVal}" min="1" style="width:72px;margin:0;padding:4px 6px;font-size:18px;" onclick="event.stopPropagation()">
       <button class="btn btn-black btn-sm" style="white-space:nowrap;" onclick="addLotteryItem('${esc(lotteryId)}','${esc(itemId)}','${esc(c.name)}','${esc(c.type)}','${esc(c.typeName)}','${esc(c.grade)}',${c.size},'${esc(c.tier)}')">Add</button>
     </div>`;
   }).join('');
 }
 
-function renderLotteryOpenDetail(l, myPick) {
-  const u=state.user;
-  const pkgs=l.packages||[];
-  const pickedCount=pkgs.filter(p=>p.pickedBy).length;
+function renderLotteryOpenDetail(l) {
+  const u=state.user; const admin=isAdmin(u);
+  const pkgs=(l.packages||[]).slice().sort((a,b)=>b.totalValue-a.totalValue);
+  const extNames=l.externalNames||[];
+  const totalHats=pkgs.reduce((s,p)=>s+(p.interested||[]).length,0);
 
   return `
     <div style="margin-bottom:24px;padding:20px;background:var(--bg2);border-left:4px solid #22c55e;">
-      <div style="font-size:18px;font-weight:700;">Lottery is open! ${pickedCount}/${pkgs.length} packages claimed.</div>
-      ${myPick?`<div style="margin-top:6px;font-size:18px;color:#22c55e;">You have claimed Package ${myPick.pkgId.replace('pkg_','#')} (value: ${myPick.totalValue.toLocaleString()} pts)</div>`
-        :`<div style="margin-top:6px;font-size:18px;">Pick any available package below.</div>`}
+      <div style="font-size:18px;font-weight:700;">Lottery is open for hat throws.</div>
+      <div style="margin-top:6px;font-size:18px;">Throw your hat into any packages you want. Admin will run the draw when ready.</div>
+      <div style="margin-top:6px;font-size:18px;color:var(--fg);">${totalHats} hat${totalHats!==1?'s':''} thrown across ${pkgs.length} packages.</div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
-      ${pkgs.map(pkg=>renderPackageCard(pkg,l,myPick,false)).join('')}
-    </div>`;
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:40px;">
+      ${pkgs.map(pkg=>renderPackageCard(pkg,l,false)).join('')}
+    </div>
+    ${admin?`
+    <hr class="thick">
+    <div style="margin-top:40px;">
+      <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">External Participants</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+        <input type="text" id="ext-name-input" placeholder="Member name (not signed up)…" style="max-width:300px;margin:0;">
+        <button class="btn btn-black btn-sm" onclick="doAddExternalName('${esc(l._id)}')">Add</button>
+      </div>
+      ${extNames.length?`
+      <div style="margin-bottom:24px;">
+        ${extNames.map(name=>{
+          const hatPkgs=pkgs.filter(p=>(p.interested||[]).some(i=>i.id==='ext_'+name));
+          return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-m);flex-wrap:wrap;">
+            <span style="font-size:18px;font-weight:700;min-width:160px;">${esc(name)}</span>
+            <span style="font-size:18px;color:var(--fg);">${hatPkgs.length?'Hat in: '+hatPkgs.map(p=>'Pkg '+p.pkgId.replace('pkg_','')).join(', '):'No hats thrown yet'}</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
+              ${pkgs.filter(p=>!(p.interested||[]).some(i=>i.id==='ext_'+name)).map(p=>`<button class="btn-ghost btn-sm" onclick="doThrowHat('${esc(l._id)}','${esc(p.pkgId)}','${esc(name)}')">+Pkg ${p.pkgId.replace('pkg_','')}</button>`).join('')}
+              ${hatPkgs.map(p=>`<button class="btn-del" style="padding:3px 8px;" onclick="doRemoveHat('${esc(l._id)}','${esc(p.pkgId)}','ext_${esc(name)}')">-Pkg ${p.pkgId.replace('pkg_','')}</button>`).join('')}
+              <button class="btn-del" onclick="doRemoveExternalName('${esc(l._id)}','${esc(name)}')">Remove</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`:`<div style="font-size:18px;color:var(--fg);padding:12px 0;">No external participants added.</div>`}
+    </div>`:''}`;
+}
+
+function renderLotteryDrawnDetail(l) {
+  const pkgs=(l.packages||[]).slice().sort((a,b)=>b.totalValue-a.totalValue);
+  const winnerCount=pkgs.filter(p=>p.winner).length;
+  // Collect all participants who threw a hat but didn't win
+  const allParticipantIds=new Set();
+  pkgs.forEach(p=>(p.interested||[]).forEach(i=>allParticipantIds.add(i.id)));
+  const winnerIds=new Set(pkgs.filter(p=>p.winner).map(p=>p.winner.id));
+  const noWinners=[];
+  pkgs.forEach(p=>(p.interested||[]).forEach(i=>{
+    if(!winnerIds.has(i.id)&&!noWinners.some(x=>x.id===i.id)) noWinners.push(i);
+  }));
+
+  return `
+    <div style="margin-bottom:24px;padding:20px;background:var(--bg2);border-left:4px solid #22c55e;">
+      <div style="font-size:18px;font-weight:700;">Draw complete. ${winnerCount} of ${pkgs.length} packages assigned.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:40px;">
+      ${pkgs.map(pkg=>renderPackageCard(pkg,l,true)).join('')}
+    </div>
+    ${noWinners.length?`
+    <div style="margin-top:8px;padding:16px 20px;background:var(--bg2);border:1.5px solid var(--border-l);">
+      <div style="font-size:18px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">No Package Assigned</div>
+      ${noWinners.map(p=>`<div style="font-size:18px;padding:4px 0;">${esc(p.name)} — no package won</div>`).join('')}
+    </div>`:''}`;
 }
 
 function renderLotteryClosedDetail(l) {
-  const pkgs=l.packages||[];
-  const pickedCount=pkgs.filter(p=>p.pickedBy).length;
+  const pkgs=(l.packages||[]).slice().sort((a,b)=>b.totalValue-a.totalValue);
+  const winnerCount=pkgs.filter(p=>p.winner).length;
 
   return `
     <div style="margin-bottom:24px;padding:20px;background:var(--bg2);border-left:4px solid #555;">
-      <div style="font-size:18px;font-weight:700;">Lottery closed. ${pickedCount}/${pkgs.length} packages were claimed.</div>
+      <div style="font-size:18px;font-weight:700;">Lottery closed. ${winnerCount} of ${pkgs.length} packages assigned.</div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
-      ${pkgs.map(pkg=>renderPackageCard(pkg,l,null,true)).join('')}
+      ${pkgs.map(pkg=>renderPackageCard(pkg,l,true)).join('')}
     </div>`;
 }
 
-function renderPackageCard(pkg, lottery, myPick, readOnly) {
-  const u=state.user;
-  const isPicked=!!pkg.pickedBy;
-  const isMine=pkg.pickedBy===u._id;
-  const canPick=!readOnly&&lottery.status==='open'&&!isPicked&&!myPick;
+function renderPackageCard(pkg, lottery, readOnly) {
+  const u=state.user; const admin=isAdmin(u);
+  const interested=pkg.interested||[];
+  const iHaveHat=interested.some(i=>i.id===u._id);
+  const isOpen=lottery.status==='open';
+  const isDrawn=lottery.status==='drawn'||lottery.status==='closed';
+  const winner=pkg.winner||null;
+  const iWon=winner&&winner.id===u._id;
+  let cardClass='pkg-card';
+  if(iWon) cardClass+=' mine';
+  else if(winner) cardClass+=' picked';
 
-  return `<div class="pkg-card${isMine?' mine':isPicked?' picked':''}">
+  return `<div class="${cardClass}">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
       <div>
-        <span style="font-size:20px;font-weight:900;">Package ${pkg.pkgId.replace('pkg_','#')}</span>
+        <span style="font-size:20px;font-weight:900;">Package ${pkg.pkgId.replace('pkg_','')}</span>
         <span style="font-size:18px;margin-left:8px;font-weight:700;">${pkg.totalValue.toLocaleString()} pts</span>
       </div>
-      ${isMine?`<span style="font-size:18px;font-weight:700;color:#22c55e;">✓ Yours</span>`:''}
-      ${isPicked&&!isMine?`<span style="font-size:18px;color:var(--fg);">claimed by <strong>${esc(pkg.pickedByName||'?')}</strong></span>`:''}
+      ${isDrawn&&winner?`<span style="font-size:18px;font-weight:700;color:#22c55e;">${esc(winner.name)}</span>`:''}
+      ${isDrawn&&!winner?`<span style="font-size:18px;color:var(--fg);opacity:.6;">Unassigned</span>`:''}
     </div>
     <div style="margin-bottom:10px;">
       ${pkg.items.map(item=>`
         <div class="pkg-item-row">
-          <span style="font-size:18px;color:var(--fg);min-width:70px;font-size:9px;" class="comp-type-badge">${esc(item.typeName)}</span>
+          <span class="comp-type-badge" style="font-size:9px;">${esc(item.typeName)}</span>
           <span style="font-weight:700;flex:1;font-size:18px;" class="comp-grade-${item.grade.toLowerCase()}">${esc(item.name)}</span>
           <span style="font-size:18px;color:var(--fg);">S${item.size}<span class="tier-${item.tier.toLowerCase()}"> ${item.tier}</span></span>
           <span style="font-size:18px;color:var(--fg);">${item.value} pts</span>
         </div>`).join('')}
     </div>
-    ${canPick?`<button class="btn btn-black" style="width:100%;justify-content:center;" onclick="doPickPackage('${esc(lottery._id)}','${esc(pkg.pkgId)}')">Pick this Package</button>`:''}
+    ${isOpen&&!readOnly?`
+    <div style="margin-top:8px;">
+      <div style="font-size:18px;margin-bottom:8px;color:var(--fg);">${interested.length} interested${interested.length?': '+interested.map(i=>esc(i.name)).join(', '):''}.</div>
+      ${iHaveHat
+        ?`<button class="btn btn-outline btn-sm" style="width:100%;justify-content:center;" onclick="doRemoveHat('${esc(lottery._id)}','${esc(pkg.pkgId)}','${u._id}')">Remove Hat</button>`
+        :`<button class="btn btn-black" style="width:100%;justify-content:center;" onclick="doThrowHat('${esc(lottery._id)}','${esc(pkg.pkgId)}')">Throw Hat</button>`}
+    </div>`:''}
+    ${isDrawn&&interested.length?`
+    <div style="margin-top:8px;font-size:18px;color:var(--fg);">
+      ${interested.map(i=>{
+        const won=winner&&winner.id===i.id;
+        return `<span style="${won?'color:#22c55e;font-weight:700;':'opacity:.7;'}">${esc(i.name)}${won?' (winner)':''}</span>`;
+      }).join(', ')}
+    </div>`:''}
   </div>`;
 }
 
@@ -3326,8 +3413,8 @@ async function confirmCreateLottery() {
 }
 
 async function addLotteryItem(lotteryId, itemId, name, type, typeName, grade, size, tier) {
-  const valEl=document.getElementById('add-val-'+itemId);
-  const value=parseInt(valEl?valEl.value:'100')||100;
+  const comp={type,grade,size:parseInt(size),tier};
+  const value=compDefaultValue(comp);
   const item={id:itemId+'_'+Date.now(),name,type,typeName,grade,size:parseInt(size),tier,value};
   try {
     await convexMutation('lotteries:addItem',{sessionToken:state.sessionToken,lotteryId,item});
@@ -3348,14 +3435,6 @@ async function removeLotteryItem(lotteryId, itemId) {
   } catch(e){alert(e.message);}
 }
 
-async function updateItemValue(lotteryId, itemId, rawVal) {
-  const value=parseInt(rawVal)||1;
-  try {
-    await convexMutation('lotteries:updateItemValue',{sessionToken:state.sessionToken,lotteryId,itemId,value});
-    await refreshAll();
-    // Don't re-render whole page — just update the state silently
-  } catch(e){alert(e.message);}
-}
 
 async function doGeneratePackages(lotteryId) {
   const n=parseInt((document.getElementById('pkg-count')||{value:'2'}).value)||2;
@@ -3370,7 +3449,7 @@ async function doGeneratePackages(lotteryId) {
 }
 
 async function confirmOpenLottery(lotteryId) {
-  if(!confirm('Open this lottery for member picking? This will make it visible to all.')) return;
+  if(!confirm('Open this lottery for hat throws? Members will be able to express interest in packages.')) return;
   try {
     await convexMutation('lotteries:openLottery',{sessionToken:state.sessionToken,lotteryId});
     toast('Lottery opened');
@@ -3390,7 +3469,7 @@ async function confirmCloseLottery(lotteryId) {
 }
 
 async function confirmBackToDraft(lotteryId) {
-  if(!confirm('Revert to draft? This will clear all picks.')) return;
+  if(!confirm('Revert to draft? This will clear all hat throws, winners, and external participants.')) return;
   try {
     await convexMutation('lotteries:backToDraft',{sessionToken:state.sessionToken,lotteryId});
     toast('Reverted to draft');
@@ -3403,7 +3482,58 @@ async function doPickPackage(lotteryId, pkgId) {
   if(!confirm('Pick this package? You can only pick once.')) return;
   try {
     await convexMutation('lotteries:pickPackage',{sessionToken:state.sessionToken,lotteryId,pkgId});
-    toast('Package picked! 🎉');
+    toast('Package picked');
+    await refreshAll();
+    renderPage();
+  } catch(e){alert(e.message);}
+}
+
+async function doThrowHat(lotteryId, pkgId, externalName) {
+  const args={sessionToken:state.sessionToken,lotteryId,pkgId};
+  if(externalName) args.externalName=externalName;
+  try {
+    await convexMutation('lotteries:throwHat',args);
+    await refreshAll();
+    const pw=document.getElementById('page-wrap');
+    if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+  } catch(e){alert(e.message);}
+}
+
+async function doRemoveHat(lotteryId, pkgId, participantId) {
+  try {
+    await convexMutation('lotteries:removeHat',{sessionToken:state.sessionToken,lotteryId,pkgId,participantId});
+    await refreshAll();
+    const pw=document.getElementById('page-wrap');
+    if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+  } catch(e){alert(e.message);}
+}
+
+async function doAddExternalName(lotteryId) {
+  const inp=document.getElementById('ext-name-input');
+  const name=inp?inp.value.trim():'';
+  if(!name){alert('Enter a name');return;}
+  try {
+    await convexMutation('lotteries:addExternalName',{sessionToken:state.sessionToken,lotteryId,name});
+    await refreshAll();
+    const pw=document.getElementById('page-wrap');
+    if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+  } catch(e){alert(e.message);}
+}
+
+async function doRemoveExternalName(lotteryId, name) {
+  try {
+    await convexMutation('lotteries:removeExternalName',{sessionToken:state.sessionToken,lotteryId,name});
+    await refreshAll();
+    const pw=document.getElementById('page-wrap');
+    if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+  } catch(e){alert(e.message);}
+}
+
+async function doRunDraw(lotteryId) {
+  if(!confirm('Run the lottery draw now? This will randomly assign winners to packages. This cannot be undone.')) return;
+  try {
+    await convexMutation('lotteries:runDraw',{sessionToken:state.sessionToken,lotteryId});
+    toast('Lottery draw complete');
     await refreshAll();
     renderPage();
   } catch(e){alert(e.message);}
