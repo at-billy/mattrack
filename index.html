@@ -751,6 +751,7 @@ let lotteryCompSizeFilter = 'all'; // 'all' | '0' | '1' | '2' | '3'
 let lotteryCompGradeFilter = 'all'; // 'all' | 'A' | 'B' | 'C'
 let lotteryCompClassFilter = 'all'; // 'all' | 'Mil' | 'Civ' | 'Ind' | 'Cmp' | 'Sth'
 let lotteryCompSearch = ''; // search in add-item UI
+let lotteryPkgCount = 2;   // persists across renders so input doesn't reset
 
 // ─── CONVEX HTTP HELPERS ──────────────────────────────────────────────────────
 async function convexQuery(path, args = {}) {
@@ -3139,10 +3140,10 @@ function renderLotteryDraftDetail(l) {
           <div style="font-size:18px;font-weight:700;margin-bottom:12px;letter-spacing:.08em;text-transform:uppercase;">Generate Packages</div>
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <label style="font-size:18px;">Number of packages:</label>
-            <input type="number" id="pkg-count" min="2" max="20" value="2" style="width:70px;margin:0;padding:6px;font-size:18px;">
+            <input type="number" id="pkg-count" min="2" max="20" value="${lotteryPkgCount}" style="width:70px;margin:0;padding:6px;font-size:18px;" oninput="lotteryPkgCount=parseInt(this.value)||2">
             <button class="btn btn-black btn-sm" onclick="doGeneratePackages('${esc(l._id)}')">Generate</button>
           </div>
-          ${pkgs.length?`<div style="margin-top:10px;font-size:18px;color:#22c55e;font-weight:700;">${pkgs.length} packages generated</div>`:''}
+          <div id="lottery-gen-status">${pkgs.length?`<div style="margin-top:10px;font-size:18px;color:#22c55e;font-weight:700;">${pkgs.length} packages generated</div>`:''}</div>
         </div>`:''}
       </div>
 
@@ -3192,13 +3193,13 @@ function renderLotteryDraftDetail(l) {
       </div>
     </div>
 
-    ${pkgs.length?`
-    <div style="margin-top:48px;">
+    <div id="lottery-pkgs-preview" style="margin-top:48px;">
+      ${pkgs.length?`
       <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">Generated Packages Preview</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
         ${pkgs.map(pkg=>renderPackageCard(pkg,l,true)).join('')}
-      </div>
-    </div>`:''}`;
+      </div>`:''}
+    </div>`;
 }
 
 function renderCompCatalogList(lotteryId) {
@@ -3237,9 +3238,9 @@ function renderLotteryOpenDetail(l) {
     <div style="margin-bottom:24px;padding:20px;background:var(--bg2);border-left:4px solid #22c55e;">
       <div style="font-size:18px;font-weight:700;">Lottery is open for entries.</div>
       <div style="margin-top:6px;font-size:18px;">Enter the packages you want. Admin will run the draw when ready.</div>
-      <div style="margin-top:6px;font-size:18px;color:var(--fg);">${totalHats} entr${totalHats!==1?'ies':'y'} across ${pkgs.length} packages.</div>
+      <div style="margin-top:6px;font-size:18px;color:var(--fg);"><span id="lottery-open-status">${totalHats} entr${totalHats!==1?'ies':'y'} across ${pkgs.length} packages.</span></div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:40px;">
+    <div id="lottery-open-pkgs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:40px;">
       ${pkgs.map(pkg=>renderPackageCard(pkg,l,false)).join('')}
     </div>
     ${admin?`
@@ -3250,22 +3251,51 @@ function renderLotteryOpenDetail(l) {
         <input type="text" id="ext-name-input" placeholder="Member name (not signed up)…" style="max-width:300px;margin:0;">
         <button class="btn btn-black btn-sm" onclick="doAddExternalName('${esc(l._id)}')">Add</button>
       </div>
+      <div id="lottery-ext-list">
       ${extNames.length?`
       <div style="margin-bottom:24px;">
-        ${extNames.map(name=>{
-          const hatPkgs=pkgs.filter(p=>(p.interested||[]).some(i=>i.id==='ext_'+name));
-          return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-m);flex-wrap:wrap;">
-            <span style="font-size:18px;font-weight:700;min-width:160px;">${esc(name)}</span>
-            <span style="font-size:18px;color:var(--fg);">${hatPkgs.length?'Entered: '+hatPkgs.map(p=>'Pkg '+p.pkgId.replace('pkg_','')).join(', '):'Not entered yet'}</span>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
-              ${pkgs.filter(p=>!(p.interested||[]).some(i=>i.id==='ext_'+name)).map(p=>`<button class="btn-ghost btn-sm" onclick="doThrowHat('${esc(l._id)}','${esc(p.pkgId)}','${esc(name)}')">Enter Pkg ${p.pkgId.replace('pkg_','')}</button>`).join('')}
-              ${hatPkgs.map(p=>`<button class="btn-del" style="padding:3px 8px;" onclick="doRemoveHat('${esc(l._id)}','${esc(p.pkgId)}','ext_${esc(name)}')">Leave Pkg ${p.pkgId.replace('pkg_','')}</button>`).join('')}
-              <button class="btn-del" onclick="doRemoveExternalName('${esc(l._id)}','${esc(name)}')">Remove</button>
-            </div>
-          </div>`;
-        }).join('')}
+        ${extNames.map(name=>renderExtNameRow(l,pkgs,name)).join('')}
       </div>`:`<div style="font-size:18px;color:var(--fg);padding:12px 0;">No external participants added.</div>`}
+      </div>
     </div>`:''}`;
+}
+
+function renderExtNameRow(l, pkgs, name) {
+  const entered=pkgs.filter(p=>(p.interested||[]).some(i=>i.id==='ext_'+name));
+  return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-m);flex-wrap:wrap;">
+    <span style="font-size:18px;font-weight:700;min-width:160px;">${esc(name)}</span>
+    <span style="font-size:18px;color:var(--fg);">${entered.length?'Entered: '+entered.map(p=>'Pkg '+p.pkgId.replace('pkg_','')).join(', '):'Not entered yet'}</span>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
+      ${pkgs.filter(p=>!(p.interested||[]).some(i=>i.id==='ext_'+name)).map(p=>`<button class="btn-ghost btn-sm" onclick="doThrowHat('${esc(l._id)}','${esc(p.pkgId)}','${esc(name)}')">Enter Pkg ${p.pkgId.replace('pkg_','')}</button>`).join('')}
+      ${entered.map(p=>`<button class="btn-del" style="padding:3px 8px;" onclick="doRemoveHat('${esc(l._id)}','${esc(p.pkgId)}','ext_${esc(name)}')">Leave Pkg ${p.pkgId.replace('pkg_','')}</button>`).join('')}
+      <button class="btn-del" onclick="doRemoveExternalName('${esc(l._id)}','${esc(name)}')">Remove</button>
+    </div>
+  </div>`;
+}
+
+// Targeted refresh for the open lottery view — preserves scroll and focus
+function refreshLotteryOpenView(lotteryId) {
+  const l=state.lotteries.find(x=>x._id===lotteryId);
+  if(!l) return;
+  const pkgs=(l.packages||[]).slice().sort((a,b)=>b.totalValue-a.totalValue);
+  const extNames=l.externalNames||[];
+  const u=state.user;
+
+  // Update packages grid
+  const pkgsEl=document.getElementById('lottery-open-pkgs');
+  if(pkgsEl) pkgsEl.innerHTML=pkgs.map(pkg=>renderPackageCard(pkg,l,false)).join('');
+
+  // Update external participants list
+  const extEl=document.getElementById('lottery-ext-list');
+  if(extEl) extEl.innerHTML=extNames.length?`
+    <div style="margin-bottom:24px;">
+      ${extNames.map(name=>renderExtNameRow(l,pkgs,name)).join('')}
+    </div>`:`<div style="font-size:18px;color:var(--fg);padding:12px 0;">No external participants added.</div>`;
+
+  // Update status bar entry count
+  const totalEntries=pkgs.reduce((s,p)=>s+(p.interested||[]).length,0);
+  const statusEl=document.getElementById('lottery-open-status');
+  if(statusEl) statusEl.textContent=`${totalEntries} entr${totalEntries!==1?'ies':'y'} across ${pkgs.length} packages.`;
 }
 
 function renderLotteryDrawnDetail(l) {
@@ -3437,14 +3467,29 @@ async function removeLotteryItem(lotteryId, itemId) {
 
 
 async function doGeneratePackages(lotteryId) {
-  const n=parseInt((document.getElementById('pkg-count')||{value:'2'}).value)||2;
+  const n=lotteryPkgCount;
   if(n<2||n>20){alert('Package count must be 2–20');return;}
   try {
     await convexMutation('lotteries:generatePackages',{sessionToken:state.sessionToken,lotteryId,packageCount:n});
     toast(`${n} packages generated`);
     await refreshAll();
-    const pw=document.getElementById('page-wrap');
-    if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+    // Only update the packages preview section, preserving the pkg-count input
+    const preview=document.getElementById('lottery-pkgs-preview');
+    if(preview){
+      const l=state.lotteries.find(x=>x._id===lotteryId);
+      const pkgs=l?l.packages||[]:[];
+      preview.innerHTML=pkgs.length?`
+        <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">Generated Packages Preview</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+          ${pkgs.map(pkg=>renderPackageCard(pkg,l,true)).join('')}
+        </div>`:'';
+      // Update the "X packages generated" status line inside the generate box
+      const genStatus=document.getElementById('lottery-gen-status');
+      if(genStatus) genStatus.innerHTML=pkgs.length?`<div style="margin-top:10px;font-size:18px;color:#22c55e;font-weight:700;">${pkgs.length} packages generated</div>`:'';
+    } else {
+      const pw=document.getElementById('page-wrap');
+      if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+    }
   } catch(e){alert(e.message);}
 }
 
@@ -3494,8 +3539,7 @@ async function doThrowHat(lotteryId, pkgId, externalName) {
   try {
     await convexMutation('lotteries:throwHat',args);
     await refreshAll();
-    const pw=document.getElementById('page-wrap');
-    if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+    refreshLotteryOpenView(lotteryId);
   } catch(e){alert(e.message);}
 }
 
@@ -3503,8 +3547,7 @@ async function doRemoveHat(lotteryId, pkgId, participantId) {
   try {
     await convexMutation('lotteries:removeHat',{sessionToken:state.sessionToken,lotteryId,pkgId,participantId});
     await refreshAll();
-    const pw=document.getElementById('page-wrap');
-    if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+    refreshLotteryOpenView(lotteryId);
   } catch(e){alert(e.message);}
 }
 
@@ -3514,9 +3557,9 @@ async function doAddExternalName(lotteryId) {
   if(!name){alert('Enter a name');return;}
   try {
     await convexMutation('lotteries:addExternalName',{sessionToken:state.sessionToken,lotteryId,name});
+    if(inp) inp.value='';
     await refreshAll();
-    const pw=document.getElementById('page-wrap');
-    if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+    refreshLotteryOpenView(lotteryId);
   } catch(e){alert(e.message);}
 }
 
@@ -3524,8 +3567,7 @@ async function doRemoveExternalName(lotteryId, name) {
   try {
     await convexMutation('lotteries:removeExternalName',{sessionToken:state.sessionToken,lotteryId,name});
     await refreshAll();
-    const pw=document.getElementById('page-wrap');
-    if(pw) pw.innerHTML=`<div class="page">${pageLottery()}</div>`;
+    refreshLotteryOpenView(lotteryId);
   } catch(e){alert(e.message);}
 }
 
