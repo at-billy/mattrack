@@ -159,12 +159,12 @@ export const openLottery = mutation({
     if (!lottery) throw new Error("Lottery not found");
     if (!lottery.packages?.length) throw new Error("Generate packages first");
     if (lottery.status !== "draft") throw new Error("Lottery must be in draft status to open");
-    // Clear any existing hat-throw state when opening
+    // Clear winners only — keep entries (interested) and external names
     const packages = (lottery.packages ?? []).map(p => {
-      const { interested: _i, winner: _w, ...rest } = p as any;
+      const { winner: _w, ...rest } = p as any;
       return rest;
     });
-    await ctx.db.patch(lotteryId, { status: "open", packages, externalNames: [] });
+    await ctx.db.patch(lotteryId, { status: "open", packages });
     await ctx.db.insert("archive", {
       type: "lottery_opened",
       userId: user._id,
