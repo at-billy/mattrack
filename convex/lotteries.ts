@@ -233,12 +233,12 @@ export const backToDraft = mutation({
     if (!user.roles.includes("admin")) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
-    // Clear all picks/hat-throws/winners when reverting to draft
+    // Clear winners/picks only — keep entries (interested) and external names
     const packages = (lottery.packages ?? []).map(p => {
-      const { pickedBy: _pb, pickedByName: _pbn, interested: _i, winner: _w, ...rest } = p as any;
+      const { pickedBy: _pb, pickedByName: _pbn, winner: _w, ...rest } = p as any;
       return rest;
     });
-    await ctx.db.patch(lotteryId, { status: "draft", packages, externalNames: [] });
+    await ctx.db.patch(lotteryId, { status: "draft", packages });
   },
 });
 
