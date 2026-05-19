@@ -3251,6 +3251,7 @@ function renderLotteryOpenDetail(l) {
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
         <input type="text" id="ext-name-input" placeholder="Member name (not signed up)…" style="max-width:300px;margin:0;">
         <button class="btn btn-black btn-sm" onclick="doAddExternalName('${esc(l._id)}')">Add</button>
+        ${extNames.length?`<button class="btn btn-black btn-sm" style="margin-left:8px;" onclick="doEnterAllNamesAllPackages('${esc(l._id)}')">Enter All Names in All Packages</button>`:''}
       </div>
       <div id="lottery-ext-list">
       ${extNames.length?`
@@ -3263,10 +3264,12 @@ function renderLotteryOpenDetail(l) {
 
 function renderExtNameRow(l, pkgs, name) {
   const entered=pkgs.filter(p=>(p.interested||[]).some(i=>i.id==='ext_'+name));
+  const notEntered=pkgs.filter(p=>!(p.interested||[]).some(i=>i.id==='ext_'+name));
   return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-m);flex-wrap:wrap;">
     <span style="font-size:18px;font-weight:700;min-width:160px;">${esc(name)}</span>
     <span style="font-size:18px;color:var(--fg);">${entered.length?'Entered: '+entered.map(p=>'Pkg '+p.pkgId.replace('pkg_','')).join(', '):'Not entered yet'}</span>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
+      ${notEntered.length?`<button class="btn btn-black btn-sm" onclick="doEnterAllPackages('${esc(l._id)}','${esc(name)}')">Enter All</button>`:''}
       ${pkgs.map(p=>{
         const isIn=(p.interested||[]).some(i=>i.id==='ext_'+name);
         const n=p.pkgId.replace('pkg_','');
@@ -3575,6 +3578,37 @@ async function doRemoveExternalName(lotteryId, name) {
     await refreshAll();
     refreshLotteryOpenView(lotteryId);
   } catch(e){alert(e.message);}
+}
+
+async function doEnterAllPackages(lotteryId, externalName) {
+  const l=state.lotteries.find(x=>x._id===lotteryId);
+  if(!l) return;
+  const pkgs=(l.packages||[]);
+  const notEntered=pkgs.filter(p=>!(p.interested||[]).some(i=>i.id==='ext_'+externalName));
+  for(const p of notEntered){
+    try {
+      await convexMutation('lotteries:throwHat',{sessionToken:state.sessionToken,lotteryId,pkgId:p.pkgId,externalName});
+    } catch(e){ /* skip if already entered */ }
+  }
+  await refreshAll();
+  refreshLotteryOpenView(lotteryId);
+}
+
+async function doEnterAllNamesAllPackages(lotteryId) {
+  const l=state.lotteries.find(x=>x._id===lotteryId);
+  if(!l) return;
+  const pkgs=(l.packages||[]);
+  const extNames=(l.externalNames||[]);
+  for(const name of extNames){
+    const notEntered=pkgs.filter(p=>!(p.interested||[]).some(i=>i.id==='ext_'+name));
+    for(const p of notEntered){
+      try {
+        await convexMutation('lotteries:throwHat',{sessionToken:state.sessionToken,lotteryId,pkgId:p.pkgId,externalName:name});
+      } catch(e){ /* skip if already entered */ }
+    }
+  }
+  await refreshAll();
+  refreshLotteryOpenView(lotteryId);
 }
 
 async function doRunDraw(lotteryId) {
