@@ -1134,7 +1134,7 @@ function pageOverview() {
   const pendingCnt = state.allUsers.filter(u=>u.roles.some(r=>r.endsWith('_pending'))).length;
 
   // Recent log (last 7)
-  const recentLog = state.archive.slice(0,7);
+  const recentLog = state.archive.filter(e => !LOTTERY_LOG_TYPES.has(e.type)).slice(0,7);
 
   // Open tasks sorted by priority
   const prioOrder = {urgent:0,high:1,normal:2,whenever:3};
@@ -1964,14 +1964,17 @@ function pageArchive(){
     <div id="archive-table">${renderArchiveTable()}</div>`;
 }
 
+const LOTTERY_LOG_TYPES = new Set(['lottery_opened','lottery_drawn','lottery_pick']);
+
 function renderArchiveTable(openMonths){
-  if(!state.archive.length) return `<div class="empty">No actions logged yet.</div>`;
+  const entries = state.archive.filter(e => !LOTTERY_LOG_TYPES.has(e.type));
+  if(!entries.length) return `<div class="empty">No actions logged yet.</div>`;
 
   const groups = {};
   const now = new Date();
   const currentKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
-  for(const e of state.archive){
+  for(const e of entries){
     const d = new Date(e._creationTime);
     const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     if(!groups[key]){
@@ -2050,7 +2053,7 @@ function pageMember() {
   const u = state.user;
   const noAdmin = !hasAdmin();
   // Activity from archive filtered to this user
-  const myLog = state.archive.filter(e => e.userId === u._id);
+  const myLog = state.archive.filter(e => e.userId === u._id && !LOTTERY_LOG_TYPES.has(e.type));
   const myMatsAdded   = myLog.filter(e=>e.type==='material_added').length;
   const myMatsRemoved = myLog.filter(e=>e.type==='material_removed').length;
   const myCrafted     = myLog.filter(e=>e.type==='crafted').length;

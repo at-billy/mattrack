@@ -165,12 +165,6 @@ export const openLottery = mutation({
       return rest;
     });
     await ctx.db.patch(lotteryId, { status: "open", packages });
-    await ctx.db.insert("archive", {
-      type: "lottery_opened",
-      userId: user._id,
-      userName: user.username,
-      details: { title: lottery.title, packages: packages.length },
-    });
   },
 });
 
@@ -199,12 +193,6 @@ export const pickPackage = mutation({
       p.pkgId === pkgId ? { ...p, pickedBy: user._id, pickedByName: user.username } : p
     );
     await ctx.db.patch(lotteryId, { packages: newPackages });
-    await ctx.db.insert("archive", {
-      type: "lottery_pick",
-      userId: user._id,
-      userName: user.username,
-      details: { lotteryTitle: lottery.title, pkgId, value: pkg.totalValue },
-    });
   },
 });
 
@@ -391,11 +379,5 @@ export const runDraw = mutation({
     }
 
     await ctx.db.patch(lotteryId, { packages, status: "drawn" });
-    await ctx.db.insert("archive", {
-      type: "lottery_drawn",
-      userId: user._id,
-      userName: user.username,
-      details: { title: lottery.title, packagesCount: packages.length },
-    });
   },
 });
