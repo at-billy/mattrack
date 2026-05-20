@@ -3251,10 +3251,23 @@ function renderLotteryOpenDetail(l) {
     <hr class="thick">
     <div style="margin-top:40px;">
       <div style="font-size:18px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">External Participants</div>
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
         <input type="text" id="ext-name-input" placeholder="Member name (not signed up)…" style="max-width:300px;margin:0;">
         <button class="btn btn-black btn-sm" onclick="doAddExternalName('${esc(l._id)}')">Add</button>
         ${extNames.length?`<button class="btn btn-black btn-sm" style="margin-left:8px;" onclick="doEnterAllNamesAllPackages('${esc(l._id)}')">Enter All Names in All Packages</button>`:''}
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:18px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;">Import List</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap;">
+          <textarea id="ext-bulk-input" placeholder="One name per line…" style="width:300px;height:100px;resize:vertical;border:1.5px solid #000;padding:8px 12px;font-size:18px;font-family:inherit;background:var(--bg);color:var(--fg);"></textarea>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="btn btn-black btn-sm" onclick="doBulkAddNames('${esc(l._id)}')">Import Pasted List</button>
+            <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;">
+              Import from File
+              <input type="file" accept=".txt" style="display:none;" onchange="doBulkAddFromFile('${esc(l._id)}',this)">
+            </label>
+          </div>
+        </div>
       </div>
       <div id="lottery-ext-list">
       ${extNames.length?`
@@ -3573,6 +3586,28 @@ async function doAddExternalName(lotteryId) {
     await refreshAll();
     refreshLotteryOpenView(lotteryId);
   } catch(e){alert(e.message);}
+}
+
+async function doBulkAddNames(lotteryId, rawText) {
+  const text = rawText !== undefined ? rawText : (document.getElementById('ext-bulk-input')?.value || '');
+  const names = text.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+  if(!names.length){ alert('No names found.'); return; }
+  try {
+    const added = await convexMutation('lotteries:bulkAddExternalNames', {sessionToken:state.sessionToken, lotteryId, names});
+    const inp = document.getElementById('ext-bulk-input');
+    if(inp) inp.value = '';
+    await refreshAll();
+    refreshLotteryOpenView(lotteryId);
+    toast(`Added ${added} name${added!==1?'s':''}.`);
+  } catch(e){ alert(e.message); }
+}
+
+async function doBulkAddFromFile(lotteryId, input) {
+  const file = input.files?.[0];
+  if(!file) return;
+  const text = await file.text();
+  input.value = '';
+  await doBulkAddNames(lotteryId, text);
 }
 
 async function doRemoveExternalName(lotteryId, name) {

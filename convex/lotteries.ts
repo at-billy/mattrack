@@ -258,6 +258,24 @@ export const addExternalName = mutation({
   },
 });
 
+export const bulkAddExternalNames = mutation({
+  args: { sessionToken: v.string(), lotteryId: v.id("lotteries"), names: v.array(v.string()) },
+  handler: async (ctx, { sessionToken, lotteryId, names }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    const lottery = await ctx.db.get(lotteryId);
+    if (!lottery) throw new Error("Lottery not found");
+    if (lottery.status !== "open") throw new Error("Can only add names to open lotteries");
+    const existing = new Set((lottery.externalNames ?? []).map((n: string) => n.toLowerCase()));
+    const toAdd = names
+      .map((n: string) => n.trim())
+      .filter((n: string) => n.length > 0 && !existing.has(n.toLowerCase()));
+    if (toAdd.length === 0) throw new Error("No new names to add (all duplicates or empty)");
+    await ctx.db.patch(lotteryId, { externalNames: [...(lottery.externalNames ?? []), ...toAdd] });
+    return toAdd.length;
+  },
+});
+
 export const removeExternalName = mutation({
   args: { sessionToken: v.string(), lotteryId: v.id("lotteries"), name: v.string() },
   handler: async (ctx, { sessionToken, lotteryId, name }) => {
