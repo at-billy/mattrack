@@ -1065,7 +1065,8 @@ function renderNav() {
   const u=state.user; if(!u) return;
   // Map currentPage → main nav section
   const inCraft=['craft','materials','inventory'];
-  const inLog=['archive','admin','member','lottery'];
+  const inLog=['archive','admin','member',...(isAdmin(u)?['lottery']:[])];
+
   let main='mat';
   if(currentPage==='tasks') main='task';
   else if(inCraft.includes(currentPage)) main='craft';
@@ -1095,7 +1096,7 @@ function renderNav() {
     sub=`
       <div class="nav-sub-item${currentPage==='archive'?' active':''}" onclick="goTo('archive')">Log</div>
       ${isAdmin(u)?`<div class="nav-sub-item${currentPage==='admin'?' active':''}" onclick="goTo('admin')">Admin</div>`:''}
-      <div class="nav-sub-item${currentPage==='lottery'?' active':''}" onclick="goTo('lottery')">Lottery${openLotteries?' ('+openLotteries+')':''}</div>
+      ${isAdmin(u)?`<div class="nav-sub-item${currentPage==='lottery'?' active':''}" onclick="goTo('lottery')">Lottery${openLotteries?' ('+openLotteries+')':''}</div>`:''}
       <div class="nav-sub-item${currentPage==='member'?' active':''}" onclick="goTo('member')">${esc(u.username)}</div>
       <div class="nav-sub-item" onclick="doLogout()">Sign out</div>`;
   }
@@ -2984,6 +2985,7 @@ async function confirmCreateTask() {
 
 // ─── LOTTERY PAGE ─────────────────────────────────────────────────────────────
 function pageLottery() {
+  if(!isAdmin(state.user)){ currentPage='overview'; return pageOverview(); }
   if(lotteryView==='detail' && lotteryDetailId) return pageLotteryDetail();
   return pageLotteryList();
 }
