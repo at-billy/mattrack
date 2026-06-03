@@ -3107,7 +3107,7 @@ async function submitChangePassword(){
 // ─── WORKORDERS (pipeline spine) ───────────────────────────────────────────────
 function woStatusLabel(s){ return ({open:'Open',claimed:'Claimed',done:'Done',cancelled:'Cancelled'})[s]||s; }
 let woView='pickup';                       // subnav: pickup | crafting | distribution
-const WO_VIEW_KIND={pickup:'pickup',crafting:'craft',distribution:'distribution'};
+const WO_VIEW_KINDS={pickup:['pickup'],crafting:['delivery','craft'],distribution:['distribution']};
 let woStatusF='all', woSearch='', woSearchActive=false;
 function setWoView(v){ woView=v; woStatusF='all'; woSearch=''; woSearchActive=false; renderNav(); renderPage(); }
 function setWoStatusF(s){ woStatusF=s; rerenderWo(); }
@@ -3119,23 +3119,23 @@ function rerenderWo(){
   if(woSearchActive){ const i=document.getElementById('wo-search'); if(i){ i.focus(); const x=i.value; try{i.setSelectionRange(x.length,x.length);}catch(e){} } }
 }
 function woRows(){
-  const kind=WO_VIEW_KIND[woView];
+  const kinds=WO_VIEW_KINDS[woView];
   const order={open:0,claimed:1,done:2,cancelled:3};
-  let rows=state.workorders.filter(w=>w.kind===kind);
+  let rows=state.workorders.filter(w=>kinds.includes(w.kind));
   if(woStatusF!=='all') rows=rows.filter(w=>w.status===woStatusF);
   const q=woSearch.trim().toLowerCase();
   if(q) rows=rows.filter(w=>(w.location||'').toLowerCase().includes(q)||(w.note||'').toLowerCase().includes(q)||(w.items||[]).some(it=>it.name.toLowerCase().includes(q)));
   return [...rows].sort((a,b)=>(order[a.status]-order[b.status])||(b._creationTime-a._creationTime));
 }
 async function woAccept(id){ try{ await convexMutation('workorders:claim',{sessionToken:state.sessionToken,id}); toast('Accepted — you have it'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
-async function woComplete(id){ if(!await confirmModal('Mark complete? The materials move to the base.')) return; try{ await convexMutation('workorders:complete',{sessionToken:state.sessionToken,id}); toast('Delivered to base'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
+async function woComplete(id){ const wo=state.workorders.find(w=>w._id===id); const msg=wo&&wo.kind==='delivery'?'Confirm you received these materials? They move to At Base, held by you.':'Mark this pickup complete?'; if(!await confirmModal(msg)) return; try{ await convexMutation('workorders:complete',{sessionToken:state.sessionToken,id}); toast(wo&&wo.kind==='delivery'?'Received at base':'Pickup done'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 async function woAbandon(id){ if(!await confirmModal('Abandon this pickup? It goes back to open for someone else.')) return; try{ await convexMutation('workorders:unclaim',{sessionToken:state.sessionToken,id}); toast('Released'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 async function woDelete(id){ if(!await confirmModal('Delete this workorder permanently?')) return; try{ await convexMutation('workorders:remove',{sessionToken:state.sessionToken,id}); toast('Deleted'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 
 function pageWorkorders(){
-  const kind=WO_VIEW_KIND[woView];
-  const open=state.workorders.filter(w=>w.kind===kind&&w.status==='open').length;
-  const label={pickup:'open pickup',crafting:'open craft order',distribution:'open distribution'}[woView];
+  const kinds=WO_VIEW_KINDS[woView];
+  const open=state.workorders.filter(w=>kinds.includes(w.kind)&&w.status==='open').length;
+  const label={pickup:'open pickup',crafting:'open delivery',distribution:'open distribution'}[woView];
   return `
     <div class="page-head">
       <div class="page-head-left"><div class="page-lead">${open} ${label}${open===1?'':'s'}</div></div>
@@ -3157,20 +3157,19 @@ function renderWoControls(){
 }
 
 function renderWoList(){
-  if(woView!=='pickup'){
-    return `<div class="empty">${woView==='crafting'?'Craft work orders arrive in the crafting step.':'Distribution work orders arrive in the distribution step.'}</div>`;
-  }
+  if(woView==='distribution') return `<div class="empty">Distribution work orders arrive in the distribution step.</div>`;
   const rows=woRows();
-  if(!rows.length) return `<div class="empty">No pickups yet. Add materials to stock and they appear here.</div>`;
+  if(!rows.length) return `<div class="empty">${woView==='pickup'?'No pickups yet. Add materials to stock and they appear here.':'No deliveries yet. When logistics accepts a pickup, a delivery shows up here for a crafter to receive.'}</div>`;
   const u=state.user;
-  const canMove=isLogistics(u)||isAdmin(u);
   return `<table class="cards">
     <thead><tr><th>Location</th><th>Items</th><th>Status</th><th>Accepted by</th><th>By</th><th></th></tr></thead>
     <tbody>${rows.map(w=>{
-      const mine = w.claimedById===u._id;
-      const canAccept   = w.status==='open' && canMove;
-      const canFinish   = w.status==='claimed' && (isAdmin(u)||mine);
-      const canDelete   = w.status==='done' && (isAdmin(u)||w.createdBy===u._id);
+      const actRole = w.kind==='pickup' ? 'logistics' : 'crafter';
+      const canAct  = isAdmin(u)||hasRole(u,actRole);
+      const mine    = w.claimedById===u._id;
+      const canAccept = w.status==='open' && canAct;
+      const canFinish = w.status==='claimed' && (isAdmin(u)||mine);
+      const canDelete = w.status==='done' && (isAdmin(u)||w.createdBy===u._id);
       const items=w.items||[];
       const itemsHtml = items.length ? items.map(it=>`${esc(it.name)}${it.qualityStep?` Q${it.qualityStep}`:''} ×${it.qty} ${esc(it.unit)}`).join('<br>') : '—';
       return `<tr>

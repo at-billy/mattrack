@@ -194,11 +194,12 @@ export default defineSchema({
 
   // ── Workorders — the pipeline spine (pickup now; transport/craft/move later) ──
   workorders: defineTable({
-    kind: v.string(),                       // "pickup"
+    kind: v.string(),                       // "pickup" | "delivery" (craft/distribution later)
     status: v.string(),                     // "open" | "claimed" | "done" | "cancelled"
-    location: v.optional(v.string()),       // where the haul is (pickup source)
+    location: v.optional(v.string()),       // where the haul is (pickup source) / destination base
     system: v.optional(v.string()),
     note: v.optional(v.string()),
+    sourcePickupId: v.optional(v.id("workorders")), // delivery → the pickup it came from
     // pickup: the selected stock rows to collect from this location
     items: v.optional(v.array(v.object({
       stockId: v.id("stock"),
