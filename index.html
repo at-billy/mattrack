@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NAVYTRACK</title>
+<title>MATTRACK</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{--red:#cc0000;--mid:#888;--fg:#000;--bg:#fff;--bg2:#f5f5f5;--border:#000;--border-l:#e0e0e0;--border-m:#e8e8e8;}
@@ -1305,7 +1305,7 @@ function showSetup() {
   document.getElementById('root').innerHTML = `
     <div class="center-screen">
       <div class="auth-box" style="max-width:480px;">
-        <div class="auth-logo">NAVYTRACK</div>
+        <div class="auth-logo">MATTRACK</div>
         <div style="font-size:var(--text-md);color:var(--fg);margin-bottom:24px;text-align:center;">Connect to your Convex backend.</div>
         <div class="field">
           <label class="lbl">Convex Deployment URL</label>
@@ -1393,7 +1393,7 @@ function showAuth(tab='signin') {
   document.getElementById('root').innerHTML = `
     <div class="center-screen">
       <div class="auth-box">
-        <div class="auth-logo">NAVYTRACK</div>
+        <div class="auth-logo">MATTRACK</div>
         ${showTabs?`<div class="tabs">
           <button class="tab-btn${tab==='signin'?' active':''}" onclick="showAuth('signin')">Sign In</button>
           <button class="tab-btn${tab==='signup'?' active':''}" onclick="showAuth('signup')">Sign Up</button>
@@ -1478,7 +1478,7 @@ async function doSignUp() {
 }
 
 async function doLogout() {
-  if(!await confirmModal({title:'Sign out', body:'Sign out of Navytrack?', confirmLabel:'Sign out'})) return;
+  if(!await confirmModal({title:'Sign out', body:'Sign out of Mattrack?', confirmLabel:'Sign out'})) return;
   stopData();
   if(state.sessionToken) {
     try { await convexMutation('sessions:remove',{token:state.sessionToken}); } catch(e){}
@@ -1524,7 +1524,7 @@ function renderNav() {
   const u=state.user; if(!u) return;
   const recruit = isRecruit(u);
 
-  // Recruits: nav is locked — only NAVY visible, rest shown as lock
+  // Recruits: nav is locked — only MAT visible, rest shown as lock
   if(recruit){
     const sub=`
       <div class="nav-sub-item" style="cursor:default;">Welcome, ${esc(u.username)}</div>
@@ -1533,7 +1533,7 @@ function renderNav() {
     const el=document.getElementById('nav');
     el.innerHTML=`
       <div id="nav-primary">
-        <div class="nav-main active" onclick="goTo('overview')">NAVY</div>
+        <div class="nav-main active" onclick="goTo('overview')">MAT</div>
       </div>
       <div id="nav-sub">${sub}</div>`;
     a11yNavify();
@@ -1578,7 +1578,7 @@ function renderNav() {
   const el=document.getElementById('nav');
   el.innerHTML=`
     <div id="nav-primary">
-      <div class="nav-main${main==='mat'?' active':''}" onclick="goTo('overview')">NAVY</div>
+      <div class="nav-main${main==='mat'?' active':''}" onclick="goTo('overview')">MAT</div>
       <div class="nav-main${main==='task'?' active':''}" onclick="goTo('tasks')">TASK</div>
       <div class="nav-main${main==='items'?' active':''}" onclick="goTo('items')">ITEMS</div>
       <div class="nav-main outline${main==='log'?' active':''}" onclick="goTo('archive')">LOG</div>
