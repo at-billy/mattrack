@@ -144,4 +144,33 @@ export default defineSchema({
     userName: v.string(),
     details: v.any(),
   }),
+
+  // ── Reference databanks (admin-managed; seedable from game data) ──────────────
+  // Material definitions. Each material carries the game's quality grid: 10 steps,
+  // each with a value (0–1000). Values are per-material; placeholders for now.
+  materialCatalog: defineTable({
+    name: v.string(),
+    type: v.string(),     // "Mineable" | "Salvage" | "Loot"
+    category: v.string(), // e.g. "Ores", "FPS Mining"
+    unit: v.string(),     // "SCU" | "UNIT"
+    qualities: v.array(v.object({ step: v.number(), value: v.number() })), // steps 1..10
+  }).index("by_name", ["name"]),
+
+  // Craftable item definitions + their recipe (blueprint).
+  itemCatalog: defineTable({
+    name: v.string(),
+    category: v.string(),
+    recipe: v.array(v.object({
+      materialName: v.string(),
+      qty: v.number(),
+      unit: v.string(),
+    })),
+  }).index("by_name", ["name"]),
+
+  // Known locations.
+  locationCatalog: defineTable({
+    name: v.string(),
+    system: v.optional(v.string()),
+    isLevski: v.boolean(),
+  }).index("by_name", ["name"]),
 });

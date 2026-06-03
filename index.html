@@ -982,7 +982,7 @@ function compDefaultValue(comp) {
 // ─── CONFIG / STATE ───────────────────────────────────────────────────────────
 let CONVEX_URL = localStorage.getItem('mattrack_url') || 'https://focused-snake-268.convex.cloud';
 let currentPage = 'overview';
-const state = { user: null, sessionToken: null, navItems: [], archive: [], allUsers: [], tasks: [], lotteries: [], applications: [], logistics: [], passwordResets: [] };
+const state = { user: null, sessionToken: null, navItems: [], archive: [], allUsers: [], tasks: [], lotteries: [], applications: [], logistics: [], passwordResets: [], catalog: { materials: [], items: [], locations: [] } };
 // Archive pagination: state.archive holds the reactive recent window; archiveOlder
 // accumulates on-demand pages fetched via archive:loadOlder on the Log page.
 let archiveOlder = [];
@@ -1128,7 +1128,8 @@ function locationOptions(system) {
 async function refreshAll(silent=false) {
   try {
     const tok = state.sessionToken;
-    const [navItems, archive, allUsers, tasks, lotteries, applications, logistics, passwordResets] = await Promise.all([
+    const EMPTY_CAT = { materials: [], items: [], locations: [] };
+    const [navItems, archive, allUsers, tasks, lotteries, applications, logistics, passwordResets, catalog] = await Promise.all([
       convexQuery('items:getAll',{sessionToken:tok}).catch(()=>[]),
       convexQuery('archive:getAll',{sessionToken:tok}).catch(()=>[]),
       convexQuery('users:getAllUsers',{sessionToken:tok}).catch(()=>[]),
@@ -1137,6 +1138,7 @@ async function refreshAll(silent=false) {
       convexQuery('applications:getAll',{sessionToken:tok}).catch(()=>[]),
       convexQuery('logistics:getAll',{sessionToken:tok}).catch(()=>[]),
       convexQuery('passwordResets:list',{sessionToken:tok}).catch(()=>[]),
+      convexQuery('catalog:getAll',{sessionToken:tok}).catch(()=>EMPTY_CAT),
     ]);
     state.navItems      = navItems      || [];
     state.archive       = archive       || [];
@@ -1146,6 +1148,7 @@ async function refreshAll(silent=false) {
     state.applications  = applications  || [];
     state.logistics     = logistics     || [];
     state.passwordResets = passwordResets || [];
+    state.catalog       = catalog       || EMPTY_CAT;
     // Sync logged-in user's roles from server
     if(state.user) {
       const fresh=state.allUsers.find(u=>u._id===state.user._id);
@@ -1168,6 +1171,7 @@ const REALTIME_TABLES = [
   ['applications', 'getAll', 'applications'],
   ['logistics',    'getAll', 'logistics'],
   ['passwordResets', 'list', 'passwordResets'],
+  ['catalog',      'getAll', 'catalog'],
 ];
 
 function startData() {
@@ -1563,7 +1567,7 @@ function renderNav() {
     return;
   }
 
-  const inLog=['archive','admin','member',...(canManageLottery(u)?['lottery']:[])];
+  const inLog=['archive','admin','member','catalog',...(canManageLottery(u)?['lottery']:[])];
   let main='mat';
   if(currentPage==='tasks') main='task';
   else if(currentPage==='items') main='items';
@@ -1592,6 +1596,7 @@ function renderNav() {
     sub=`
       <div class="nav-sub-item${currentPage==='archive'?' active':''}" onclick="goTo('archive')">Log</div>
       ${isAdmin(u)?`<div class="nav-sub-item${currentPage==='admin'?' active':''}" onclick="goTo('admin')">${(()=>{const pending=state.allUsers.filter(u=>(u.requestedRoles||[]).length>0).length+state.passwordResets.length;return `Admin${pending?` (${pending})`:''}`})()}</div>`:''}
+      ${isAdmin(u)?`<div class="nav-sub-item${currentPage==='catalog'?' active':''}" onclick="goTo('catalog')">Catalog</div>`:''}
       ${canManageLottery(u)?`<div class="nav-sub-item${currentPage==='lottery'?' active':''}" onclick="goTo('lottery')">Lottery${openLotteries?' ('+openLotteries+')':''}</div>`:''}
       <div class="nav-sub-item${currentPage==='member'?' active':''}" onclick="goTo('member')">${esc(u.username)}</div>
       <div class="nav-sub-item" onclick="doLogout()">Sign out</div>`;
@@ -1632,7 +1637,7 @@ function renderPageContent() {
   } else {
     document.body.classList.remove('fp-on');
     pw.style.marginTop=navH+'px';
-    const pages={overview:pageOverview,items:pageItems,tasks:pageTasks,archive:pageArchive,admin:pageAdmin,member:pageMember,lottery:pageLottery};
+    const pages={overview:pageOverview,items:pageItems,tasks:pageTasks,archive:pageArchive,admin:pageAdmin,member:pageMember,lottery:pageLottery,catalog:pageCatalog};
     pw.innerHTML=`<div class="page">${(pages[currentPage]||pageOverview)()}</div>`;
   }
 }
@@ -3084,6 +3089,228 @@ async function submitChangePassword(){
 }
 
 // ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
+// ─── CATALOG (reference databanks: materials, items+recipes, locations) ─────────
+let catalogTab = 'materials';
+const MAT_TYPES = ['Mineable','Salvage','Loot'];
+const CAT_UNITS = ['SCU','UNIT'];
+function setCatalogTab(t){ catalogTab=t; renderPage(); renderNav(); }
+
+function pageCatalog(){
+  const u=state.user;
+  if(!isAdmin(u)){ currentPage='overview'; return pageOverview(); }
+  const cat=state.catalog||{materials:[],items:[],locations:[]};
+  const counts={materials:cat.materials.length,items:cat.items.length,locations:cat.locations.length};
+  const addLabel={materials:'Material',items:'Item',locations:'Location'}[catalogTab];
+  const addFn={materials:'openMaterialModal()',items:'openItemModal()',locations:'openLocationModal()'}[catalogTab];
+  const tab=(id,label)=>`<button class="btn-ghost btn-sm${catalogTab===id?' active':''}" onclick="setCatalogTab('${id}')">${label} (${counts[id]})</button>`;
+  const empty = !cat.materials.length && !cat.items.length;
+  const body = catalogTab==='materials'?renderCatMaterials(cat.materials)
+    : catalogTab==='items'?renderCatItems(cat.items)
+    : renderCatLocations(cat.locations);
+  return `
+    <div class="page-head">
+      <div class="page-head-left"><div class="page-lead">Databanks</div></div>
+      <button class="btn btn-black" onclick="${addFn}">+ Add ${addLabel}</button>
+    </div>
+    <div id="catalog-content" style="margin-top:32px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+        ${tab('materials','Materials')}${tab('items','Items')}${tab('locations','Locations')}
+        <div style="flex:1;"></div>
+        ${empty?`<button class="btn-ghost btn-sm" onclick="importCatalogSeed()">Import seed data</button>`:''}
+      </div>
+      ${body}
+    </div>`;
+}
+
+function renderCatMaterials(mats){
+  if(!mats.length) return `<div class="empty">No materials yet. Add one, or import the seed data.</div>`;
+  const rows=[...mats].sort((a,b)=>a.name.localeCompare(b.name));
+  return `<table class="cards">
+    <thead><tr><th>Material</th><th>Type</th><th>Category</th><th>Unit</th><th>Quality steps 1–10</th><th></th></tr></thead>
+    <tbody>${rows.map(m=>`<tr>
+      <td data-label="Material" style="font-weight:700;">${esc(m.name)}</td>
+      <td data-label="Type">${esc(m.type)}</td>
+      <td data-label="Category">${esc(m.category||'—')}</td>
+      <td data-label="Unit">${esc(m.unit)}</td>
+      <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${[...(m.qualities||[])].sort((a,b)=>a.step-b.step).map(q=>q.value).join(' · ')||'—'}</td>
+      <td data-label="" style="white-space:nowrap;">
+        <button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="openMaterialModal('${esc(m._id)}')">Edit</button>
+        <button class="btn-del" onclick="deleteCatMaterial('${esc(m._id)}','${escJs(m.name)}')" aria-label="Delete">&times;</button>
+      </td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function renderCatItems(items){
+  if(!items.length) return `<div class="empty">No craftable items yet. Add a blueprint, or import the seed data.</div>`;
+  const rows=[...items].sort((a,b)=>a.name.localeCompare(b.name));
+  return `<table class="cards">
+    <thead><tr><th>Item</th><th>Category</th><th>Recipe</th><th></th></tr></thead>
+    <tbody>${rows.map(it=>`<tr>
+      <td data-label="Item" style="font-weight:700;">${esc(it.name)}</td>
+      <td data-label="Category">${esc(it.category||'—')}</td>
+      <td data-label="Recipe" style="font-size:var(--text-sm);color:var(--fg);">${(it.recipe||[]).map(r=>`${esc(r.materialName)} ×${r.qty} ${esc(r.unit)}`).join(', ')||'—'}</td>
+      <td data-label="" style="white-space:nowrap;">
+        <button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="openItemModal('${esc(it._id)}')">Edit</button>
+        <button class="btn-del" onclick="deleteCatItem('${esc(it._id)}','${escJs(it.name)}')" aria-label="Delete">&times;</button>
+      </td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+function renderCatLocations(locs){
+  if(!locs.length) return `<div class="empty">No locations yet.</div>`;
+  const rows=[...locs].sort((a,b)=>a.name.localeCompare(b.name));
+  return `<table class="cards">
+    <thead><tr><th>Location</th><th>System</th><th>Levski</th><th></th></tr></thead>
+    <tbody>${rows.map(l=>`<tr>
+      <td data-label="Location" style="font-weight:700;">${esc(l.name)}</td>
+      <td data-label="System">${esc(l.system||'—')}</td>
+      <td data-label="Levski">${l.isLevski?'<span class="item-cat-tag">Levski</span>':'—'}</td>
+      <td data-label="" style="white-space:nowrap;">
+        <button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="openLocationModal('${esc(l._id)}')">Edit</button>
+        <button class="btn-del" onclick="deleteCatLocation('${esc(l._id)}','${escJs(l.name)}')" aria-label="Delete">&times;</button>
+      </td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// ── Material modal ──
+function openMaterialModal(id){
+  const m = id ? state.catalog.materials.find(x=>x._id===id) : null;
+  const q = {}; if(m) for(const x of (m.qualities||[])) q[x.step]=x.value;
+  const qInputs = Array.from({length:10},(_,i)=>{const s=i+1;return `<div style="display:flex;align-items:center;gap:8px;">
+    <span style="width:34px;font-size:var(--text-sm);color:var(--fg);">Q${s}</span>
+    <input id="mq-${s}" type="number" step="any" value="${m?(q[s]??s):s}" style="width:100%;">
+  </div>`;}).join('');
+  showModal(`
+    <div class="modal-title">${m?'Edit material':'New material'}</div>
+    <div class="field"><label class="lbl">Name</label><input id="m-name" type="text" value="${m?esc(m.name):''}" placeholder="e.g. Hadanite"></div>
+    <div class="grid2">
+      <div class="field"><label class="lbl">Type</label><select id="m-type">${MAT_TYPES.map(t=>`<option${m&&m.type===t?' selected':''}>${t}</option>`).join('')}</select></div>
+      <div class="field"><label class="lbl">Unit</label><select id="m-unit">${CAT_UNITS.map(t=>`<option${m&&m.unit===t?' selected':''}>${t}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label class="lbl">Category</label><input id="m-cat" type="text" value="${m?esc(m.category||''):''}" placeholder="e.g. Ores"></div>
+    <div class="field"><label class="lbl">Quality values (steps 1–10)</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;margin-top:6px;">${qInputs}</div>
+      <div style="font-size:var(--text-sm);color:var(--fg);margin-top:6px;">Placeholder 1–10 for now — fill in the real game values later.</div>
+    </div>
+    <div class="err-msg" id="m-err"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-black" onclick="saveCatMaterial(${m?`'${esc(m._id)}'`:'null'})">Save</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+async function saveCatMaterial(id){
+  const name=(document.getElementById('m-name')||{value:''}).value.trim();
+  const type=document.getElementById('m-type').value;
+  const unit=document.getElementById('m-unit').value;
+  const category=document.getElementById('m-cat').value.trim();
+  if(!name){showErr('m-err','Name is required');return;}
+  const qualities=Array.from({length:10},(_,i)=>({step:i+1,value:Number(document.getElementById('mq-'+(i+1)).value)}));
+  try{
+    await convexMutation('catalog:upsertMaterial',{sessionToken:state.sessionToken,id:id||undefined,name,type,category,unit,qualities});
+    toast('Material saved'); closeModal(); await refreshAll(); renderPage();
+  }catch(e){showErr('m-err',e.message);}
+}
+async function deleteCatMaterial(id,name){
+  if(!await confirmModal(`Delete material "${name}" from the databank?`)) return;
+  try{ await convexMutation('catalog:deleteMaterial',{sessionToken:state.sessionToken,id}); toast('Material deleted'); await refreshAll(); renderPage(); }catch(e){notifyError(e);}
+}
+
+// ── Item / recipe modal ──
+function recipeRowHtml(materials, r){
+  const opts=materials.map(m=>`<option value="${esc(m.name)}"${r&&r.materialName===m.name?' selected':''}>${esc(m.name)}</option>`).join('');
+  return `<div class="recipe-row" style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
+    <select class="rr-mat" style="flex:1;"><option value="">— material —</option>${opts}</select>
+    <input class="rr-qty" type="number" step="any" placeholder="qty" value="${r?r.qty:''}" style="width:90px;">
+    <select class="rr-unit" style="width:90px;">${CAT_UNITS.map(t=>`<option${r&&r.unit===t?' selected':''}>${t}</option>`).join('')}</select>
+    <button class="btn-del" onclick="this.closest('.recipe-row').remove()" aria-label="Remove">&times;</button>
+  </div>`;
+}
+function addRecipeRow(){
+  const box=document.getElementById('recipe-rows'); if(!box) return;
+  box.insertAdjacentHTML('beforeend', recipeRowHtml(state.catalog.materials, null));
+}
+function openItemModal(id){
+  const it = id ? state.catalog.items.find(x=>x._id===id) : null;
+  const mats = state.catalog.materials;
+  const rows = (it&&it.recipe&&it.recipe.length?it.recipe:[null]).map(r=>recipeRowHtml(mats,r)).join('');
+  showModal(`
+    <div class="modal-title">${it?'Edit item':'New item (blueprint)'}</div>
+    <div class="field"><label class="lbl">Name</label><input id="it-name" type="text" value="${it?esc(it.name):''}" placeholder="e.g. P8-SC SMG"></div>
+    <div class="field"><label class="lbl">Category</label><input id="it-cat" type="text" value="${it?esc(it.category||''):''}" placeholder="e.g. fps_weapon"></div>
+    <div class="field"><label class="lbl">Recipe (materials needed)</label>
+      ${mats.length?`<div id="recipe-rows" style="margin-top:6px;">${rows}</div>
+      <button class="btn-ghost btn-sm" style="margin-top:6px;" onclick="addRecipeRow()">+ Add material</button>`
+      :`<div style="font-size:var(--text-sm);color:var(--red);">Add materials to the catalog first, then build the recipe.</div><div id="recipe-rows"></div>`}
+    </div>
+    <div class="err-msg" id="it-err"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-black" onclick="saveCatItem(${it?`'${esc(it._id)}'`:'null'})">Save</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+async function saveCatItem(id){
+  const name=(document.getElementById('it-name')||{value:''}).value.trim();
+  const category=document.getElementById('it-cat').value.trim();
+  if(!name){showErr('it-err','Name is required');return;}
+  const recipe=[...document.querySelectorAll('#recipe-rows .recipe-row')].map(row=>({
+    materialName:row.querySelector('.rr-mat').value,
+    qty:Number(row.querySelector('.rr-qty').value),
+    unit:row.querySelector('.rr-unit').value,
+  })).filter(r=>r.materialName && r.qty>0);
+  try{
+    await convexMutation('catalog:upsertItem',{sessionToken:state.sessionToken,id:id||undefined,name,category,recipe});
+    toast('Item saved'); closeModal(); await refreshAll(); renderPage();
+  }catch(e){showErr('it-err',e.message);}
+}
+async function deleteCatItem(id,name){
+  if(!await confirmModal(`Delete item "${name}" from the databank?`)) return;
+  try{ await convexMutation('catalog:deleteItem',{sessionToken:state.sessionToken,id}); toast('Item deleted'); await refreshAll(); renderPage(); }catch(e){notifyError(e);}
+}
+
+// ── Location modal ──
+function openLocationModal(id){
+  const l = id ? state.catalog.locations.find(x=>x._id===id) : null;
+  showModal(`
+    <div class="modal-title">${l?'Edit location':'New location'}</div>
+    <div class="field"><label class="lbl">Name</label><input id="l-name" type="text" value="${l?esc(l.name):''}" placeholder="e.g. Levski"></div>
+    <div class="field"><label class="lbl">System</label><input id="l-sys" type="text" value="${l?esc(l.system||''):''}" placeholder="e.g. Stanton / Nyx"></div>
+    <label class="chk-row" style="margin-top:6px;"><input type="checkbox" id="l-levski"${l&&l.isLevski?' checked':''}> <span style="font-size:var(--text-md);">This is Levski (default destination for materials)</span></label>
+    <div class="err-msg" id="l-err"></div>
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button class="btn btn-black" onclick="saveCatLocation(${l?`'${esc(l._id)}'`:'null'})">Save</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+async function saveCatLocation(id){
+  const name=(document.getElementById('l-name')||{value:''}).value.trim();
+  const system=document.getElementById('l-sys').value.trim();
+  const isLevski=document.getElementById('l-levski').checked;
+  if(!name){showErr('l-err','Name is required');return;}
+  try{
+    await convexMutation('catalog:upsertLocation',{sessionToken:state.sessionToken,id:id||undefined,name,system:system||undefined,isLevski});
+    toast('Location saved'); closeModal(); await refreshAll(); renderPage();
+  }catch(e){showErr('l-err',e.message);}
+}
+async function deleteCatLocation(id,name){
+  if(!await confirmModal(`Delete location "${name}"?`)) return;
+  try{ await convexMutation('catalog:deleteLocation',{sessionToken:state.sessionToken,id}); toast('Location deleted'); await refreshAll(); renderPage(); }catch(e){notifyError(e);}
+}
+
+// ── Seed import ──
+async function importCatalogSeed(){
+  if(!await confirmModal('Import the seed materials and blueprints? Existing names are skipped.')) return;
+  try{
+    const res=await fetch('seed/catalog-seed.json',{cache:'no-store'});
+    if(!res.ok) throw new Error('Could not load seed file');
+    const seed=await res.json();
+    const materials=(seed.materials||[]).map(m=>({name:m.name,type:m.type||'Mineable',category:m.category||'',unit:m.unit||'SCU'}));
+    const items=(seed.items||[]).map(i=>({name:i.name,category:i.category||'',recipe:(i.recipe||[]).map(r=>({materialName:r.materialName,qty:Number(r.qty),unit:r.unit||'SCU'}))}));
+    const out=await convexMutation('catalog:importCatalog',{sessionToken:state.sessionToken,materials,items});
+    toast(`Imported ${out.matAdded} materials, ${out.itemAdded} items`);
+    await refreshAll(); renderPage();
+  }catch(e){ notifyError(e); }
+}
+
 function pageAdmin() {
   const u=state.user;
   if(!isAdmin(u)) return `<div class="page-head"><div class="page-title">Admin</div></div><p style="color:var(--fg);margin-top:24px;">Access denied.</p>`;
