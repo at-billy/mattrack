@@ -60,7 +60,8 @@ export const createPickupFromStock = mutation({
   },
 });
 
-// Logistics claims a pickup ("put your name on it").
+// Accept a pickup (logistics/admin): "put your name on it" — its stock goes
+// reported → in_transit so everyone sees it's being moved.
 export const claim = mutation({
   args: { sessionToken: v.string(), id: v.id("workorders") },
   handler: async (ctx, { sessionToken, id }) => {
@@ -69,11 +70,16 @@ export const claim = mutation({
     const wo = await ctx.db.get(id);
     if (!wo) throw new ConvexError("Workorder not found");
     if (wo.status !== "open") throw new ConvexError("Workorder is not open");
+    for (const it of wo.items ?? []) {
+      const s = await ctx.db.get(it.stockId);
+      if (s && s.status === "reported") await ctx.db.patch(it.stockId, { status: "in_transit" });
+    }
     await ctx.db.patch(id, { status: "claimed", claimedById: user._id, claimedByName: user.username });
   },
 });
 
-// Release a claim (the claimer or an admin).
+// Abandon an accepted pickup (the accepter or an admin): release it back to open
+// and its stock back to reported.
 export const unclaim = mutation({
   args: { sessionToken: v.string(), id: v.id("workorders") },
   handler: async (ctx, { sessionToken, id }) => {
@@ -82,22 +88,27 @@ export const unclaim = mutation({
     if (!wo) throw new ConvexError("Workorder not found");
     const isAdmin = user.roles.includes("admin");
     if (!isAdmin && wo.claimedById !== user._id) throw new ConvexError("Not authorized");
+    for (const it of wo.items ?? []) {
+      const s = await ctx.db.get(it.stockId);
+      if (s && s.status === "in_transit") await ctx.db.patch(it.stockId, { status: "reported" });
+    }
     await ctx.db.patch(id, { status: "open", claimedById: undefined, claimedByName: undefined });
   },
 });
 
-// Mark a pickup done (logistics/admin): the haul has reached the base, so its
-// stock moves in_transit → at_base.
+// Complete a pickup (the accepter or an admin): the haul reached the base, so its
+// stock moves to at_base.
 export const complete = mutation({
   args: { sessionToken: v.string(), id: v.id("workorders") },
   handler: async (ctx, { sessionToken, id }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    assertRole(user, ["logistics", "admin"]);
     const wo = await ctx.db.get(id);
     if (!wo) throw new ConvexError("Workorder not found");
+    const isAdmin = user.roles.includes("admin");
+    if (!isAdmin && wo.claimedById !== user._id) throw new ConvexError("Not authorized");
     for (const it of wo.items ?? []) {
       const s = await ctx.db.get(it.stockId);
-      if (s && s.status === "in_transit") await ctx.db.patch(it.stockId, { status: "at_base" });
+      if (s && (s.status === "in_transit" || s.status === "reported")) await ctx.db.patch(it.stockId, { status: "at_base" });
     }
     await ctx.db.patch(id, { status: "done" });
     await ctx.db.insert("archive", {

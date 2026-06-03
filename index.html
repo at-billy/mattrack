@@ -3104,8 +3104,7 @@ function woStatusLabel(s){ return ({open:'Open',claimed:'Claimed',done:'Done',ca
 let woView='pickup';                       // subnav: pickup | crafting | distribution
 const WO_VIEW_KIND={pickup:'pickup',crafting:'craft',distribution:'distribution'};
 let woStatusF='all', woSearch='', woSearchActive=false;
-let woSel=new Set();                       // selected open-pickup ids for bulk move
-function setWoView(v){ woView=v; woStatusF='all'; woSearch=''; woSearchActive=false; woSel.clear(); renderNav(); renderPage(); }
+function setWoView(v){ woView=v; woStatusF='all'; woSearch=''; woSearchActive=false; renderNav(); renderPage(); }
 function setWoStatusF(s){ woStatusF=s; rerenderWo(); }
 function toggleWoSearch(){ woSearchActive=!woSearchActive; if(!woSearchActive) woSearch=''; rerenderWo(); }
 function woSearchInput(v){ woSearch=v; const el=document.getElementById('wo-list'); if(el) el.innerHTML=renderWoList(); }
@@ -3123,15 +3122,9 @@ function woRows(){
   if(q) rows=rows.filter(w=>(w.location||'').toLowerCase().includes(q)||(w.note||'').toLowerCase().includes(q)||(w.items||[]).some(it=>it.name.toLowerCase().includes(q)));
   return [...rows].sort((a,b)=>(order[a.status]-order[b.status])||(b._creationTime-a._creationTime));
 }
-function woToggleSel(id){ if(woSel.has(id)) woSel.delete(id); else woSel.add(id); const c=document.getElementById('wo-controls'); if(c) c.innerHTML=renderWoControls(); }
-function woToggleSelAll(on){ const open=woRows().filter(w=>w.status==='open'); if(on) open.forEach(w=>woSel.add(w._id)); else open.forEach(w=>woSel.delete(w._id)); rerenderWo(); }
-async function woPickedUp(){
-  const openIds=new Set(state.workorders.filter(w=>w.kind==='pickup'&&w.status==='open').map(w=>w._id));
-  const ids=[...woSel].filter(id=>openIds.has(id));
-  if(!ids.length){ toast('Select open pickups first'); return; }
-  if(!await confirmModal(`Mark ${ids.length} pickup${ids.length===1?'':'s'} as picked up? Their stock moves to At Base.`)) return;
-  try{ const out=await convexMutation('workorders:pickedUp',{sessionToken:state.sessionToken,ids}); woSel.clear(); toast(`Moved ${out.moved} pickup${out.moved===1?'':'s'}`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
-}
+async function woAccept(id){ try{ await convexMutation('workorders:claim',{sessionToken:state.sessionToken,id}); toast('Accepted — you have it'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
+async function woComplete(id){ if(!await confirmModal('Mark complete? The materials move to the base.')) return; try{ await convexMutation('workorders:complete',{sessionToken:state.sessionToken,id}); toast('Delivered to base'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
+async function woAbandon(id){ if(!await confirmModal('Abandon this pickup? It goes back to open for someone else.')) return; try{ await convexMutation('workorders:unclaim',{sessionToken:state.sessionToken,id}); toast('Released'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 async function woCancel(id){ if(!await confirmModal('Cancel this workorder?')) return; try{ await convexMutation('workorders:cancel',{sessionToken:state.sessionToken,id}); toast('Cancelled'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 async function woDelete(id){ if(!await confirmModal('Delete this workorder permanently?')) return; try{ await convexMutation('workorders:remove',{sessionToken:state.sessionToken,id}); toast('Deleted'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 
@@ -3150,14 +3143,9 @@ function pageWorkorders(){
 }
 
 function renderWoControls(){
-  const u=state.user;
   const sbtn=(id,label)=>`<button class="btn-ghost btn-sm${woStatusF===id?' active':''}" onclick="setWoStatusF('${id}')">${label}</button>`;
-  const openIds=new Set(state.workorders.filter(w=>w.kind==='pickup'&&w.status==='open').map(w=>w._id));
-  const nSel=[...woSel].filter(id=>openIds.has(id)).length;
-  const bulk = (woView==='pickup' && (isLogistics(u)||isAdmin(u)) && nSel) ? `<button class="btn btn-black btn-sm" onclick="woPickedUp()">Mark Picked Up (${nSel})</button>` : '';
   return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
-      ${sbtn('all','All')}${sbtn('open','Open')}${sbtn('done','Done')}${sbtn('cancelled','Cancelled')}
-      ${bulk}
+      ${sbtn('all','All')}${sbtn('open','Open')}${sbtn('claimed','Accepted')}${sbtn('done','Done')}${sbtn('cancelled','Cancelled')}
       <div style="flex:1;"></div>
       <button class="btn-ghost btn-sm${woSearchActive?' active':''}" onclick="toggleWoSearch()">${woSearchActive?'Close Search':'Search'}</button>
     </div>
@@ -3172,25 +3160,26 @@ function renderWoList(){
   if(!rows.length) return `<div class="empty">No pickups yet. Add materials to stock and they appear here.</div>`;
   const u=state.user;
   const canMove=isLogistics(u)||isAdmin(u);
-  const openRows=rows.filter(w=>w.status==='open');
-  const allSel=openRows.length>0 && openRows.every(w=>woSel.has(w._id));
-  const selHead=canMove?`<th style="width:28px;"><input type="checkbox" ${allSel?'checked':''} onclick="woToggleSelAll(this.checked)" aria-label="Select all open"></th>`:'';
   return `<table class="cards">
-    <thead><tr>${selHead}<th>Location</th><th>Items</th><th>Status</th><th>Picked up by</th><th>By</th><th></th></tr></thead>
+    <thead><tr><th>Location</th><th>Items</th><th>Status</th><th>Accepted by</th><th>By</th><th></th></tr></thead>
     <tbody>${rows.map(w=>{
-      const canCancel = w.status==='open' && (isAdmin(u)||w.createdBy===u._id);
-      const canDelete = (w.status==='done'||w.status==='cancelled') && (isAdmin(u)||w.createdBy===u._id);
+      const mine = w.claimedById===u._id;
+      const canAccept   = w.status==='open' && canMove;
+      const canFinish   = w.status==='claimed' && (isAdmin(u)||mine);
+      const canCancel   = w.status==='open' && (isAdmin(u)||w.createdBy===u._id);
+      const canDelete   = (w.status==='done'||w.status==='cancelled') && (isAdmin(u)||w.createdBy===u._id);
       const items=w.items||[];
       const itemsHtml = items.length ? items.map(it=>`${esc(it.name)}${it.qualityStep?` Q${it.qualityStep}`:''} ×${it.qty} ${esc(it.unit)}`).join('<br>') : '—';
-      const selCell = canMove?`<td data-label="">${w.status==='open'?`<input type="checkbox" ${woSel.has(w._id)?'checked':''} onclick="woToggleSel('${esc(w._id)}')">`:''}</td>`:'';
       return `<tr>
-        ${selCell}
         <td data-label="Location" style="font-weight:700;">${esc(w.location||'—')}${w.system?` <span class="sys-badge">${esc(w.system)}</span>`:''}${w.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(w.note)}</div>`:''}</td>
         <td data-label="Items" style="font-size:var(--text-sm);color:var(--fg);">${itemsHtml}</td>
         <td data-label="Status" style="font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${woStatusLabel(w.status)}</td>
-        <td data-label="Picked up by">${esc(w.claimedByName||'—')}</td>
+        <td data-label="Accepted by">${esc(w.claimedByName||'—')}</td>
         <td data-label="By" style="color:var(--fg);">${esc(w.createdByName)}</td>
         <td data-label="" style="white-space:nowrap;">
+          ${canAccept?`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="woAccept('${esc(w._id)}')">Accept</button>`:''}
+          ${canFinish?`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="woComplete('${esc(w._id)}')">Complete</button>`:''}
+          ${canFinish?`<button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`:''}
           ${canCancel?`<button class="btn-del" onclick="woCancel('${esc(w._id)}')">Cancel</button>`:''}
           ${canDelete?`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Delete">&times;</button>`:''}
         </td>
