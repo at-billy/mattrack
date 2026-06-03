@@ -3126,7 +3126,7 @@ function rerenderCatalog(){
 function catRows(){
   const cat=state.catalog||{materials:[],items:[],locations:[]};
   let rows;
-  if(catalogTab==='materials'){ rows=cat.materials; if(catalogMatFilter!=='all') rows=rows.filter(m=>m.type===catalogMatFilter); }
+  if(catalogTab==='materials'){ rows=cat.materials; if(catalogMatFilter!=='all') rows=rows.filter(m=>(m.category||'Uncategorized')===catalogMatFilter); }
   else if(catalogTab==='items'){ rows=cat.items; if(catalogItemFilter!=='all') rows=rows.filter(it=>catItemGroup(it.category)===catalogItemFilter); }
   else { rows=cat.locations; if(catalogLocFilter!=='all') rows=rows.filter(l=>(l.system||'')===catalogLocFilter); }
   const q=catalogSearch.trim().toLowerCase();
@@ -3169,8 +3169,8 @@ function renderCatalogControls(){
     const groups=CAT_ITEM_GROUPS.filter(g=>present.has(g));
     buttons=fbtn(catalogItemFilter==='all',"setCatItemFilter('all')",'All')+groups.map(g=>fbtn(catalogItemFilter===g,`setCatItemFilter('${escJs(g)}')`,g)).join('');
   } else if(catalogTab==='materials'){
-    const types=[...new Set(cat.materials.map(m=>m.type))].sort();
-    buttons=fbtn(catalogMatFilter==='all',"setCatMatFilter('all')",'All')+types.map(t=>fbtn(catalogMatFilter===t,`setCatMatFilter('${escJs(t)}')`,t)).join('');
+    const cats=[...new Set(cat.materials.map(m=>m.category||'Uncategorized'))].sort();
+    buttons=fbtn(catalogMatFilter==='all',"setCatMatFilter('all')",'All')+cats.map(c=>fbtn(catalogMatFilter===c,`setCatMatFilter('${escJs(c)}')`,c)).join('');
   } else {
     const systems=[...new Set(cat.locations.map(l=>l.system).filter(Boolean))].sort();
     buttons=fbtn(catalogLocFilter==='all',"setCatLocFilter('all')",'All')+systems.map(s=>fbtn(catalogLocFilter===s,`setCatLocFilter('${escJs(s)}')`,s)).join('');
