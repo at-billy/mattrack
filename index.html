@@ -3092,18 +3092,47 @@ async function submitChangePassword(){
 // ─── CATALOG (reference databanks: materials, items+recipes, locations) ─────────
 let catalogTab = 'materials';
 let catalogSearch = '';
+let catalogSearchActive = false;
+let catalogItemFilter = 'all';   // item category group
+let catalogMatFilter = 'all';    // material type
+let catalogLocFilter = 'all';    // location system
 const MAT_TYPES = ['Mineable','Salvage','Loot'];
 const CAT_UNITS = ['SCU','UNIT'];
-const CAT_LIST_CAP = 300; // cap rows when not searching (the item databank is large)
-function setCatalogTab(t){ catalogTab=t; catalogSearch=''; renderPage(); renderNav(); }
-function renderCatalogList(){
-  const el=document.getElementById('catalog-list'); if(!el) return;
-  const cat=state.catalog||{materials:[],items:[],locations:[]};
-  el.innerHTML = catalogTab==='materials'?renderCatMaterials(cat.materials)
-    : catalogTab==='items'?renderCatItems(cat.items)
-    : renderCatLocations(cat.locations);
+const CAT_LIST_CAP = 300; // cap rows when the filtered list is still large
+const CAT_ITEM_GROUPS = ['FPS Armour','FPS Weapons','Ammo','Vehicle Components','Vehicle Weapons','Mission','Other'];
+function catItemGroup(c){
+  c=c||'';
+  if(c==='FPSArmours') return 'FPS Armour';
+  if(c==='FPSWeapons') return 'FPS Weapons';
+  if(c==='Ammo') return 'Ammo';
+  if(c.startsWith('Veh. Comp')) return 'Vehicle Components';
+  if(c.startsWith('Veh. Weapons')) return 'Vehicle Weapons';
+  if(c==='MissionItem') return 'Mission';
+  return 'Other';
 }
-function catFilter(rows){ const q=catalogSearch.trim().toLowerCase(); return q?rows.filter(r=>r.name.toLowerCase().includes(q)):rows; }
+function setCatalogTab(t){ catalogTab=t; catalogSearch=''; catalogSearchActive=false; catalogItemFilter='all'; catalogMatFilter='all'; catalogLocFilter='all'; renderPage(); renderNav(); }
+function setCatItemFilter(g){ catalogItemFilter=g; rerenderCatalog(); }
+function setCatMatFilter(t){ catalogMatFilter=t; rerenderCatalog(); }
+function setCatLocFilter(s){ catalogLocFilter=s; rerenderCatalog(); }
+function toggleCatalogSearch(){ catalogSearchActive=!catalogSearchActive; if(!catalogSearchActive) catalogSearch=''; rerenderCatalog(); }
+function catalogSearchInput(v){ catalogSearch=v; const l=document.getElementById('catalog-list'); if(l) l.innerHTML=renderCatalogList(); }
+function rerenderCatalog(){
+  const c=document.getElementById('catalog-controls'); if(c) c.innerHTML=renderCatalogControls();
+  const l=document.getElementById('catalog-list'); if(l) l.innerHTML=renderCatalogList();
+  if(catalogSearchActive){ const inp=document.getElementById('cat-search'); if(inp){ inp.focus(); const x=inp.value; try{inp.setSelectionRange(x.length,x.length);}catch(e){} } }
+}
+
+// Rows for the active tab after category/type/system filter + search, sorted by name.
+function catRows(){
+  const cat=state.catalog||{materials:[],items:[],locations:[]};
+  let rows;
+  if(catalogTab==='materials'){ rows=cat.materials; if(catalogMatFilter!=='all') rows=rows.filter(m=>m.type===catalogMatFilter); }
+  else if(catalogTab==='items'){ rows=cat.items; if(catalogItemFilter!=='all') rows=rows.filter(it=>catItemGroup(it.category)===catalogItemFilter); }
+  else { rows=cat.locations; if(catalogLocFilter!=='all') rows=rows.filter(l=>(l.system||'')===catalogLocFilter); }
+  const q=catalogSearch.trim().toLowerCase();
+  if(q) rows=rows.filter(r=>r.name.toLowerCase().includes(q));
+  return [...rows].sort((a,b)=>a.name.localeCompare(b.name));
+}
 
 function pageCatalog(){
   const u=state.user;
@@ -3113,30 +3142,56 @@ function pageCatalog(){
   const addLabel={materials:'Material',items:'Item',locations:'Location'}[catalogTab];
   const addFn={materials:'openMaterialModal()',items:'openItemModal()',locations:'openLocationModal()'}[catalogTab];
   const tab=(id,label)=>`<button class="btn-ghost btn-sm${catalogTab===id?' active':''}" onclick="setCatalogTab('${id}')">${label} (${counts[id]})</button>`;
-  const empty = !cat.materials.length || !cat.items.length || !cat.locations.length;
-  const body = catalogTab==='materials'?renderCatMaterials(cat.materials)
-    : catalogTab==='items'?renderCatItems(cat.items)
-    : renderCatLocations(cat.locations);
   return `
     <div class="page-head">
       <div class="page-head-left"><div class="page-lead">Databanks</div></div>
-      <button class="btn btn-black" onclick="${addFn}">+ Add ${addLabel}</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-outline" onclick="importCatalogSeed()">Import seed data</button>
+        <button class="btn btn-black" onclick="${addFn}">+ Add ${addLabel}</button>
+      </div>
     </div>
     <div id="catalog-content" style="margin-top:32px;">
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
         ${tab('materials','Materials')}${tab('items','Items')}${tab('locations','Locations')}
-        <input id="cat-search" type="text" placeholder="Search ${catalogTab}…" value="${esc(catalogSearch)}" style="max-width:240px;margin:0;" oninput="catalogSearch=this.value;renderCatalogList()">
-        <div style="flex:1;"></div>
-        <button class="btn-ghost btn-sm" onclick="importCatalogSeed()">Import seed data</button>
       </div>
-      <div id="catalog-list">${body}</div>
+      <div id="catalog-controls">${renderCatalogControls()}</div>
+      <div id="catalog-list">${renderCatalogList()}</div>
     </div>`;
 }
 
-function renderCatMaterials(mats){
-  if(!mats.length) return `<div class="empty">No materials yet. Add one, or import the seed data.</div>`;
-  const rows=catFilter([...mats]).sort((a,b)=>a.name.localeCompare(b.name));
-  if(!rows.length) return `<div class="empty">No materials match "${esc(catalogSearch)}".</div>`;
+// Per-tab filter buttons + a Search toggle button (navytrack inventory pattern).
+function renderCatalogControls(){
+  const cat=state.catalog||{materials:[],items:[],locations:[]};
+  const fbtn=(active,onclick,label)=>`<button class="btn-ghost btn-sm${active?' active':''}" onclick="${onclick}">${esc(label)}</button>`;
+  let buttons='';
+  if(catalogTab==='items'){
+    const present=new Set(cat.items.map(it=>catItemGroup(it.category)));
+    const groups=CAT_ITEM_GROUPS.filter(g=>present.has(g));
+    buttons=fbtn(catalogItemFilter==='all',"setCatItemFilter('all')",'All')+groups.map(g=>fbtn(catalogItemFilter===g,`setCatItemFilter('${escJs(g)}')`,g)).join('');
+  } else if(catalogTab==='materials'){
+    const types=[...new Set(cat.materials.map(m=>m.type))].sort();
+    buttons=fbtn(catalogMatFilter==='all',"setCatMatFilter('all')",'All')+types.map(t=>fbtn(catalogMatFilter===t,`setCatMatFilter('${escJs(t)}')`,t)).join('');
+  } else {
+    const systems=[...new Set(cat.locations.map(l=>l.system).filter(Boolean))].sort();
+    buttons=fbtn(catalogLocFilter==='all',"setCatLocFilter('all')",'All')+systems.map(s=>fbtn(catalogLocFilter===s,`setCatLocFilter('${escJs(s)}')`,s)).join('');
+  }
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+      ${buttons}
+      <div style="flex:1;"></div>
+      <button class="btn-ghost btn-sm${catalogSearchActive?' active':''}" onclick="toggleCatalogSearch()">${catalogSearchActive?'Close Search':'Search'}</button>
+    </div>
+    ${catalogSearchActive?`<div style="margin-bottom:20px;"><input id="cat-search" type="text" placeholder="Search ${catalogTab}…" value="${esc(catalogSearch)}" style="width:100%;max-width:400px;" oninput="catalogSearchInput(this.value)"></div>`:''}`;
+}
+
+function renderCatalogList(){
+  if(catalogTab==='materials') return renderCatMaterials(catRows());
+  if(catalogTab==='items') return renderCatItems(catRows());
+  return renderCatLocations(catRows());
+}
+
+function renderCatMaterials(rows){
+  if(!state.catalog.materials.length) return `<div class="empty">No materials yet. Add one, or import the seed data.</div>`;
+  if(!rows.length) return `<div class="empty">No materials match this filter.</div>`;
   return `<table class="cards">
     <thead><tr><th>Material</th><th>Type</th><th>Category</th><th>Unit</th><th>Quality steps 1–10</th><th></th></tr></thead>
     <tbody>${rows.map(m=>`<tr>
@@ -3152,13 +3207,12 @@ function renderCatMaterials(mats){
     </tr>`).join('')}</tbody></table>`;
 }
 
-function renderCatItems(items){
-  if(!items.length) return `<div class="empty">No craftable items yet. Add a blueprint, or import the seed data.</div>`;
-  const all=catFilter([...items]).sort((a,b)=>a.name.localeCompare(b.name));
-  if(!all.length) return `<div class="empty">No items match "${esc(catalogSearch)}".</div>`;
-  const capped = !catalogSearch.trim() && all.length>CAT_LIST_CAP;
+function renderCatItems(all){
+  if(!state.catalog.items.length) return `<div class="empty">No craftable items yet. Add a blueprint, or import the seed data.</div>`;
+  if(!all.length) return `<div class="empty">No items match this filter.</div>`;
+  const capped = all.length>CAT_LIST_CAP;
   const rows = capped ? all.slice(0,CAT_LIST_CAP) : all;
-  const note = capped ? `<div style="font-size:var(--text-sm);color:var(--fg);margin-bottom:10px;">Showing ${CAT_LIST_CAP} of ${all.length} — search to narrow.</div>` : '';
+  const note = capped ? `<div style="font-size:var(--text-sm);color:var(--fg);margin-bottom:10px;">Showing ${CAT_LIST_CAP} of ${all.length} — narrow with a category or search.</div>` : '';
   return note + `<table class="cards">
     <thead><tr><th>Item</th><th>Category</th><th>Recipe</th><th></th></tr></thead>
     <tbody>${rows.map(it=>`<tr>
@@ -3172,10 +3226,9 @@ function renderCatItems(items){
     </tr>`).join('')}</tbody></table>`;
 }
 
-function renderCatLocations(locs){
-  if(!locs.length) return `<div class="empty">No locations yet.</div>`;
-  const rows=catFilter([...locs]).sort((a,b)=>a.name.localeCompare(b.name));
-  if(!rows.length) return `<div class="empty">No locations match "${esc(catalogSearch)}".</div>`;
+function renderCatLocations(rows){
+  if(!state.catalog.locations.length) return `<div class="empty">No locations yet.</div>`;
+  if(!rows.length) return `<div class="empty">No locations match this filter.</div>`;
   return `<table class="cards">
     <thead><tr><th>Location</th><th>System</th><th>Base</th><th></th></tr></thead>
     <tbody>${rows.map(l=>`<tr>
