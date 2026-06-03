@@ -1266,6 +1266,7 @@ function updateLiveView(silent=false) {
     const active = document.activeElement;
     const typing = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT') && document.getElementById('page-wrap')?.contains(active);
     if(!typing){
+      const dk=document.getElementById('wo-dist'); if(dk) dk.innerHTML=renderDistribution();
       const ck=document.getElementById('wo-craft'); if(ck) ck.innerHTML=renderCraftOrders();
       const c=document.getElementById('wo-controls'); if(c) c.innerHTML=renderWoControls();
       const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoList();
@@ -2897,7 +2898,7 @@ function combinedArchive(){
 }
 
 // Action-type → human label (shared by the table and the search/sort).
-const ARCHIVE_LABELS={user_joined:'Joined',role_approved:'Role Approved',role_denied:'Role Denied',admin_granted:'Admin Granted',member_removed:'Member Removed',member_restored:'Member Restored',task_created:'Task Created',task_closed:'Task Closed',item_added:'Item Added',item_removed:'Item Removed',item_handed_out:'Handed Out',item_used:'Item Used',item_converted:'Item Converted',items_used_for_project:'Items Used',password_reset_issued:'Reset Code Issued',password_reset_completed:'Password Reset',lottery_opened:'Lottery Opened',lottery_drawn:'Lottery Drawn',lottery_pick:'Lottery Pick'};
+const ARCHIVE_LABELS={user_joined:'Joined',role_approved:'Role Approved',role_denied:'Role Denied',admin_granted:'Admin Granted',member_removed:'Member Removed',member_restored:'Member Restored',stock_added:'Stock Added',stock_removed:'Stock Removed',workorder_created:'Workorder Created',workorder_completed:'Workorder Done',item_crafted:'Crafted',items_taken:'Taken to Stockpile',item_handed_out:'Handed Out',catalog_imported:'Catalog Imported',task_created:'Task Created',task_closed:'Task Closed',item_added:'Item Added',item_removed:'Item Removed',item_used:'Item Used',item_converted:'Item Converted',items_used_for_project:'Items Used',password_reset_issued:'Reset Code Issued',password_reset_completed:'Password Reset',lottery_opened:'Lottery Opened',lottery_drawn:'Lottery Drawn',lottery_pick:'Lottery Pick'};
 function archiveActionLabel(e){ return ARCHIVE_LABELS[e.type]||e.type; }
 function stripTags(html){ return String(html).replace(/<[^>]*>/g,''); }
 
@@ -3007,7 +3008,14 @@ function fmtArchiveDetails(e){
     case 'task_closed':      return `Closed: <strong>${esc(d.title)}</strong>`;
     case 'item_added':       return `<strong>${esc(d.name)}</strong> &middot; ${itemCatLabel(d.category)} &middot; qty ${d.quantity}`;
     case 'item_removed':     return `<strong>${esc(d.name)}</strong>`;
-    case 'item_handed_out':  return `<strong>${esc(d.name)}</strong> &middot; qty ${d.handedOutQty} &middot; to <strong>${esc(d.handedOutTo)}</strong>`;
+    case 'item_handed_out':  return `<strong>${esc(d.item||d.name||'')}</strong> &times;${d.qty??d.handedOutQty} &middot; to <strong>${esc(d.recipient||d.handedOutTo||'')}</strong>${d.context?` (${esc(d.context)})`:''}`;
+    case 'stock_added':      return `<strong>${esc(d.name)}</strong> &times;${d.qty} ${esc(d.unit||'')} &middot; ${esc(d.kind||'')}`;
+    case 'stock_removed':    return `<strong>${esc(d.name)}</strong> &times;${d.qty} ${esc(d.unit||'')}`;
+    case 'workorder_created':return d.kind==='craft' ? `Craft order: <strong>${esc(d.item)}</strong> &times;${d.qty}` : `${esc(d.kind||'')} workorder${d.count?` &middot; ${d.count}`:''}${d.matType?` &middot; ${esc(d.matType)}`:''}`;
+    case 'workorder_completed': return `${esc(d.kind||'')} done${d.location?` &middot; ${esc(d.location)}`:''}${d.count?` &middot; ${d.count}`:''}`;
+    case 'item_crafted':     return `<strong>${esc(d.item)}</strong> &times;${d.count}${d.quality!=null?` &middot; Q${d.quality}`:''}`;
+    case 'items_taken':      return `${d.count} item${d.count===1?'':'s'} to stockpile${d.location?` at ${esc(d.location)}`:''}`;
+    case 'catalog_imported': return `${d.materials||0} materials, ${d.items||0} items${d.locations?`, ${d.locations} locations`:''}`;
     case 'item_used':               return `<strong>${esc(d.name)}</strong> &middot; ${esc(d.usedFor)}`;
     case 'items_used_for_project':  return `For <strong>${esc(d.taskTitle)}</strong> &middot; ${(d.items||[]).map(i=>`${esc(i.name)} ×${i.quantity}`).join(', ')}`;
     case 'item_converted':          return `${d.used} ${esc(d.from)} → ${d.made} ${esc(d.to)}`;
@@ -3200,6 +3208,11 @@ async function woDelete(id){ if(!await confirmModal('Delete this workorder perma
 
 function pageWorkorders(){
   const u=state.user;
+  if(woView==='distribution'){
+    return `
+      <div class="page-head"><div class="page-head-left"><div class="page-lead">Distribution</div></div></div>
+      <div id="wo-content" style="margin-top:32px;"><div id="wo-dist">${renderDistribution()}</div></div>`;
+  }
   const kinds=WO_VIEW_KINDS[woView];
   const open=state.workorders.filter(w=>kinds.includes(w.kind)&&w.status==='open').length;
   const label={pickup:'open pickup',crafting:'open delivery',distribution:'open distribution'}[woView];
@@ -3259,6 +3272,79 @@ function renderWoList(){
         </td>
       </tr>`;
     }).join('')}</tbody></table>`;
+}
+
+// ─── DISTRIBUTION (step 7) ─────────────────────────────────────────────────────
+function renderDistribution(){
+  const u=state.user;
+  const isDist=isDistributor(u)||isAdmin(u);
+  const crafted=[...state.stock.filter(s=>s.kind==='item'&&s.status==='crafted')].sort((a,b)=>a.name.localeCompare(b.name));
+  const mine=[...state.stock.filter(s=>s.kind==='item'&&s.status==='with_distributor'&&(isAdmin(u)||s.heldBy===u.username))].sort((a,b)=>a.name.localeCompare(b.name));
+  const sec=t=>`<div style="font-size:var(--text-md);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">${t}</div>`;
+  const qcell=s=>`${s.qty} <span style="font-weight:400;color:var(--fg);font-size:var(--text-sm);">${esc(s.unit)}</span>`;
+  const ql=s=>s.qualityValue!=null?`Q ${s.qualityValue}`:'—';
+  const loc=s=>`${esc(s.location||'—')}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}`;
+  const takeTbl = crafted.length ? `<table class="cards">
+    <thead><tr><th>Item</th><th>Qty</th><th>Quality</th><th>Crafter</th><th>Location</th><th></th></tr></thead>
+    <tbody>${crafted.map(s=>`<tr>
+      <td data-label="Item" style="font-weight:700;">${esc(s.name)}</td>
+      <td data-label="Qty" style="font-weight:700;">${qcell(s)}</td>
+      <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${ql(s)}</td>
+      <td data-label="Crafter">${esc(s.heldBy)}</td>
+      <td data-label="Location" style="font-size:var(--text-md);">${loc(s)}</td>
+      <td data-label="" style="white-space:nowrap;">${isDist?`<button class="btn btn-black btn-sm" onclick="openTakeModal('${esc(s._id)}')">Take</button>`:''}</td>
+    </tr>`).join('')}</tbody></table>` : `<div class="empty">No finished items waiting. Crafted items show here for distributors to take.</div>`;
+  const stockTbl = mine.length ? `<table class="cards">
+    <thead><tr><th>Item</th><th>Qty</th><th>Quality</th><th>Location</th>${isAdmin(u)?'<th>Held By</th>':''}<th></th></tr></thead>
+    <tbody>${mine.map(s=>`<tr>
+      <td data-label="Item" style="font-weight:700;">${esc(s.name)}</td>
+      <td data-label="Qty" style="font-weight:700;">${qcell(s)}</td>
+      <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${ql(s)}</td>
+      <td data-label="Location" style="font-size:var(--text-md);">${loc(s)}</td>
+      ${isAdmin(u)?`<td data-label="Held By">${esc(s.heldBy)}</td>`:''}
+      <td data-label="" style="white-space:nowrap;">${isDist?`<button class="btn btn-black btn-sm" onclick="openHandoutModal('${esc(s._id)}')">Hand Out</button>`:''}</td>
+    </tr>`).join('')}</tbody></table>` : `<div class="empty">Your stockpile is empty. Take finished items above to stock them.</div>`;
+  return `${sec('Available to take')}<div style="margin-bottom:44px;">${takeTbl}</div>${sec('My stockpile')}${stockTbl}`;
+}
+function openTakeModal(id){
+  const s=state.stock.find(x=>x._id===id); if(!s) return;
+  showModal(`
+    <div class="modal-title">Take to stockpile</div>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">${esc(s.name)} ×${s.qty} → your stockpile. Pick where you'll keep it.</p>
+    <div class="grid2">${locationPicker('tk', null)}</div>
+    <div class="err-msg" id="tk-err"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-black" onclick="doTake('${esc(s._id)}')">Take</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+async function doTake(id){
+  const location=pickedLocation('tk'); const system=pickedLocationSystem('tk');
+  if(!location){ showErr('tk-err','Pick a location'); return; }
+  try{ const out=await convexMutation('distribution:takeToStockpile',{sessionToken:state.sessionToken,stockIds:[id],location,system}); toast(`Taken (${out.taken})`); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('tk-err',e.message); }
+}
+function openHandoutModal(id){
+  const s=state.stock.find(x=>x._id===id); if(!s) return;
+  showModal(`
+    <div class="modal-title">Hand out — ${esc(s.name)}</div>
+    <div class="grid2">
+      <div class="field"><label class="lbl">Quantity</label><input id="ho-qty" type="number" min="1" max="${s.qty}" value="${s.qty}"></div>
+      <div class="field"><label class="lbl">For</label><select id="ho-ctx"><option value="request">A request</option><option value="event">An event</option></select></div>
+    </div>
+    <div class="field"><label class="lbl">Recipient</label><input id="ho-rcpt" type="text" placeholder="who received it"></div>
+    <div class="field"><label class="lbl">Note (optional)</label><input id="ho-note" type="text" placeholder="event name, details…"></div>
+    <div class="err-msg" id="ho-err"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-black" onclick="doHandout('${esc(s._id)}')">Hand Out</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+async function doHandout(id){
+  const V=x=>(document.getElementById(x)||{value:''}).value;
+  const qty=Number(V('ho-qty')); const recipient=V('ho-rcpt').trim(); const context=V('ho-ctx'); const note=V('ho-note').trim();
+  if(!(qty>0)){ showErr('ho-err','Quantity must be greater than 0'); return; }
+  if(!recipient){ showErr('ho-err','Who received it?'); return; }
+  try{ const out=await convexMutation('distribution:handOut',{sessionToken:state.sessionToken,stockId:id,qty,recipient,context,note:note||undefined}); toast(`Handed out ${out.handed}`); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('ho-err',e.message); }
 }
 
 // ─── STOCK / LEDGER ─────────────────────────────────────────────────────────

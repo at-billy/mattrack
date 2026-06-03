@@ -60,8 +60,8 @@ first account can **claim bootstrap admin**.
 4. **Gatherer intake** → auto Pickup WO. ✅ done
 5. **Logistics** — pickup accept → auto Delivery task for crafters → receive at base. ✅ done
 6. **Craft WOs** — recipe-driven consume → produce, availability/priority. ✅ done
-7. **Distribution** — handout to person / FRCoin event + log. ← *next*
-8. **Pipeline view** ("where is everything") + polish.
+7. **Distribution** — distributor pulls crafted items → stockpile → hand out (request/event) + log. ✅ done
+8. **Pipeline view** ("where is everything") + polish. ← *next*
 
 ## Seed data (from the old mattrack backup)
 - 39 materials (`name, category, unit`) — missing salvage + quality steps (to add).
