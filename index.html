@@ -1261,6 +1261,7 @@ function updateLiveView(silent=false) {
     const active = document.activeElement;
     const typing = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT') && document.getElementById('page-wrap')?.contains(active);
     if(!typing){
+      const a=document.getElementById('wo-awaiting'); if(a) a.innerHTML=renderAwaitingPickup();
       const c=document.getElementById('wo-controls'); if(c) c.innerHTML=renderWoControls();
       const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoList();
     }
@@ -3114,6 +3115,30 @@ function woRows(){
   return [...rows].sort((a,b)=>(order[a.status]-order[b.status])||(b._creationTime-a._creationTime));
 }
 
+// Reported stock grouped by location → one-click "Create Pickup" per location.
+function renderAwaitingPickup(){
+  const u=state.user;
+  if(!canPickStock(u)) return '';
+  const reported=state.stock.filter(s=>s.status==='reported');
+  if(!reported.length) return '';
+  const byLoc={};
+  for(const s of reported){ (byLoc[s.location] ??= []).push(s); }
+  const groups=Object.entries(byLoc).sort((a,b)=>a[0].localeCompare(b[0]));
+  return `<div style="margin-bottom:44px;">
+    <div style="font-size:var(--text-md);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--red);display:flex;align-items:center;gap:12px;">
+      Reported stock awaiting pickup
+      <span style="background:var(--red);color:#fff;padding:1px 8px;font-size:var(--text-md);">${reported.length}</span>
+    </div>
+    ${groups.map(([loc,items])=>`<div style="display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-bottom:1px solid var(--border-m);flex-wrap:wrap;">
+      <div style="min-width:220px;flex:1;">
+        <div style="font-weight:700;font-size:var(--text-md);">${esc(loc)}${items[0].system?` <span class="sys-badge">${esc(items[0].system)}</span>`:''}</div>
+        <div style="font-size:var(--text-sm);color:var(--fg);margin-top:4px;">${items.map(s=>`${esc(s.name)}${s.qualityStep?` Q${s.qualityStep}`:''} ×${s.qty} ${esc(s.unit)}`).join(' · ')}</div>
+      </div>
+      <div><button class="btn btn-black btn-sm" onclick="createPickupForLocation('${escJs(loc)}')">Create Pickup (${items.length})</button></div>
+    </div>`).join('')}
+  </div>`;
+}
+
 function pageWorkorders(){
   const open=state.workorders.filter(w=>w.status==='open').length;
   return `
@@ -3121,6 +3146,7 @@ function pageWorkorders(){
       <div class="page-head-left"><div class="page-lead">${open} open pickup${open===1?'':'s'}</div></div>
     </div>
     <div id="wo-content" style="margin-top:32px;">
+      <div id="wo-awaiting">${renderAwaitingPickup()}</div>
       <div id="wo-controls">${renderWoControls()}</div>
       <div id="wo-list">${renderWoList()}</div>
     </div>`;
@@ -3211,23 +3237,15 @@ function locPickerSysChanged(prefix){
 function pickedLocation(prefix){ return (document.getElementById(prefix+'-loc')||{value:''}).value; }
 function pickedLocationSystem(prefix){ const o=state.catalog.locations.find(l=>l.name===pickedLocation(prefix)); return o?o.system:undefined; }
 let stockKindF='all', stockStatusF='all', stockLocF='all', stockSearch='', stockSearchActive=false;
-let stockSel = new Set(); // selected reported-stock ids for pickup creation
 function canPickStock(u){ return isGatherer(u)||isAdmin(u); }
-function toggleStockSel(id){ if(stockSel.has(id)) stockSel.delete(id); else stockSel.add(id); const c=document.getElementById('stock-controls'); if(c) c.innerHTML=renderStockControls(); }
-function toggleStockSelAll(on){
-  const reported=stockRows().filter(s=>s.status==='reported');
-  if(on) reported.forEach(s=>stockSel.add(s._id)); else reported.forEach(s=>stockSel.delete(s._id));
-  rerenderStock();
-}
-async function createPickupFromSel(){
-  const reportedIds=new Set(state.stock.filter(s=>s.status==='reported').map(s=>s._id));
-  const ids=[...stockSel].filter(id=>reportedIds.has(id));
-  if(!ids.length){ toast('Select reported stock first'); return; }
-  if(!await confirmModal(`Create pickup work order(s) for ${ids.length} stock entr${ids.length===1?'y':'ies'}? They'll be grouped by location.`)) return;
+// Create a pickup for all Reported stock at one location (from the WORK tab).
+async function createPickupForLocation(location){
+  const ids=state.stock.filter(s=>s.status==='reported'&&s.location===location).map(s=>s._id);
+  if(!ids.length){ toast('Nothing reported at that location'); return; }
+  if(!await confirmModal(`Create a pickup work order for ${ids.length} item${ids.length===1?'':'s'} at ${location}?`)) return;
   try{
     const out=await convexMutation('workorders:createPickupFromStock',{sessionToken:state.sessionToken,stockIds:ids});
-    stockSel.clear();
-    toast(`Created ${out.created} pickup${out.created===1?'':'s'} (${out.items} item${out.items===1?'':'s'})`);
+    toast(`Pickup created (${out.items} item${out.items===1?'':'s'})`);
     await refreshAll(); renderPage();
   }catch(e){ notifyError(e); }
 }
@@ -3279,7 +3297,6 @@ function renderStockControls(){
         <option value="all"${stockLocF==='all'?' selected':''}>Any location</option>
         ${locs.map(l=>`<option value="${esc(l)}"${stockLocF===l?' selected':''}>${esc(l)}</option>`).join('')}
       </select>
-      ${(()=>{ const u=state.user; const reportedIds=new Set(state.stock.filter(s=>s.status==='reported').map(s=>s._id)); const n=[...stockSel].filter(id=>reportedIds.has(id)).length; return canPickStock(u)&&n?`<button class="btn btn-black btn-sm" onclick="createPickupFromSel()">Create Pickup (${n})</button>`:''; })()}
       <div style="flex:1;"></div>
       <button class="btn-ghost btn-sm${stockSearchActive?' active':''}" onclick="toggleStockSearch()">${stockSearchActive?'Close Search':'Search'}</button>
     </div>
@@ -3291,17 +3308,11 @@ function renderStockList(){
   const rows=stockRows();
   if(!rows.length) return `<div class="empty">No stock matches this filter.</div>`;
   const u=state.user;
-  const canPick=canPickStock(u);
-  const reported=rows.filter(s=>s.status==='reported');
-  const allSel=reported.length>0 && reported.every(s=>stockSel.has(s._id));
-  const selHead=canPick?`<th style="width:28px;"><input type="checkbox" ${allSel?'checked':''} onclick="toggleStockSelAll(this.checked)" aria-label="Select all reported"></th>`:'';
   return `<table class="cards">
-    <thead><tr>${selHead}<th>Name</th><th>Kind</th><th>Quality</th><th>Qty</th><th>Location</th><th>Held By</th><th>Status</th><th></th></tr></thead>
+    <thead><tr><th>Name</th><th>Kind</th><th>Quality</th><th>Qty</th><th>Location</th><th>Held By</th><th>Status</th><th></th></tr></thead>
     <tbody>${rows.map(s=>{
       const canEdit = isAdmin(u) || s.addedBy===u._id;
-      const selCell=canPick?`<td data-label="">${s.status==='reported'?`<input type="checkbox" ${stockSel.has(s._id)?'checked':''} onclick="toggleStockSel('${esc(s._id)}')">`:''}</td>`:'';
       return `<tr>
-        ${selCell}
         <td data-label="Name" style="font-weight:700;">${esc(s.name)}${s.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(s.note)}</div>`:''}</td>
         <td data-label="Kind">${s.kind==='material'?'Material':'Item'}</td>
         <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.kind==='material'&&s.qualityStep?`Q${s.qualityStep}${s.qualityValue!=null?' · '+s.qualityValue:''}`:'—'}</td>
@@ -3360,7 +3371,7 @@ function openStockModal(id){
       <div class="field"><label class="lbl">Held by</label><input id="st-held" type="text" value="${row?esc(row.heldBy):esc(myName)}"></div>
     </div>
     <div class="grid2">${locationPicker('st', row?row.location:undefined)}</div>
-    <div class="field"><label class="lbl">Status</label><select id="st-status">${STOCK_STATUS_DEFS.map(s=>`<option value="${s.id}"${(row?row.status:'reported')===s.id?' selected':''}>${s.label}</option>`).join('')}</select></div>
+    ${row?`<div class="field"><label class="lbl">Status</label><select id="st-status">${STOCK_STATUS_DEFS.map(s=>`<option value="${s.id}"${row.status===s.id?' selected':''}>${s.label}</option>`).join('')}</select></div>`:''}
     <div class="field"><label class="lbl">Note (optional)</label><input id="st-note" type="text" value="${row?esc(row.note||''):''}"></div>
     <div class="err-msg" id="st-err"></div>
     <div style="display:flex;gap:10px;margin-top:8px;">
@@ -3383,7 +3394,7 @@ async function saveStock(id){
   const unit=V('st-unit')||'SCU';
   const heldBy=V('st-held').trim();
   const location=V('st-loc');
-  const status=V('st-status');
+  const status = id ? V('st-status') : 'reported';   // new stock is always reported
   const note=V('st-note').trim();
   let category='', system, qualityStep, qualityValue;
   if(kind==='material'){
