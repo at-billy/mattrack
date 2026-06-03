@@ -29,18 +29,26 @@ export const claim = mutation({
         if (s && s.status === "reported") await ctx.db.patch(it.stockId, { status: "in_transit" });
       }
       await ctx.db.patch(id, { status: "claimed", claimedById: user._id, claimedByName: user.username });
-      // Auto-create the Delivery task for crafters to receive at base.
-      await ctx.db.insert("workorders", {
-        kind: "delivery",
-        status: "open",
-        location: wo.location,
-        system: wo.system,
-        items: wo.items,
-        note: `Inbound to base — picked up by ${user.username}`,
-        sourcePickupId: wo._id,
-        createdBy: user._id,
-        createdByName: user.username,
-      });
+      // Stack into this logi's existing OPEN delivery if one exists; else create
+      // a new Delivery task for crafters to receive at base.
+      const base = (await ctx.db.query("locationCatalog").collect()).find(l => l.isBase);
+      const myOpen = (await ctx.db.query("workorders").withIndex("by_kind", q => q.eq("kind", "delivery")).collect())
+        .find(d => d.status === "open" && d.createdBy === user._id);
+      if (myOpen) {
+        await ctx.db.patch(myOpen._id, { items: [...(myOpen.items ?? []), ...(wo.items ?? [])] });
+      } else {
+        await ctx.db.insert("workorders", {
+          kind: "delivery",
+          status: "open",
+          location: base ? base.name : wo.location,
+          system: base ? base.system : wo.system,
+          items: wo.items,
+          note: `Inbound to base — picked up by ${user.username}`,
+          sourcePickupId: wo._id,
+          createdBy: user._id,
+          createdByName: user.username,
+        });
+      }
     } else if (wo.kind === "delivery") {
       assertRole(user, ["crafter", "admin"]);
       await ctx.db.patch(id, { status: "claimed", claimedById: user._id, claimedByName: user.username });
@@ -64,12 +72,18 @@ export const unclaim = mutation({
     if (!isAdmin && wo.claimedById !== user._id) throw new ConvexError("Not authorized");
 
     if (wo.kind === "pickup") {
+      const myStockIds = new Set((wo.items ?? []).map(it => it.stockId));
+      // Deliveries that carry any of this pickup's stock (may be stacked from several pickups).
       const deliveries = (await ctx.db.query("workorders").withIndex("by_kind", q => q.eq("kind", "delivery")).collect())
-        .filter(d => d.sourcePickupId === id && d.status !== "cancelled");
+        .filter(d => (d.items ?? []).some(it => myStockIds.has(it.stockId)) && d.status !== "cancelled");
       if (deliveries.some(d => d.status !== "open")) {
         throw new ConvexError("A crafter is already receiving this — can't abandon");
       }
-      for (const d of deliveries) await ctx.db.delete(d._id);
+      for (const d of deliveries) {
+        const remaining = (d.items ?? []).filter(it => !myStockIds.has(it.stockId));
+        if (remaining.length === 0) await ctx.db.delete(d._id);
+        else await ctx.db.patch(d._id, { items: remaining });
+      }
       for (const it of wo.items ?? []) {
         const s = await ctx.db.get(it.stockId);
         if (s && s.status === "in_transit") await ctx.db.patch(it.stockId, { status: "reported" });
