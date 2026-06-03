@@ -3091,9 +3091,19 @@ async function submitChangePassword(){
 // ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
 // ─── CATALOG (reference databanks: materials, items+recipes, locations) ─────────
 let catalogTab = 'materials';
+let catalogSearch = '';
 const MAT_TYPES = ['Mineable','Salvage','Loot'];
 const CAT_UNITS = ['SCU','UNIT'];
-function setCatalogTab(t){ catalogTab=t; renderPage(); renderNav(); }
+const CAT_LIST_CAP = 300; // cap rows when not searching (the item databank is large)
+function setCatalogTab(t){ catalogTab=t; catalogSearch=''; renderPage(); renderNav(); }
+function renderCatalogList(){
+  const el=document.getElementById('catalog-list'); if(!el) return;
+  const cat=state.catalog||{materials:[],items:[],locations:[]};
+  el.innerHTML = catalogTab==='materials'?renderCatMaterials(cat.materials)
+    : catalogTab==='items'?renderCatItems(cat.items)
+    : renderCatLocations(cat.locations);
+}
+function catFilter(rows){ const q=catalogSearch.trim().toLowerCase(); return q?rows.filter(r=>r.name.toLowerCase().includes(q)):rows; }
 
 function pageCatalog(){
   const u=state.user;
@@ -3115,16 +3125,18 @@ function pageCatalog(){
     <div id="catalog-content" style="margin-top:32px;">
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
         ${tab('materials','Materials')}${tab('items','Items')}${tab('locations','Locations')}
+        <input id="cat-search" type="text" placeholder="Search ${catalogTab}…" value="${esc(catalogSearch)}" style="max-width:240px;margin:0;" oninput="catalogSearch=this.value;renderCatalogList()">
         <div style="flex:1;"></div>
         ${empty?`<button class="btn-ghost btn-sm" onclick="importCatalogSeed()">Import seed data</button>`:''}
       </div>
-      ${body}
+      <div id="catalog-list">${body}</div>
     </div>`;
 }
 
 function renderCatMaterials(mats){
   if(!mats.length) return `<div class="empty">No materials yet. Add one, or import the seed data.</div>`;
-  const rows=[...mats].sort((a,b)=>a.name.localeCompare(b.name));
+  const rows=catFilter([...mats]).sort((a,b)=>a.name.localeCompare(b.name));
+  if(!rows.length) return `<div class="empty">No materials match "${esc(catalogSearch)}".</div>`;
   return `<table class="cards">
     <thead><tr><th>Material</th><th>Type</th><th>Category</th><th>Unit</th><th>Quality steps 1–10</th><th></th></tr></thead>
     <tbody>${rows.map(m=>`<tr>
@@ -3142,8 +3154,12 @@ function renderCatMaterials(mats){
 
 function renderCatItems(items){
   if(!items.length) return `<div class="empty">No craftable items yet. Add a blueprint, or import the seed data.</div>`;
-  const rows=[...items].sort((a,b)=>a.name.localeCompare(b.name));
-  return `<table class="cards">
+  const all=catFilter([...items]).sort((a,b)=>a.name.localeCompare(b.name));
+  if(!all.length) return `<div class="empty">No items match "${esc(catalogSearch)}".</div>`;
+  const capped = !catalogSearch.trim() && all.length>CAT_LIST_CAP;
+  const rows = capped ? all.slice(0,CAT_LIST_CAP) : all;
+  const note = capped ? `<div style="font-size:var(--text-sm);color:var(--fg);margin-bottom:10px;">Showing ${CAT_LIST_CAP} of ${all.length} — search to narrow.</div>` : '';
+  return note + `<table class="cards">
     <thead><tr><th>Item</th><th>Category</th><th>Recipe</th><th></th></tr></thead>
     <tbody>${rows.map(it=>`<tr>
       <td data-label="Item" style="font-weight:700;">${esc(it.name)}</td>
@@ -3158,7 +3174,8 @@ function renderCatItems(items){
 
 function renderCatLocations(locs){
   if(!locs.length) return `<div class="empty">No locations yet.</div>`;
-  const rows=[...locs].sort((a,b)=>a.name.localeCompare(b.name));
+  const rows=catFilter([...locs]).sort((a,b)=>a.name.localeCompare(b.name));
+  if(!rows.length) return `<div class="empty">No locations match "${esc(catalogSearch)}".</div>`;
   return `<table class="cards">
     <thead><tr><th>Location</th><th>System</th><th>Base</th><th></th></tr></thead>
     <tbody>${rows.map(l=>`<tr>
@@ -3306,8 +3323,19 @@ async function importCatalogSeed(){
     const materials=(seed.materials||[]).map(m=>({name:m.name,type:m.type||'Mineable',category:m.category||'',unit:m.unit||'SCU'}));
     const items=(seed.items||[]).map(i=>({name:i.name,category:i.category||'',recipe:(i.recipe||[]).map(r=>({materialName:r.materialName,qty:Number(r.qty),unit:r.unit||'SCU'}))}));
     const locations=(seed.locations||[]).map(l=>({name:l.name,system:l.system||undefined,isBase:!!l.isBase}));
-    const out=await convexMutation('catalog:importCatalog',{sessionToken:state.sessionToken,materials,items,locations});
-    toast(`Imported ${out.matAdded} materials, ${out.itemAdded} items, ${out.locAdded} locations`);
+    // The item list is large — send materials/locations once, then items in chunks.
+    toast('Importing… this can take a moment');
+    const CHUNK=200; const chunks=[];
+    for(let i=0;i<items.length;i+=CHUNK) chunks.push(items.slice(i,i+CHUNK));
+    if(!chunks.length) chunks.push([]);
+    let mat=0,it=0,loc=0;
+    for(let i=0;i<chunks.length;i++){
+      const payload={sessionToken:state.sessionToken,items:chunks[i]};
+      if(i===0){ payload.materials=materials; payload.locations=locations; }
+      const out=await convexMutation('catalog:importCatalog',payload);
+      mat+=out.matAdded||0; it+=out.itemAdded||0; loc+=out.locAdded||0;
+    }
+    toast(`Imported ${mat} materials, ${it} items, ${loc} locations`);
     await refreshAll(); renderPage();
   }catch(e){ notifyError(e); }
 }
