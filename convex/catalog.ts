@@ -112,14 +112,14 @@ export const upsertLocation = mutation({
     id: v.optional(v.id("locationCatalog")),
     name: v.string(),
     system: v.optional(v.string()),
-    isLevski: v.boolean(),
+    isBase: v.boolean(),
   },
-  handler: async (ctx, { sessionToken, id, name, system, isLevski }) => {
+  handler: async (ctx, { sessionToken, id, name, system, isBase }) => {
     await requireAdmin(ctx.db, sessionToken);
     const nm = name.trim();
     if (!nm) throw new ConvexError("Name is required");
     assertLen(nm, 80, "name");
-    const data = { name: nm, system: system?.trim() || undefined, isLevski };
+    const data = { name: nm, system: system?.trim() || undefined, isBase };
     if (id) { await ctx.db.patch(id, data); return id; }
     const dup = await ctx.db.query("locationCatalog").withIndex("by_name", q => q.eq("name", nm)).first();
     if (dup) throw new ConvexError("A location with that name already exists");
@@ -141,7 +141,7 @@ export const importCatalog = mutation({
     sessionToken: v.string(),
     materials: v.optional(v.array(v.object({ name: v.string(), type: v.string(), category: v.string(), unit: v.string() }))),
     items: v.optional(v.array(v.object({ name: v.string(), category: v.string(), recipe: v.array(v.object({ materialName: v.string(), qty: v.number(), unit: v.string() })) }))),
-    locations: v.optional(v.array(v.object({ name: v.string(), system: v.optional(v.string()), isLevski: v.optional(v.boolean()) }))),
+    locations: v.optional(v.array(v.object({ name: v.string(), system: v.optional(v.string()), isBase: v.optional(v.boolean()) }))),
   },
   handler: async (ctx, { sessionToken, materials, items, locations }) => {
     const admin = await requireAdmin(ctx.db, sessionToken);
@@ -176,7 +176,7 @@ export const importCatalog = mutation({
       await ctx.db.insert("locationCatalog", {
         name: nm,
         system: l.system?.trim() || undefined,
-        isLevski: !!l.isLevski,
+        isBase: !!l.isBase,
       });
       locAdded++;
     }

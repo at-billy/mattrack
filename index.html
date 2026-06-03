@@ -3160,11 +3160,11 @@ function renderCatLocations(locs){
   if(!locs.length) return `<div class="empty">No locations yet.</div>`;
   const rows=[...locs].sort((a,b)=>a.name.localeCompare(b.name));
   return `<table class="cards">
-    <thead><tr><th>Location</th><th>System</th><th>Levski</th><th></th></tr></thead>
+    <thead><tr><th>Location</th><th>System</th><th>Base</th><th></th></tr></thead>
     <tbody>${rows.map(l=>`<tr>
       <td data-label="Location" style="font-weight:700;">${esc(l.name)}</td>
       <td data-label="System">${esc(l.system||'—')}</td>
-      <td data-label="Levski">${l.isLevski?'<span class="item-cat-tag">Levski</span>':'—'}</td>
+      <td data-label="Base">${l.isBase?'<span class="item-cat-tag">Base</span>':'—'}</td>
       <td data-label="" style="white-space:nowrap;">
         <button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="openLocationModal('${esc(l._id)}')">Edit</button>
         <button class="btn-del" onclick="deleteCatLocation('${esc(l._id)}','${escJs(l.name)}')" aria-label="Delete">&times;</button>
@@ -3274,7 +3274,7 @@ function openLocationModal(id){
     <div class="modal-title">${l?'Edit location':'New location'}</div>
     <div class="field"><label class="lbl">Name</label><input id="l-name" type="text" value="${l?esc(l.name):''}" placeholder="e.g. Levski"></div>
     <div class="field"><label class="lbl">System</label><input id="l-sys" type="text" value="${l?esc(l.system||''):''}" placeholder="e.g. Stanton / Nyx"></div>
-    <label class="chk-row" style="margin-top:6px;"><input type="checkbox" id="l-levski"${l&&l.isLevski?' checked':''}> <span style="font-size:var(--text-md);">This is Levski (default destination for materials)</span></label>
+    <label class="chk-row" style="margin-top:6px;"><input type="checkbox" id="l-base"${l&&l.isBase?' checked':''}> <span style="font-size:var(--text-md);">This is the base (default destination for materials)</span></label>
     <div class="err-msg" id="l-err"></div>
     <div style="display:flex;gap:10px;margin-top:12px;">
       <button class="btn btn-black" onclick="saveCatLocation(${l?`'${esc(l._id)}'`:'null'})">Save</button>
@@ -3284,10 +3284,10 @@ function openLocationModal(id){
 async function saveCatLocation(id){
   const name=(document.getElementById('l-name')||{value:''}).value.trim();
   const system=document.getElementById('l-sys').value.trim();
-  const isLevski=document.getElementById('l-levski').checked;
+  const isBase=document.getElementById('l-base').checked;
   if(!name){showErr('l-err','Name is required');return;}
   try{
-    await convexMutation('catalog:upsertLocation',{sessionToken:state.sessionToken,id:id||undefined,name,system:system||undefined,isLevski});
+    await convexMutation('catalog:upsertLocation',{sessionToken:state.sessionToken,id:id||undefined,name,system:system||undefined,isBase});
     toast('Location saved'); closeModal(); await refreshAll(); renderPage();
   }catch(e){showErr('l-err',e.message);}
 }
@@ -3305,7 +3305,7 @@ async function importCatalogSeed(){
     const seed=await res.json();
     const materials=(seed.materials||[]).map(m=>({name:m.name,type:m.type||'Mineable',category:m.category||'',unit:m.unit||'SCU'}));
     const items=(seed.items||[]).map(i=>({name:i.name,category:i.category||'',recipe:(i.recipe||[]).map(r=>({materialName:r.materialName,qty:Number(r.qty),unit:r.unit||'SCU'}))}));
-    const locations=(seed.locations||[]).map(l=>({name:l.name,system:l.system||undefined,isLevski:!!l.isLevski}));
+    const locations=(seed.locations||[]).map(l=>({name:l.name,system:l.system||undefined,isBase:!!l.isBase}));
     const out=await convexMutation('catalog:importCatalog',{sessionToken:state.sessionToken,materials,items,locations});
     toast(`Imported ${out.matAdded} materials, ${out.itemAdded} items, ${out.locAdded} locations`);
     await refreshAll(); renderPage();

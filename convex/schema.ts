@@ -171,6 +171,6 @@ export default defineSchema({
   locationCatalog: defineTable({
     name: v.string(),
     system: v.optional(v.string()),
-    isLevski: v.boolean(),
+    isBase: v.boolean(), // the org's base / default destination for materials (currently Levski)
   }).index("by_name", ["name"]),
 });
