@@ -355,7 +355,7 @@
         },
         {
           "materialName": "Dolivine",
-          "qty": 1.0,
+          "qty": 1,
           "unit": "UNIT"
         }
       ]
@@ -381,7 +381,7 @@
         },
         {
           "materialName": "Hadanite",
-          "qty": 1.0,
+          "qty": 1,
           "unit": "UNIT"
         }
       ]
@@ -413,10 +413,257 @@
       "recipe": [
         {
           "materialName": "Aluminium",
-          "qty": 1.0,
+          "qty": 1,
           "unit": "SCU"
         }
       ]
+    }
+  ],
+  "locations": [
+    {
+      "name": "Area 18",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "Lorville",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "Orison",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "New Babbage",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "Everus Harbor",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "Baijini Point",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "Port Tressler",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "Grim Hex",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "Seraphim Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "ARC-L1 Wide Forest Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "ARC-L2 Lively Pathway Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "ARC-L3 Modern Express Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "ARC-L4 Faint Glen Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "ARC-L5 Yellow Core Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "CRU-L1 Ambitious Dream Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "CRU-L4 Shallow Fields Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "CRU-L5 Beautiful Glen Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "HUR-L1 Green Glade Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "HUR-L2 Faithful Dream Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "HUR-L3 Thundering Express Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "HUR-L4 Melodic Fields Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "HUR-L5 High Course Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "MIC-L1 Shallow Frontier Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "MIC-L2 Long Forest Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "MIC-L3 Endless Odyssey Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "MIC-L4 Red Crossroads Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "MIC-L5 Modern Icarus Station",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "Nyx Gateway (Stanton side)",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "Pyro Gateway (Stanton side)",
+      "system": "Stanton",
+      "isLevski": false
+    },
+    {
+      "name": "Ruin Station",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Checkmate Station",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Orbituary",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Patch City",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Endgame",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Gaslight",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Rat's Nest",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Dudley & Daughters",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Megumi Refueling",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Rod's Fuel 'n Supplies",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Starlight Service Station",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Stanton Gateway (Pyro side)",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Nyx Gateway (Pyro side)",
+      "system": "Pyro",
+      "isLevski": false
+    },
+    {
+      "name": "Levski",
+      "system": "Nyx",
+      "isLevski": true
+    },
+    {
+      "name": "People's Service Station Alpha",
+      "system": "Nyx",
+      "isLevski": false
+    },
+    {
+      "name": "People's Service Station Delta",
+      "system": "Nyx",
+      "isLevski": false
+    },
+    {
+      "name": "People's Service Station Lambda",
+      "system": "Nyx",
+      "isLevski": false
+    },
+    {
+      "name": "People's Service Station Theta",
+      "system": "Nyx",
+      "isLevski": false
+    },
+    {
+      "name": "Pyro Gateway (Nyx side)",
+      "system": "Nyx",
+      "isLevski": false
+    },
+    {
+      "name": "Stanton Gateway (Nyx side)",
+      "system": "Nyx",
+      "isLevski": false
     }
   ]
 }

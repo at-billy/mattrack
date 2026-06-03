@@ -3103,7 +3103,7 @@ function pageCatalog(){
   const addLabel={materials:'Material',items:'Item',locations:'Location'}[catalogTab];
   const addFn={materials:'openMaterialModal()',items:'openItemModal()',locations:'openLocationModal()'}[catalogTab];
   const tab=(id,label)=>`<button class="btn-ghost btn-sm${catalogTab===id?' active':''}" onclick="setCatalogTab('${id}')">${label} (${counts[id]})</button>`;
-  const empty = !cat.materials.length && !cat.items.length;
+  const empty = !cat.materials.length || !cat.items.length || !cat.locations.length;
   const body = catalogTab==='materials'?renderCatMaterials(cat.materials)
     : catalogTab==='items'?renderCatItems(cat.items)
     : renderCatLocations(cat.locations);
@@ -3298,15 +3298,16 @@ async function deleteCatLocation(id,name){
 
 // ── Seed import ──
 async function importCatalogSeed(){
-  if(!await confirmModal('Import the seed materials and blueprints? Existing names are skipped.')) return;
+  if(!await confirmModal('Import the seed materials, blueprints and locations? Existing names are skipped.')) return;
   try{
     const res=await fetch('seed/catalog-seed.json',{cache:'no-store'});
     if(!res.ok) throw new Error('Could not load seed file');
     const seed=await res.json();
     const materials=(seed.materials||[]).map(m=>({name:m.name,type:m.type||'Mineable',category:m.category||'',unit:m.unit||'SCU'}));
     const items=(seed.items||[]).map(i=>({name:i.name,category:i.category||'',recipe:(i.recipe||[]).map(r=>({materialName:r.materialName,qty:Number(r.qty),unit:r.unit||'SCU'}))}));
-    const out=await convexMutation('catalog:importCatalog',{sessionToken:state.sessionToken,materials,items});
-    toast(`Imported ${out.matAdded} materials, ${out.itemAdded} items`);
+    const locations=(seed.locations||[]).map(l=>({name:l.name,system:l.system||undefined,isLevski:!!l.isLevski}));
+    const out=await convexMutation('catalog:importCatalog',{sessionToken:state.sessionToken,materials,items,locations});
+    toast(`Imported ${out.matAdded} materials, ${out.itemAdded} items, ${out.locAdded} locations`);
     await refreshAll(); renderPage();
   }catch(e){ notifyError(e); }
 }

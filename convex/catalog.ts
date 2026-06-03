@@ -141,10 +141,11 @@ export const importCatalog = mutation({
     sessionToken: v.string(),
     materials: v.optional(v.array(v.object({ name: v.string(), type: v.string(), category: v.string(), unit: v.string() }))),
     items: v.optional(v.array(v.object({ name: v.string(), category: v.string(), recipe: v.array(v.object({ materialName: v.string(), qty: v.number(), unit: v.string() })) }))),
+    locations: v.optional(v.array(v.object({ name: v.string(), system: v.optional(v.string()), isLevski: v.optional(v.boolean()) }))),
   },
-  handler: async (ctx, { sessionToken, materials, items }) => {
+  handler: async (ctx, { sessionToken, materials, items, locations }) => {
     const admin = await requireAdmin(ctx.db, sessionToken);
-    let matAdded = 0, itemAdded = 0;
+    let matAdded = 0, itemAdded = 0, locAdded = 0;
     for (const m of materials ?? []) {
       const nm = m.name.trim(); if (!nm) continue;
       const exists = await ctx.db.query("materialCatalog").withIndex("by_name", q => q.eq("name", nm)).first();
@@ -168,12 +169,23 @@ export const importCatalog = mutation({
       await ctx.db.insert("itemCatalog", { name: nm, category: (it.category ?? "").trim(), recipe });
       itemAdded++;
     }
+    for (const l of locations ?? []) {
+      const nm = l.name.trim(); if (!nm) continue;
+      const exists = await ctx.db.query("locationCatalog").withIndex("by_name", q => q.eq("name", nm)).first();
+      if (exists) continue;
+      await ctx.db.insert("locationCatalog", {
+        name: nm,
+        system: l.system?.trim() || undefined,
+        isLevski: !!l.isLevski,
+      });
+      locAdded++;
+    }
     await ctx.db.insert("archive", {
       type: "catalog_imported",
       userId: admin._id,
       userName: admin.username,
-      details: { materials: matAdded, items: itemAdded },
+      details: { materials: matAdded, items: itemAdded, locations: locAdded },
     });
-    return { matAdded, itemAdded };
+    return { matAdded, itemAdded, locAdded };
   },
 });
