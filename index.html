@@ -1835,6 +1835,7 @@ function pageOverview() {
 }
 
 function pageRecruitOverview(u) {
+  const noAdmin = !hasAdmin();
   return `
     <div class="page-head">
       <div class="page-head-left">
@@ -1843,8 +1844,12 @@ function pageRecruitOverview(u) {
           <span style="display:inline-block;background:var(--red);color:#fff;font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;">Pending approval</span>
         </div>
       </div>
+      ${noAdmin?`<button class="btn btn-outline" style="border-color:var(--red);color:var(--fg);" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
     </div>
     <div style="max-width:600px;">
+      ${noAdmin?`<div style="border:2px solid var(--red);padding:16px 18px;margin-bottom:28px;font-size:var(--text-md);line-height:1.6;">
+        <strong>First account on a fresh install.</strong> No admin exists yet — click <strong>Claim Admin</strong> above to make this account the administrator and set things up.
+      </div>`:''}
       <div style="font-size:var(--text-lg);font-weight:900;letter-spacing:-.5px;margin-bottom:16px;">WELCOME</div>
       <div style="font-size:var(--text-md);color:var(--fg);line-height:1.7;margin-bottom:32px;">
         This is the wing's operations tracker for inventory, logistics, projects and lottery, all in one place.
