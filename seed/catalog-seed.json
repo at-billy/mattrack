@@ -1,0 +1,422 @@
+{
+  "materials": [
+    {
+      "name": "Agricium",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Aluminium",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Aphorite",
+      "type": "Mineable",
+      "category": "FPS Mining",
+      "unit": "UNIT",
+      "qualities": []
+    },
+    {
+      "name": "Aslarite",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Beradom",
+      "type": "Mineable",
+      "category": "Vehicle Mining",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Beryl",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Bexalite",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Borase",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Carinite",
+      "type": "Mineable",
+      "category": "FPS Mining",
+      "unit": "UNIT",
+      "qualities": []
+    },
+    {
+      "name": "Carinite",
+      "type": "Mineable",
+      "category": "Vehicle Mining",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Carinite Pure",
+      "type": "Mineable",
+      "category": "FPS Mining",
+      "unit": "UNIT",
+      "qualities": []
+    },
+    {
+      "name": "Copper",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Corundum",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Dolivine",
+      "type": "Mineable",
+      "category": "FPS Mining",
+      "unit": "UNIT",
+      "qualities": []
+    },
+    {
+      "name": "Feynmaline",
+      "type": "Mineable",
+      "category": "Vehicle Mining",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Glacosite",
+      "type": "Mineable",
+      "category": "Vehicle Mining",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Gold",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Hadanite",
+      "type": "Mineable",
+      "category": "FPS Mining",
+      "unit": "UNIT",
+      "qualities": []
+    },
+    {
+      "name": "Hephaestanite",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Ice",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Iron",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Jaclium",
+      "type": "Mineable",
+      "category": "FPS Mining",
+      "unit": "UNIT",
+      "qualities": []
+    },
+    {
+      "name": "Janalite",
+      "type": "Mineable",
+      "category": "FPS Mining",
+      "unit": "UNIT",
+      "qualities": []
+    },
+    {
+      "name": "Laranite",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Lindinium",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Ouratite",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Quantainium",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Quartz",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Riccite",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Sadaryx",
+      "type": "Mineable",
+      "category": "FPS Mining",
+      "unit": "UNIT",
+      "qualities": []
+    },
+    {
+      "name": "Saldynium",
+      "type": "Mineable",
+      "category": "FPS Mining",
+      "unit": "UNIT",
+      "qualities": []
+    },
+    {
+      "name": "Savrilium",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Silicon",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Stileron",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Taranite",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Tin",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Titanium",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Torite",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    },
+    {
+      "name": "Tungsten",
+      "type": "Mineable",
+      "category": "Ores",
+      "unit": "SCU",
+      "qualities": []
+    }
+  ],
+  "items": [
+    {
+      "name": "Crossbow (basic)",
+      "category": "fps_weapon",
+      "recipe": [
+        {
+          "materialName": "Savrilium",
+          "qty": 0.05,
+          "unit": "SCU"
+        },
+        {
+          "materialName": "Ouratite",
+          "qty": 0.02,
+          "unit": "SCU"
+        }
+      ]
+    },
+    {
+      "name": "Defiance Arms Tactical",
+      "category": "fps_armour",
+      "recipe": [
+        {
+          "materialName": "Ouratite",
+          "qty": 0.06,
+          "unit": "SCU"
+        },
+        {
+          "materialName": "Aslarite",
+          "qty": 0.02,
+          "unit": "SCU"
+        }
+      ]
+    },
+    {
+      "name": "Defiance Core Tactical",
+      "category": "fps_armour",
+      "recipe": [
+        {
+          "materialName": "Ouratite",
+          "qty": 0.07,
+          "unit": "SCU"
+        },
+        {
+          "materialName": "Aslarite",
+          "qty": 0.02,
+          "unit": "SCU"
+        }
+      ]
+    },
+    {
+      "name": "Defiance Legs Tactical",
+      "category": "fps_armour",
+      "recipe": [
+        {
+          "materialName": "Ouratite",
+          "qty": 0.06,
+          "unit": "SCU"
+        },
+        {
+          "materialName": "Aslarite",
+          "qty": 0.02,
+          "unit": "SCU"
+        }
+      ]
+    },
+    {
+      "name": "Gallant Rifle",
+      "category": "fps_weapon",
+      "recipe": [
+        {
+          "materialName": "Corundum",
+          "qty": 0.04,
+          "unit": "SCU"
+        },
+        {
+          "materialName": "Copper",
+          "qty": 0.02,
+          "unit": "SCU"
+        },
+        {
+          "materialName": "Dolivine",
+          "qty": 1.0,
+          "unit": "UNIT"
+        }
+      ]
+    },
+    {
+      "name": "P6-LR Sniper Rifle",
+      "category": "fps_weapon",
+      "recipe": [
+        {
+          "materialName": "Taranite",
+          "qty": 0.06,
+          "unit": "SCU"
+        },
+        {
+          "materialName": "Hephaestanite",
+          "qty": 0.02,
+          "unit": "SCU"
+        },
+        {
+          "materialName": "Iron",
+          "qty": 0.03,
+          "unit": "SCU"
+        },
+        {
+          "materialName": "Hadanite",
+          "qty": 1.0,
+          "unit": "UNIT"
+        }
+      ]
+    },
+    {
+      "name": "P8-SC SMG",
+      "category": "fps_weapon",
+      "recipe": [
+        {
+          "materialName": "Savrilium",
+          "qty": 0.03,
+          "unit": "SCU"
+        },
+        {
+          "materialName": "Hephaestanite",
+          "qty": 0.01,
+          "unit": "SCU"
+        },
+        {
+          "materialName": "Iron",
+          "qty": 0.01,
+          "unit": "SCU"
+        }
+      ]
+    },
+    {
+      "name": "house",
+      "category": "fps_weapon",
+      "recipe": [
+        {
+          "materialName": "Aluminium",
+          "qty": 1.0,
+          "unit": "SCU"
+        }
+      ]
+    }
+  ]
+}
