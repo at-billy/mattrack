@@ -109,6 +109,35 @@ export const complete = mutation({
   },
 });
 
+// Logistics selects pickups and moves them: mark done, record who did it, and
+// move each pickup's stock to "at_base".
+export const pickedUp = mutation({
+  args: { sessionToken: v.string(), ids: v.array(v.id("workorders")) },
+  handler: async (ctx, { sessionToken, ids }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    assertRole(user, ["logistics", "admin"]);
+    if (!ids.length) throw new ConvexError("Select at least one pickup");
+    let moved = 0;
+    for (const id of ids) {
+      const wo = await ctx.db.get(id);
+      if (!wo || wo.kind !== "pickup" || wo.status === "done" || wo.status === "cancelled") continue;
+      for (const it of wo.items ?? []) {
+        const s = await ctx.db.get(it.stockId);
+        if (s && (s.status === "reported" || s.status === "in_transit")) await ctx.db.patch(it.stockId, { status: "at_base" });
+      }
+      await ctx.db.patch(id, { status: "done", claimedById: user._id, claimedByName: user.username });
+      moved++;
+    }
+    await ctx.db.insert("archive", {
+      type: "workorder_completed",
+      userId: user._id,
+      userName: user.username,
+      details: { kind: "pickup", count: moved },
+    });
+    return { moved };
+  },
+});
+
 // Cancel (the creator or an admin): release the picked stock back to reported.
 export const cancel = mutation({
   args: { sessionToken: v.string(), id: v.id("workorders") },

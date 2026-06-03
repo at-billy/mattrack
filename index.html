@@ -1261,7 +1261,6 @@ function updateLiveView(silent=false) {
     const active = document.activeElement;
     const typing = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT') && document.getElementById('page-wrap')?.contains(active);
     if(!typing){
-      const a=document.getElementById('wo-awaiting'); if(a) a.innerHTML=renderAwaitingPickup();
       const c=document.getElementById('wo-controls'); if(c) c.innerHTML=renderWoControls();
       const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoList();
     }
@@ -1594,9 +1593,14 @@ function renderNav() {
   if(main==='mat'){
     sub=`<div class="nav-sub-item" style="cursor:default;">Welcome back, ${esc(u.username)}</div>`;
   } else if(main==='task'){
-    sub='';
+    sub=`
+      <div class="nav-sub-item${woView==='pickup'?' active':''}" onclick="setWoView('pickup')">Pickup</div>
+      <div class="nav-sub-item${woView==='crafting'?' active':''}" onclick="setWoView('crafting')">Crafting</div>
+      <div class="nav-sub-item${woView==='distribution'?' active':''}" onclick="setWoView('distribution')">Distribution</div>`;
   } else if(main==='items'){
-    sub='';
+    sub=`
+      <div class="nav-sub-item${stockView==='materials'?' active':''}" onclick="setStockView('materials')">Materials</div>
+      <div class="nav-sub-item${stockView==='items'?' active':''}" onclick="setStockView('items')">Items</div>`;
   } else if(main==='log'){
     const openLotteries=state.lotteries.filter(l=>l.status==='open'||l.status==='drawn').length;
     sub=`
@@ -3095,9 +3099,13 @@ async function submitChangePassword(){
 }
 
 // ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
-// ─── WORKORDERS (pipeline spine; step 4 = gatherer pickup intake) ──────────────
+// ─── WORKORDERS (pipeline spine) ───────────────────────────────────────────────
 function woStatusLabel(s){ return ({open:'Open',claimed:'Claimed',done:'Done',cancelled:'Cancelled'})[s]||s; }
+let woView='pickup';                       // subnav: pickup | crafting | distribution
+const WO_VIEW_KIND={pickup:'pickup',crafting:'craft',distribution:'distribution'};
 let woStatusF='all', woSearch='', woSearchActive=false;
+let woSel=new Set();                       // selected open-pickup ids for bulk move
+function setWoView(v){ woView=v; woStatusF='all'; woSearch=''; woSearchActive=false; woSel.clear(); renderNav(); renderPage(); }
 function setWoStatusF(s){ woStatusF=s; rerenderWo(); }
 function toggleWoSearch(){ woSearchActive=!woSearchActive; if(!woSearchActive) woSearch=''; rerenderWo(); }
 function woSearchInput(v){ woSearch=v; const el=document.getElementById('wo-list'); if(el) el.innerHTML=renderWoList(); }
@@ -3107,100 +3115,88 @@ function rerenderWo(){
   if(woSearchActive){ const i=document.getElementById('wo-search'); if(i){ i.focus(); const x=i.value; try{i.setSelectionRange(x.length,x.length);}catch(e){} } }
 }
 function woRows(){
+  const kind=WO_VIEW_KIND[woView];
   const order={open:0,claimed:1,done:2,cancelled:3};
-  let rows=state.workorders;
+  let rows=state.workorders.filter(w=>w.kind===kind);
   if(woStatusF!=='all') rows=rows.filter(w=>w.status===woStatusF);
   const q=woSearch.trim().toLowerCase();
-  if(q) rows=rows.filter(w=>(w.holder||'').toLowerCase().includes(q)||(w.location||'').toLowerCase().includes(q)||(w.matType||'').toLowerCase().includes(q)||(w.note||'').toLowerCase().includes(q));
+  if(q) rows=rows.filter(w=>(w.location||'').toLowerCase().includes(q)||(w.note||'').toLowerCase().includes(q)||(w.items||[]).some(it=>it.name.toLowerCase().includes(q)));
   return [...rows].sort((a,b)=>(order[a.status]-order[b.status])||(b._creationTime-a._creationTime));
 }
-
-// Reported stock grouped by location → one-click "Create Pickup" per location.
-function renderAwaitingPickup(){
-  const u=state.user;
-  if(!canPickStock(u)) return '';
-  const reported=state.stock.filter(s=>s.status==='reported');
-  if(!reported.length) return '';
-  const byLoc={};
-  for(const s of reported){ (byLoc[s.location] ??= []).push(s); }
-  const groups=Object.entries(byLoc).sort((a,b)=>a[0].localeCompare(b[0]));
-  return `<div style="margin-bottom:44px;">
-    <div style="font-size:var(--text-md);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--red);display:flex;align-items:center;gap:12px;">
-      Reported stock awaiting pickup
-      <span style="background:var(--red);color:#fff;padding:1px 8px;font-size:var(--text-md);">${reported.length}</span>
-    </div>
-    ${groups.map(([loc,items])=>`<div style="display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-bottom:1px solid var(--border-m);flex-wrap:wrap;">
-      <div style="min-width:220px;flex:1;">
-        <div style="font-weight:700;font-size:var(--text-md);">${esc(loc)}${items[0].system?` <span class="sys-badge">${esc(items[0].system)}</span>`:''}</div>
-        <div style="font-size:var(--text-sm);color:var(--fg);margin-top:4px;">${items.map(s=>`${esc(s.name)}${s.qualityStep?` Q${s.qualityStep}`:''} ×${s.qty} ${esc(s.unit)}`).join(' · ')}</div>
-      </div>
-      <div><button class="btn btn-black btn-sm" onclick="createPickupForLocation('${escJs(loc)}')">Create Pickup (${items.length})</button></div>
-    </div>`).join('')}
-  </div>`;
+function woToggleSel(id){ if(woSel.has(id)) woSel.delete(id); else woSel.add(id); const c=document.getElementById('wo-controls'); if(c) c.innerHTML=renderWoControls(); }
+function woToggleSelAll(on){ const open=woRows().filter(w=>w.status==='open'); if(on) open.forEach(w=>woSel.add(w._id)); else open.forEach(w=>woSel.delete(w._id)); rerenderWo(); }
+async function woPickedUp(){
+  const openIds=new Set(state.workorders.filter(w=>w.kind==='pickup'&&w.status==='open').map(w=>w._id));
+  const ids=[...woSel].filter(id=>openIds.has(id));
+  if(!ids.length){ toast('Select open pickups first'); return; }
+  if(!await confirmModal(`Mark ${ids.length} pickup${ids.length===1?'':'s'} as picked up? Their stock moves to At Base.`)) return;
+  try{ const out=await convexMutation('workorders:pickedUp',{sessionToken:state.sessionToken,ids}); woSel.clear(); toast(`Moved ${out.moved} pickup${out.moved===1?'':'s'}`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
 }
+async function woCancel(id){ if(!await confirmModal('Cancel this workorder?')) return; try{ await convexMutation('workorders:cancel',{sessionToken:state.sessionToken,id}); toast('Cancelled'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
+async function woDelete(id){ if(!await confirmModal('Delete this workorder permanently?')) return; try{ await convexMutation('workorders:remove',{sessionToken:state.sessionToken,id}); toast('Deleted'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 
 function pageWorkorders(){
-  const open=state.workorders.filter(w=>w.status==='open').length;
+  const kind=WO_VIEW_KIND[woView];
+  const open=state.workorders.filter(w=>w.kind===kind&&w.status==='open').length;
+  const label={pickup:'open pickup',crafting:'open craft order',distribution:'open distribution'}[woView];
   return `
     <div class="page-head">
-      <div class="page-head-left"><div class="page-lead">${open} open pickup${open===1?'':'s'}</div></div>
+      <div class="page-head-left"><div class="page-lead">${open} ${label}${open===1?'':'s'}</div></div>
     </div>
     <div id="wo-content" style="margin-top:32px;">
-      <div id="wo-awaiting">${renderAwaitingPickup()}</div>
       <div id="wo-controls">${renderWoControls()}</div>
       <div id="wo-list">${renderWoList()}</div>
     </div>`;
 }
 
 function renderWoControls(){
+  const u=state.user;
   const sbtn=(id,label)=>`<button class="btn-ghost btn-sm${woStatusF===id?' active':''}" onclick="setWoStatusF('${id}')">${label}</button>`;
+  const openIds=new Set(state.workorders.filter(w=>w.kind==='pickup'&&w.status==='open').map(w=>w._id));
+  const nSel=[...woSel].filter(id=>openIds.has(id)).length;
+  const bulk = (woView==='pickup' && (isLogistics(u)||isAdmin(u)) && nSel) ? `<button class="btn btn-black btn-sm" onclick="woPickedUp()">Mark Picked Up (${nSel})</button>` : '';
   return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
-      ${sbtn('all','All')}${sbtn('open','Open')}${sbtn('claimed','Claimed')}${sbtn('done','Done')}${sbtn('cancelled','Cancelled')}
+      ${sbtn('all','All')}${sbtn('open','Open')}${sbtn('done','Done')}${sbtn('cancelled','Cancelled')}
+      ${bulk}
       <div style="flex:1;"></div>
       <button class="btn-ghost btn-sm${woSearchActive?' active':''}" onclick="toggleWoSearch()">${woSearchActive?'Close Search':'Search'}</button>
     </div>
-    ${woSearchActive?`<div style="margin-bottom:20px;"><input id="wo-search" type="text" placeholder="Search holder, location, type…" value="${esc(woSearch)}" style="width:100%;max-width:400px;" oninput="woSearchInput(this.value)"></div>`:''}`;
+    ${woSearchActive?`<div style="margin-bottom:20px;"><input id="wo-search" type="text" placeholder="Search location, item, note…" value="${esc(woSearch)}" style="width:100%;max-width:400px;" oninput="woSearchInput(this.value)"></div>`:''}`;
 }
 
 function renderWoList(){
-  if(!state.workorders.length) return `<div class="empty">No workorders yet. Gatherers can report a haul.</div>`;
+  if(woView!=='pickup'){
+    return `<div class="empty">${woView==='crafting'?'Craft work orders arrive in the crafting step.':'Distribution work orders arrive in the distribution step.'}</div>`;
+  }
   const rows=woRows();
-  if(!rows.length) return `<div class="empty">No workorders match this filter.</div>`;
+  if(!rows.length) return `<div class="empty">No pickups yet. Add materials to stock and they appear here.</div>`;
   const u=state.user;
+  const canMove=isLogistics(u)||isAdmin(u);
+  const openRows=rows.filter(w=>w.status==='open');
+  const allSel=openRows.length>0 && openRows.every(w=>woSel.has(w._id));
+  const selHead=canMove?`<th style="width:28px;"><input type="checkbox" ${allSel?'checked':''} onclick="woToggleSelAll(this.checked)" aria-label="Select all open"></th>`:'';
   return `<table class="cards">
-    <thead><tr><th>Location</th><th>Items</th><th>Status</th><th>Claimed By</th><th>By</th><th></th></tr></thead>
+    <thead><tr>${selHead}<th>Location</th><th>Items</th><th>Status</th><th>Picked up by</th><th>By</th><th></th></tr></thead>
     <tbody>${rows.map(w=>{
-      const canClaim = (isLogistics(u)||isAdmin(u)) && w.status==='open';
-      const canDone  = (isLogistics(u)||isAdmin(u)) && w.status==='claimed';
-      const canUnclaim = w.status==='claimed' && (isAdmin(u)||w.claimedById===u._id);
-      const canCancel = (w.status==='open'||w.status==='claimed') && (isAdmin(u)||w.createdBy===u._id);
+      const canCancel = w.status==='open' && (isAdmin(u)||w.createdBy===u._id);
       const canDelete = (w.status==='done'||w.status==='cancelled') && (isAdmin(u)||w.createdBy===u._id);
       const items=w.items||[];
-      const itemsHtml = items.length
-        ? items.map(it=>`${esc(it.name)}${it.qualityStep?` Q${it.qualityStep}`:''} ×${it.qty} ${esc(it.unit)}`).join('<br>')
-        : '—';
+      const itemsHtml = items.length ? items.map(it=>`${esc(it.name)}${it.qualityStep?` Q${it.qualityStep}`:''} ×${it.qty} ${esc(it.unit)}`).join('<br>') : '—';
+      const selCell = canMove?`<td data-label="">${w.status==='open'?`<input type="checkbox" ${woSel.has(w._id)?'checked':''} onclick="woToggleSel('${esc(w._id)}')">`:''}</td>`:'';
       return `<tr>
+        ${selCell}
         <td data-label="Location" style="font-weight:700;">${esc(w.location||'—')}${w.system?` <span class="sys-badge">${esc(w.system)}</span>`:''}${w.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(w.note)}</div>`:''}</td>
         <td data-label="Items" style="font-size:var(--text-sm);color:var(--fg);">${itemsHtml}</td>
         <td data-label="Status" style="font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${woStatusLabel(w.status)}</td>
-        <td data-label="Claimed By">${esc(w.claimedByName||'—')}</td>
+        <td data-label="Picked up by">${esc(w.claimedByName||'—')}</td>
         <td data-label="By" style="color:var(--fg);">${esc(w.createdByName)}</td>
         <td data-label="" style="white-space:nowrap;">
-          ${canClaim?`<button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="woClaim('${esc(w._id)}')">Claim</button>`:''}
-          ${canDone?`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="woComplete('${esc(w._id)}')">Mark Done</button>`:''}
-          ${canUnclaim?`<button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="woUnclaim('${esc(w._id)}')">Unclaim</button>`:''}
           ${canCancel?`<button class="btn-del" onclick="woCancel('${esc(w._id)}')">Cancel</button>`:''}
           ${canDelete?`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Delete">&times;</button>`:''}
         </td>
       </tr>`;
     }).join('')}</tbody></table>`;
 }
-
-async function woClaim(id){ try{ await convexMutation('workorders:claim',{sessionToken:state.sessionToken,id}); toast('Claimed'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
-async function woUnclaim(id){ try{ await convexMutation('workorders:unclaim',{sessionToken:state.sessionToken,id}); toast('Released'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
-async function woComplete(id){ if(!await confirmModal('Mark this pickup as done?')) return; try{ await convexMutation('workorders:complete',{sessionToken:state.sessionToken,id}); toast('Done'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
-async function woCancel(id){ if(!await confirmModal('Cancel this workorder?')) return; try{ await convexMutation('workorders:cancel',{sessionToken:state.sessionToken,id}); toast('Cancelled'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
-async function woDelete(id){ if(!await confirmModal('Delete this workorder permanently?')) return; try{ await convexMutation('workorders:remove',{sessionToken:state.sessionToken,id}); toast('Deleted'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 
 // ─── STOCK / LEDGER ─────────────────────────────────────────────────────────
 const STOCK_STATUS_DEFS = [
@@ -3236,20 +3232,9 @@ function locPickerSysChanged(prefix){
 }
 function pickedLocation(prefix){ return (document.getElementById(prefix+'-loc')||{value:''}).value; }
 function pickedLocationSystem(prefix){ const o=state.catalog.locations.find(l=>l.name===pickedLocation(prefix)); return o?o.system:undefined; }
-let stockKindF='all', stockStatusF='all', stockLocF='all', stockSearch='', stockSearchActive=false;
-function canPickStock(u){ return isGatherer(u)||isAdmin(u); }
-// Create a pickup for all Reported stock at one location (from the WORK tab).
-async function createPickupForLocation(location){
-  const ids=state.stock.filter(s=>s.status==='reported'&&s.location===location).map(s=>s._id);
-  if(!ids.length){ toast('Nothing reported at that location'); return; }
-  if(!await confirmModal(`Create a pickup work order for ${ids.length} item${ids.length===1?'':'s'} at ${location}?`)) return;
-  try{
-    const out=await convexMutation('workorders:createPickupFromStock',{sessionToken:state.sessionToken,stockIds:ids});
-    toast(`Pickup created (${out.items} item${out.items===1?'':'s'})`);
-    await refreshAll(); renderPage();
-  }catch(e){ notifyError(e); }
-}
-function setStockKind(k){ stockKindF=k; rerenderStock(); }
+let stockView='materials';  // subnav: materials | items
+let stockStatusF='all', stockLocF='all', stockSearch='', stockSearchActive=false;
+function setStockView(v){ stockView=v; stockStatusF='all'; stockLocF='all'; stockSearch=''; stockSearchActive=false; renderNav(); renderPage(); }
 function setStockStatusF(s){ stockStatusF=s; rerenderStock(); }
 function setStockLocF(l){ stockLocF=l; rerenderStock(); }
 function toggleStockSearch(){ stockSearchActive=!stockSearchActive; if(!stockSearchActive) stockSearch=''; rerenderStock(); }
@@ -3260,8 +3245,7 @@ function rerenderStock(){
   if(stockSearchActive){ const i=document.getElementById('stock-search'); if(i){ i.focus(); const x=i.value; try{i.setSelectionRange(x.length,x.length);}catch(e){} } }
 }
 function stockRows(){
-  let rows=state.stock;
-  if(stockKindF!=='all') rows=rows.filter(s=>s.kind===stockKindF);
+  let rows=state.stock.filter(s=>s.kind===(stockView==='items'?'item':'material'));
   if(stockStatusF!=='all') rows=rows.filter(s=>s.status===stockStatusF);
   if(stockLocF!=='all') rows=rows.filter(s=>s.location===stockLocF);
   const q=stockSearch.trim().toLowerCase();
@@ -3272,10 +3256,11 @@ function stockRows(){
 function pageStock(){
   const u=state.user;
   const canAdd = !isRecruit(u);
-  const n=state.stock.length;
+  const n=state.stock.filter(s=>s.kind===(stockView==='items'?'item':'material')).length;
+  const noun=stockView==='items'?'item':'material';
   return `
     <div class="page-head">
-      <div class="page-head-left"><div class="page-lead">${n} stock entr${n===1?'y':'ies'}</div></div>
+      <div class="page-head-left"><div class="page-lead">${n} ${noun}${n===1?'':'s'} in stock</div></div>
       ${canAdd?`<button class="btn btn-black" onclick="openStockModal()">+ Add Stock</button>`:''}
     </div>
     <div id="stock-content" style="margin-top:32px;">
@@ -3285,10 +3270,8 @@ function pageStock(){
 }
 
 function renderStockControls(){
-  const locs=[...new Set(state.stock.map(s=>s.location).filter(Boolean))].sort();
-  const kbtn=(id,label)=>`<button class="btn-ghost btn-sm${stockKindF===id?' active':''}" onclick="setStockKind('${id}')">${label}</button>`;
+  const locs=[...new Set(state.stock.filter(s=>s.kind===(stockView==='items'?'item':'material')).map(s=>s.location).filter(Boolean))].sort();
   return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
-      ${kbtn('all','All')}${kbtn('material','Materials')}${kbtn('item','Items')}
       <select class="btn-ghost btn-sm" style="padding-top:4px;padding-bottom:4px;" onchange="setStockStatusF(this.value)">
         <option value="all"${stockStatusF==='all'?' selected':''}>Any status</option>
         ${STOCK_STATUS_DEFS.map(s=>`<option value="${s.id}"${stockStatusF===s.id?' selected':''}>${s.label}</option>`).join('')}
@@ -3304,7 +3287,8 @@ function renderStockControls(){
 }
 
 function renderStockList(){
-  if(!state.stock.length) return `<div class="empty">No stock yet. Add what you're holding.</div>`;
+  const viewStock=state.stock.filter(s=>s.kind===(stockView==='items'?'item':'material'));
+  if(!viewStock.length) return `<div class="empty">No ${stockView==='items'?'items':'materials'} in stock yet.</div>`;
   const rows=stockRows();
   if(!rows.length) return `<div class="empty">No stock matches this filter.</div>`;
   const u=state.user;
@@ -3358,8 +3342,8 @@ function openStockModal(id){
     <div class="modal-title">${row?'Edit stock':'Add stock'}</div>
     <div class="grid2">
       <div class="field"><label class="lbl">Kind</label><select id="st-kind" onchange="stockKindChanged()"${dis}>
-        <option value="material"${row&&row.kind==='material'?' selected':''}>Material</option>
-        <option value="item"${row&&row.kind==='item'?' selected':''}>Item</option></select></div>
+        <option value="material"${(row?row.kind:(stockView==='items'?'item':'material'))==='material'?' selected':''}>Material</option>
+        <option value="item"${(row?row.kind:(stockView==='items'?'item':'material'))==='item'?' selected':''}>Item</option></select></div>
       <div class="field"><label class="lbl">Name</label><select id="st-name" onchange="stockNameChanged()"${dis}></select></div>
     </div>
     <div class="grid2">
