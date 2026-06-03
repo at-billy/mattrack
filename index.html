@@ -1266,6 +1266,7 @@ function updateLiveView(silent=false) {
     const active = document.activeElement;
     const typing = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT') && document.getElementById('page-wrap')?.contains(active);
     if(!typing){
+      const ck=document.getElementById('wo-craft'); if(ck) ck.innerHTML=renderCraftOrders();
       const c=document.getElementById('wo-controls'); if(c) c.innerHTML=renderWoControls();
       const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoList();
     }
@@ -3107,7 +3108,72 @@ async function submitChangePassword(){
 // ─── WORKORDERS (pipeline spine) ───────────────────────────────────────────────
 function woStatusLabel(s){ return ({open:'Open',claimed:'Claimed',done:'Done',cancelled:'Cancelled'})[s]||s; }
 let woView='pickup';                       // subnav: pickup | crafting | distribution
-const WO_VIEW_KINDS={pickup:['pickup'],crafting:['delivery','craft'],distribution:['distribution']};
+const WO_VIEW_KINDS={pickup:['pickup'],crafting:['delivery'],distribution:['distribution']};
+const CRAFT_PRIO={urgent:0,high:1,normal:2,whenever:3};
+function priorityTag(p){ const c={urgent:'var(--red)',high:'#d97706',normal:'var(--fg)',whenever:'var(--mid)'}[p]||'var(--fg)'; return `<span style="font-size:var(--text-xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${c};border:1px solid ${c};padding:1px 6px;">${esc(p||'normal')}</span>`; }
+function craftAvail(item){
+  if(!item||!item.recipe||!item.recipe.length) return 0;
+  const u=state.user;
+  const myMats=state.stock.filter(s=>s.kind==='material'&&s.status==='at_base'&&s.heldBy===u.username);
+  return Math.floor(Math.min(...item.recipe.map(r=>{ const have=myMats.filter(s=>s.name===r.materialName).reduce((a,s)=>a+s.qty,0); return r.qty>0?(have+1e-9)/r.qty:Infinity; })));
+}
+function renderCraftOrders(){
+  const u=state.user;
+  let orders=state.workorders.filter(w=>w.kind==='craft');
+  if(woStatusF!=='all') orders=orders.filter(o=>o.status===woStatusF);
+  orders=orders.sort((a,b)=>((a.status==='done'?1:0)-(b.status==='done'?1:0))||((CRAFT_PRIO[a.priority]??2)-(CRAFT_PRIO[b.priority]??2))||(b._creationTime-a._creationTime));
+  const head=`<div style="font-size:var(--text-md);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">To make</div>`;
+  if(!orders.length) return head+`<div class="empty" style="margin-bottom:44px;">No craft orders${isAdmin(u)?' — add one above':''}.</div>`;
+  const canCraft=isCrafter(u)||isAdmin(u);
+  return head+`<div style="margin-bottom:44px;">${orders.map(o=>{
+    const item=state.catalog.items.find(it=>it.name===o.itemName);
+    const recipe=item?item.recipe:[];
+    const remaining=(o.qtyNeeded||0)-(o.qtyDone||0);
+    const avail=Math.min(craftAvail(item), remaining);
+    const recipeHtml=recipe.length?recipe.map(r=>`${esc(r.materialName)} ×${r.qty}`).join(', '):'<span style="color:var(--red);">no recipe</span>';
+    return `<div style="padding:16px 0;border-bottom:1px solid var(--border-m);display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+      <div style="flex:1;min-width:240px;">
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+          ${priorityTag(o.priority)}
+          <span style="font-weight:900;font-size:var(--text-md);">${esc(o.itemName||'—')}</span>
+          <span style="font-size:var(--text-sm);color:var(--fg);">${o.qtyDone||0}/${o.qtyNeeded||0} done${o.status==='done'?' · complete':''}</span>
+        </div>
+        <div style="font-size:var(--text-sm);color:var(--fg);margin-top:4px;">Recipe: ${recipeHtml}</div>
+        ${canCraft&&o.status==='open'?`<div style="font-size:var(--text-sm);color:${avail>0?'#16a34a':'var(--red)'};margin-top:4px;">You can craft ${avail} now from your materials at base</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        ${canCraft&&o.status==='open'&&avail>0?`<input id="cq-${o._id}" type="number" min="1" max="${avail}" value="1" style="width:64px;"><button class="btn btn-black btn-sm" onclick="doCraft('${esc(o._id)}')">Craft</button>`:''}
+        ${(isAdmin(u)||o.createdBy===u._id)?`<button class="btn-del" onclick="woDelete('${esc(o._id)}')" aria-label="Delete">&times;</button>`:''}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+async function doCraft(orderId){
+  const inp=document.getElementById('cq-'+orderId); const count=Math.max(1, Number(inp?inp.value:1)||1);
+  try{ const out=await convexMutation('workorders:craftItem',{sessionToken:state.sessionToken,orderId,count}); toast(`Crafted ${out.crafted}${out.quality!=null?' · Q'+out.quality:''}`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
+}
+function openCraftOrderModal(){
+  const items=[...state.catalog.items].sort((a,b)=>a.name.localeCompare(b.name));
+  showModal(`
+    <div class="modal-title">New craft order</div>
+    <div class="field"><label class="lbl">Item</label><select id="co-item">${items.map(it=>`<option value="${esc(it.name)}">${esc(it.name)}</option>`).join('')}</select></div>
+    <div class="grid2">
+      <div class="field"><label class="lbl">Quantity</label><input id="co-qty" type="number" min="1" value="1"></div>
+      <div class="field"><label class="lbl">Priority</label><select id="co-prio"><option value="urgent">Urgent</option><option value="high">High</option><option value="normal" selected>Normal</option><option value="whenever">Whenever</option></select></div>
+    </div>
+    <div class="err-msg" id="co-err"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-black" onclick="saveCraftOrder()">Create</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+async function saveCraftOrder(){
+  const V=x=>(document.getElementById(x)||{value:''}).value;
+  const itemName=V('co-item'); const qtyNeeded=Number(V('co-qty')); const priority=V('co-prio');
+  if(!itemName){ showErr('co-err','Pick an item'); return; }
+  if(!(qtyNeeded>0)){ showErr('co-err','Quantity must be greater than 0'); return; }
+  try{ await convexMutation('workorders:createCraftOrder',{sessionToken:state.sessionToken,itemName,qtyNeeded,priority}); toast('Craft order created'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('co-err',e.message); }
+}
 let woStatusF='all', woSearch='', woSearchActive=false;
 function setWoView(v){ woView=v; woStatusF='all'; woSearch=''; woSearchActive=false; renderNav(); renderPage(); }
 function setWoStatusF(s){ woStatusF=s; rerenderWo(); }
@@ -3133,14 +3199,21 @@ async function woAbandon(id){ if(!await confirmModal('Abandon this pickup? It go
 async function woDelete(id){ if(!await confirmModal('Delete this workorder permanently?')) return; try{ await convexMutation('workorders:remove',{sessionToken:state.sessionToken,id}); toast('Deleted'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 
 function pageWorkorders(){
+  const u=state.user;
   const kinds=WO_VIEW_KINDS[woView];
   const open=state.workorders.filter(w=>kinds.includes(w.kind)&&w.status==='open').length;
   const label={pickup:'open pickup',crafting:'open delivery',distribution:'open distribution'}[woView];
+  const craftOpen=state.workorders.filter(w=>w.kind==='craft'&&w.status==='open').length;
+  const lead = woView==='crafting' ? `${craftOpen} open craft order${craftOpen===1?'':'s'}` : `${open} ${label}${open===1?'':'s'}`;
+  const addBtn = (woView==='crafting'&&isAdmin(u)) ? `<button class="btn btn-black" onclick="openCraftOrderModal()">+ Craft Order</button>` : '';
   return `
     <div class="page-head">
-      <div class="page-head-left"><div class="page-lead">${open} ${label}${open===1?'':'s'}</div></div>
+      <div class="page-head-left"><div class="page-lead">${lead}</div></div>
+      ${addBtn}
     </div>
     <div id="wo-content" style="margin-top:32px;">
+      ${woView==='crafting'?`<div id="wo-craft">${renderCraftOrders()}</div>
+      <div style="font-size:var(--text-md);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">Incoming deliveries</div>`:''}
       <div id="wo-controls">${renderWoControls()}</div>
       <div id="wo-list">${renderWoList()}</div>
     </div>`;
@@ -3289,7 +3362,7 @@ function renderStockList(){
       return `<tr>
         <td data-label="Name" style="font-weight:700;">${esc(s.name)}${s.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(s.note)}</div>`:''}</td>
         <td data-label="Kind">${s.kind==='material'?'Material':'Item'}</td>
-        <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.kind==='material'&&s.qualityStep?`Q${s.qualityStep}${s.qualityValue!=null?' · '+s.qualityValue:''}`:'—'}</td>
+        <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.kind==='material'?(s.qualityStep?`Q${s.qualityStep}${s.qualityValue!=null?' · '+s.qualityValue:''}`:'—'):(s.qualityValue!=null?`Q ${s.qualityValue}`:'—')}</td>
         <td data-label="Qty" style="font-weight:700;">${s.qty} <span style="font-weight:400;color:var(--fg);font-size:var(--text-sm);">${esc(s.unit)}</span></td>
         <td data-label="Location" style="font-size:var(--text-md);">${esc(s.location)}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}</td>
         <td data-label="Held By">${esc(s.heldBy)}</td>

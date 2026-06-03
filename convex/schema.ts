@@ -200,6 +200,11 @@ export default defineSchema({
     system: v.optional(v.string()),
     note: v.optional(v.string()),
     sourcePickupId: v.optional(v.id("workorders")), // delivery → the pickup it came from
+    // craft order (demand authored by admin)
+    itemName: v.optional(v.string()),
+    qtyNeeded: v.optional(v.number()),
+    qtyDone: v.optional(v.number()),
+    priority: v.optional(v.string()),               // urgent | high | normal | whenever
     // pickup: the selected stock rows to collect from this location
     items: v.optional(v.array(v.object({
       stockId: v.id("stock"),
