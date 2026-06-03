@@ -982,7 +982,7 @@ function compDefaultValue(comp) {
 // ─── CONFIG / STATE ───────────────────────────────────────────────────────────
 let CONVEX_URL = localStorage.getItem('mattrack_url') || 'https://focused-snake-268.convex.cloud';
 let currentPage = 'overview';
-const state = { user: null, sessionToken: null, navItems: [], archive: [], allUsers: [], tasks: [], lotteries: [], applications: [], logistics: [], passwordResets: [], catalog: { materials: [], items: [], locations: [] } };
+const state = { user: null, sessionToken: null, navItems: [], archive: [], allUsers: [], tasks: [], lotteries: [], applications: [], logistics: [], passwordResets: [], catalog: { materials: [], items: [], locations: [] }, stock: [] };
 // Archive pagination: state.archive holds the reactive recent window; archiveOlder
 // accumulates on-demand pages fetched via archive:loadOlder on the Log page.
 let archiveOlder = [];
@@ -1129,7 +1129,7 @@ async function refreshAll(silent=false) {
   try {
     const tok = state.sessionToken;
     const EMPTY_CAT = { materials: [], items: [], locations: [] };
-    const [navItems, archive, allUsers, tasks, lotteries, applications, logistics, passwordResets, catalog] = await Promise.all([
+    const [navItems, archive, allUsers, tasks, lotteries, applications, logistics, passwordResets, catalog, stock] = await Promise.all([
       convexQuery('items:getAll',{sessionToken:tok}).catch(()=>[]),
       convexQuery('archive:getAll',{sessionToken:tok}).catch(()=>[]),
       convexQuery('users:getAllUsers',{sessionToken:tok}).catch(()=>[]),
@@ -1139,6 +1139,7 @@ async function refreshAll(silent=false) {
       convexQuery('logistics:getAll',{sessionToken:tok}).catch(()=>[]),
       convexQuery('passwordResets:list',{sessionToken:tok}).catch(()=>[]),
       convexQuery('catalog:getAll',{sessionToken:tok}).catch(()=>EMPTY_CAT),
+      convexQuery('stock:getAll',{sessionToken:tok}).catch(()=>[]),
     ]);
     state.navItems      = navItems      || [];
     state.archive       = archive       || [];
@@ -1149,6 +1150,7 @@ async function refreshAll(silent=false) {
     state.logistics     = logistics     || [];
     state.passwordResets = passwordResets || [];
     state.catalog       = catalog       || EMPTY_CAT;
+    state.stock         = stock         || [];
     // Sync logged-in user's roles from server
     if(state.user) {
       const fresh=state.allUsers.find(u=>u._id===state.user._id);
@@ -1172,6 +1174,7 @@ const REALTIME_TABLES = [
   ['logistics',    'getAll', 'logistics'],
   ['passwordResets', 'list', 'passwordResets'],
   ['catalog',      'getAll', 'catalog'],
+  ['stock',        'getAll', 'stock'],
 ];
 
 function startData() {
@@ -1234,9 +1237,13 @@ function updateLiveView(silent=false) {
     if (typing) { renderNav(); return; }
     // otherwise fall through and re-render the current page like a normal update
   }
-  if (currentPage==='items' && itemsView==='inventory') {
-    const el=document.getElementById('items-content');
-    if(el) el.innerHTML=renderInventoryList();
+  if (currentPage==='items') {
+    const active = document.activeElement;
+    const typing = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT') && document.getElementById('page-wrap')?.contains(active);
+    if(!typing){
+      const c=document.getElementById('stock-controls'); if(c) c.innerHTML=renderStockControls();
+      const l=document.getElementById('stock-list'); if(l) l.innerHTML=renderStockList();
+    }
   }
   if (currentPage==='archive') {
     const el=document.getElementById('archive-table');
@@ -1264,10 +1271,6 @@ function updateLiveView(silent=false) {
     const active = document.activeElement;
     const typing = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA') && document.getElementById('page-wrap')?.contains(active);
     if(!typing) renderPageContent();
-  }
-  if (currentPage==='items' && itemsView==='logistics' && !logisticsDetailId) {
-    const pw=document.getElementById('page-wrap');
-    if(pw) pw.innerHTML=`<div class="page">${pageLogistics()}</div>`;
   }
   renderNav();
 }
@@ -1585,12 +1588,7 @@ function renderNav() {
       <div class="nav-sub-item${tasksFilter==='closed'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('closed')">Closed</div>
       <div class="nav-sub-item${tasksSearchActive?' active':''}" onclick="toggleTaskSearch()">Search</div>`;
   } else if(main==='items'){
-    const openLogistics=state.logistics.filter(l=>l.status==='open').length;
-    sub=`
-      <div class="nav-sub-item${itemsView==='inventory'?' active':''}" onclick="setItemsView('inventory')">Inventory</div>
-      <div class="nav-sub-item${itemsView==='handed_out'?' active':''}" onclick="setItemsView('handed_out')">Handed Out</div>
-      <div class="nav-sub-item${itemsView==='used'?' active':''}" onclick="setItemsView('used')">Used</div>
-      <div class="nav-sub-item${itemsView==='logistics'?' active':''}" onclick="setItemsView('logistics')">Logistics${openLogistics?` (${openLogistics})`:''}</div>`;
+    sub='';
   } else if(main==='log'){
     const openLotteries=state.lotteries.filter(l=>l.status==='open'||l.status==='drawn').length;
     sub=`
@@ -1607,7 +1605,7 @@ function renderNav() {
     <div id="nav-primary">
       <div class="nav-main${main==='mat'?' active':''}" onclick="goTo('overview')">MAT</div>
       <div class="nav-main${main==='task'?' active':''}" onclick="goTo('tasks')">TASK</div>
-      <div class="nav-main${main==='items'?' active':''}" onclick="goTo('items')">ITEMS</div>
+      <div class="nav-main${main==='items'?' active':''}" onclick="goTo('items')">STOCK</div>
       <div class="nav-main outline${main==='log'?' active':''}" onclick="goTo('archive')">LOG</div>
     </div>
     ${sub?`<div id="nav-sub">${sub}</div>`:''}`;
@@ -1637,7 +1635,7 @@ function renderPageContent() {
   } else {
     document.body.classList.remove('fp-on');
     pw.style.marginTop=navH+'px';
-    const pages={overview:pageOverview,items:pageItems,tasks:pageTasks,archive:pageArchive,admin:pageAdmin,member:pageMember,lottery:pageLottery,catalog:pageCatalog};
+    const pages={overview:pageOverview,items:pageStock,tasks:pageTasks,archive:pageArchive,admin:pageAdmin,member:pageMember,lottery:pageLottery,catalog:pageCatalog};
     pw.innerHTML=`<div class="page">${(pages[currentPage]||pageOverview)()}</div>`;
   }
 }
@@ -3089,6 +3087,191 @@ async function submitChangePassword(){
 }
 
 // ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
+// ─── STOCK / LEDGER ─────────────────────────────────────────────────────────
+const STOCK_STATUS_DEFS = [
+  {id:'reported',         label:'Reported'},
+  {id:'in_transit',       label:'In Transit'},
+  {id:'at_base',          label:'At Base'},
+  {id:'with_crafter',     label:'With Crafter'},
+  {id:'crafted',          label:'Crafted'},
+  {id:'with_distributor', label:'With Distributor'},
+  {id:'handed_out',       label:'Handed Out'},
+];
+function stockStatusLabel(s){ return (STOCK_STATUS_DEFS.find(x=>x.id===s)||{}).label || s; }
+let stockKindF='all', stockStatusF='all', stockLocF='all', stockSearch='', stockSearchActive=false;
+function setStockKind(k){ stockKindF=k; rerenderStock(); }
+function setStockStatusF(s){ stockStatusF=s; rerenderStock(); }
+function setStockLocF(l){ stockLocF=l; rerenderStock(); }
+function toggleStockSearch(){ stockSearchActive=!stockSearchActive; if(!stockSearchActive) stockSearch=''; rerenderStock(); }
+function stockSearchInput(v){ stockSearch=v; const el=document.getElementById('stock-list'); if(el) el.innerHTML=renderStockList(); }
+function rerenderStock(){
+  const c=document.getElementById('stock-controls'); if(c) c.innerHTML=renderStockControls();
+  const l=document.getElementById('stock-list'); if(l) l.innerHTML=renderStockList();
+  if(stockSearchActive){ const i=document.getElementById('stock-search'); if(i){ i.focus(); const x=i.value; try{i.setSelectionRange(x.length,x.length);}catch(e){} } }
+}
+function stockRows(){
+  let rows=state.stock;
+  if(stockKindF!=='all') rows=rows.filter(s=>s.kind===stockKindF);
+  if(stockStatusF!=='all') rows=rows.filter(s=>s.status===stockStatusF);
+  if(stockLocF!=='all') rows=rows.filter(s=>s.location===stockLocF);
+  const q=stockSearch.trim().toLowerCase();
+  if(q) rows=rows.filter(s=>s.name.toLowerCase().includes(q)||(s.heldBy||'').toLowerCase().includes(q));
+  return [...rows].sort((a,b)=>a.name.localeCompare(b.name));
+}
+
+function pageStock(){
+  const u=state.user;
+  const canAdd = !isRecruit(u);
+  const n=state.stock.length;
+  return `
+    <div class="page-head">
+      <div class="page-head-left"><div class="page-lead">${n} stock entr${n===1?'y':'ies'}</div></div>
+      ${canAdd?`<button class="btn btn-black" onclick="openStockModal()">+ Add Stock</button>`:''}
+    </div>
+    <div id="stock-content" style="margin-top:32px;">
+      <div id="stock-controls">${renderStockControls()}</div>
+      <div id="stock-list">${renderStockList()}</div>
+    </div>`;
+}
+
+function renderStockControls(){
+  const locs=[...new Set(state.stock.map(s=>s.location).filter(Boolean))].sort();
+  const kbtn=(id,label)=>`<button class="btn-ghost btn-sm${stockKindF===id?' active':''}" onclick="setStockKind('${id}')">${label}</button>`;
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+      ${kbtn('all','All')}${kbtn('material','Materials')}${kbtn('item','Items')}
+      <select class="btn-ghost btn-sm" style="padding-top:4px;padding-bottom:4px;" onchange="setStockStatusF(this.value)">
+        <option value="all"${stockStatusF==='all'?' selected':''}>Any status</option>
+        ${STOCK_STATUS_DEFS.map(s=>`<option value="${s.id}"${stockStatusF===s.id?' selected':''}>${s.label}</option>`).join('')}
+      </select>
+      <select class="btn-ghost btn-sm" style="padding-top:4px;padding-bottom:4px;" onchange="setStockLocF(this.value)">
+        <option value="all"${stockLocF==='all'?' selected':''}>Any location</option>
+        ${locs.map(l=>`<option value="${esc(l)}"${stockLocF===l?' selected':''}>${esc(l)}</option>`).join('')}
+      </select>
+      <div style="flex:1;"></div>
+      <button class="btn-ghost btn-sm${stockSearchActive?' active':''}" onclick="toggleStockSearch()">${stockSearchActive?'Close Search':'Search'}</button>
+    </div>
+    ${stockSearchActive?`<div style="margin-bottom:20px;"><input id="stock-search" type="text" placeholder="Search name or holder…" value="${esc(stockSearch)}" style="width:100%;max-width:400px;" oninput="stockSearchInput(this.value)"></div>`:''}`;
+}
+
+function renderStockList(){
+  if(!state.stock.length) return `<div class="empty">No stock yet. Add what you're holding.</div>`;
+  const rows=stockRows();
+  if(!rows.length) return `<div class="empty">No stock matches this filter.</div>`;
+  const u=state.user;
+  return `<table class="cards">
+    <thead><tr><th>Name</th><th>Kind</th><th>Quality</th><th>Qty</th><th>Location</th><th>Held By</th><th>Status</th><th></th></tr></thead>
+    <tbody>${rows.map(s=>{
+      const canEdit = isAdmin(u) || s.addedBy===u._id;
+      return `<tr>
+        <td data-label="Name" style="font-weight:700;">${esc(s.name)}${s.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(s.note)}</div>`:''}</td>
+        <td data-label="Kind">${s.kind==='material'?'Material':'Item'}</td>
+        <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.kind==='material'&&s.qualityStep?`Q${s.qualityStep}${s.qualityValue!=null?' · '+s.qualityValue:''}`:'—'}</td>
+        <td data-label="Qty" style="font-weight:700;">${s.qty} <span style="font-weight:400;color:var(--fg);font-size:var(--text-sm);">${esc(s.unit)}</span></td>
+        <td data-label="Location" style="font-size:var(--text-md);">${esc(s.location)}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}</td>
+        <td data-label="Held By">${esc(s.heldBy)}</td>
+        <td data-label="Status" style="font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${stockStatusLabel(s.status)}</td>
+        <td data-label="" style="white-space:nowrap;">
+          ${canEdit?`<button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="openStockModal('${esc(s._id)}')">Edit</button><button class="btn-del" onclick="deleteStock('${esc(s._id)}','${escJs(s.name)}')" aria-label="Delete">&times;</button>`:''}
+        </td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+function stockKindChanged(){
+  const kind=document.getElementById('st-kind').value;
+  const sel=document.getElementById('st-name'); if(!sel) return;
+  const list=(kind==='material'?state.catalog.materials:state.catalog.items).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  sel.innerHTML='<option value="">— select —</option>'+list.map(x=>`<option value="${esc(x.name)}">${esc(x.name)}</option>`).join('');
+  stockNameChanged();
+}
+function stockNameChanged(){
+  const kind=document.getElementById('st-kind').value;
+  const name=document.getElementById('st-name').value;
+  const qwrap=document.getElementById('st-qwrap');
+  const unit=document.getElementById('st-unit');
+  if(kind==='material'){
+    const m=state.catalog.materials.find(x=>x.name===name);
+    if(unit) unit.value=m?m.unit:'SCU';
+    if(qwrap) qwrap.style.display='';
+    const q=document.getElementById('st-q');
+    if(q) q.innerHTML=(m?[...(m.qualities||[])].sort((a,b)=>a.step-b.step):[]).map(qq=>`<option value="${qq.step}">Q${qq.step} · ${qq.value}</option>`).join('')||'<option value="">—</option>';
+  } else {
+    if(unit) unit.value='UNIT';
+    if(qwrap) qwrap.style.display='none';
+  }
+}
+function openStockModal(id){
+  const row = id ? state.stock.find(s=>s._id===id) : null;
+  const locs=[...state.catalog.locations].sort((a,b)=>a.name.localeCompare(b.name));
+  const myName = state.user.username;
+  const dis = row ? ' disabled' : '';
+  showModal(`
+    <div class="modal-title">${row?'Edit stock':'Add stock'}</div>
+    <div class="grid2">
+      <div class="field"><label class="lbl">Kind</label><select id="st-kind" onchange="stockKindChanged()"${dis}>
+        <option value="material"${row&&row.kind==='material'?' selected':''}>Material</option>
+        <option value="item"${row&&row.kind==='item'?' selected':''}>Item</option></select></div>
+      <div class="field"><label class="lbl">Name</label><select id="st-name" onchange="stockNameChanged()"${dis}></select></div>
+    </div>
+    <div class="grid2">
+      <div class="field" id="st-qwrap"><label class="lbl">Quality</label><select id="st-q"></select></div>
+      <div class="field"><label class="lbl">Quantity</label><input id="st-qty" type="number" step="any" value="${row?row.qty:''}"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label class="lbl">Unit</label><input id="st-unit" type="text" value="${row?esc(row.unit):''}" readonly></div>
+      <div class="field"><label class="lbl">Held by</label><input id="st-held" type="text" value="${row?esc(row.heldBy):esc(myName)}"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label class="lbl">Location</label><select id="st-loc">${locs.map(l=>`<option value="${esc(l.name)}"${row&&row.location===l.name?' selected':''}>${esc(l.name)}${l.isBase?' (base)':''}</option>`).join('')}</select></div>
+      <div class="field"><label class="lbl">Status</label><select id="st-status">${STOCK_STATUS_DEFS.map(s=>`<option value="${s.id}"${(row?row.status:'reported')===s.id?' selected':''}>${s.label}</option>`).join('')}</select></div>
+    </div>
+    <div class="field"><label class="lbl">Note (optional)</label><input id="st-note" type="text" value="${row?esc(row.note||''):''}"></div>
+    <div class="err-msg" id="st-err"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-black" onclick="saveStock(${row?`'${esc(row._id)}'`:'null'})">Save</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+  stockKindChanged();
+  if(row){
+    const nm=document.getElementById('st-name'); if(nm) nm.value=row.name;
+    stockNameChanged();
+    if(row.kind==='material' && row.qualityStep!=null){ const q=document.getElementById('st-q'); if(q) q.value=String(row.qualityStep); }
+  }
+}
+async function saveStock(id){
+  const V=x=>(document.getElementById(x)||{value:''}).value;
+  const kind=V('st-kind'), name=V('st-name');
+  if(!name){ showErr('st-err','Pick a name'); return; }
+  const qty=Number(V('st-qty'));
+  if(!(qty>0)){ showErr('st-err','Quantity must be greater than 0'); return; }
+  const unit=V('st-unit')||'SCU';
+  const heldBy=V('st-held').trim();
+  const location=V('st-loc');
+  const status=V('st-status');
+  const note=V('st-note').trim();
+  let category='', system, qualityStep, qualityValue;
+  if(kind==='material'){
+    const m=state.catalog.materials.find(x=>x.name===name); category=m?m.category:'';
+    qualityStep=Number(V('st-q'))||undefined;
+    if(m && qualityStep){ const qq=(m.qualities||[]).find(q=>q.step===qualityStep); qualityValue=qq?qq.value:undefined; }
+  } else {
+    const it=state.catalog.items.find(x=>x.name===name); category=it?it.category:'';
+  }
+  const loc=state.catalog.locations.find(l=>l.name===location); system=loc?loc.system:undefined;
+  try{
+    if(id){
+      await convexMutation('stock:update',{sessionToken:state.sessionToken,id,qty,qualityStep,qualityValue,location,system,heldBy,status,note:note||undefined});
+    } else {
+      await convexMutation('stock:create',{sessionToken:state.sessionToken,kind,name,category,qualityStep,qualityValue,qty,unit,location,system,heldBy,status,note:note||undefined});
+    }
+    toast('Stock saved'); closeModal(); await refreshAll(); renderPage();
+  }catch(e){ showErr('st-err', e.message); }
+}
+async function deleteStock(id,name){
+  if(!await confirmModal(`Remove "${name}" from the ledger?`)) return;
+  try{ await convexMutation('stock:remove',{sessionToken:state.sessionToken,id}); toast('Stock removed'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
+}
+
 // ─── CATALOG (reference databanks: materials, items+recipes, locations) ─────────
 let catalogTab = 'materials';
 let catalogSearch = '';

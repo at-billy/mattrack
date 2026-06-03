@@ -173,4 +173,22 @@ export default defineSchema({
     system: v.optional(v.string()),
     isBase: v.boolean(), // the org's base / default destination for materials (currently Levski)
   }).index("by_name", ["name"]),
+
+  // ── Stock / ledger — actual holdings that move through the pipeline ───────────
+  stock: defineTable({
+    kind: v.string(),                    // "material" | "item"
+    name: v.string(),                    // catalog name (denormalized)
+    category: v.string(),                // denormalized for filtering
+    qualityStep: v.optional(v.number()), // materials: 1..10
+    qualityValue: v.optional(v.number()),
+    qty: v.number(),
+    unit: v.string(),
+    location: v.string(),
+    system: v.optional(v.string()),
+    heldBy: v.string(),                  // username currently holding it
+    status: v.string(),                  // reported|in_transit|at_base|with_crafter|crafted|with_distributor|handed_out
+    note: v.optional(v.string()),
+    addedBy: v.id("users"),
+    addedByName: v.string(),
+  }).index("by_status", ["status"]),
 });

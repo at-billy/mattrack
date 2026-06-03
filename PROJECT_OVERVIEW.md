@@ -56,7 +56,8 @@ first account can **claim bootstrap admin**.
 ## Build order
 1. **Roles** — 5 roles, request-on-signup, multi-role, admin approval. ✅ done
 2. **Catalogs** — materials (+ quality steps), items (+ recipes), locations; admin CRUD + seed import. ✅ done
-3. **Stock/ledger** — references catalogs, lifecycle states, rough→confirmed quantities. ← *next*
+3. **Stock/ledger** — references catalogs, lifecycle states, rough→confirmed quantities. ✅ done
+4. **Gatherer intake** → auto Pickup WO. ← *next*
 4. **Gatherer intake** → auto Pickup WO.
 5. **Logistics** — transport WOs (claim, Levski default, handover, security flag) + manifest entry.
 6. **Craft WOs** — recipe-driven consume → produce, multi-claim, availability/priority.
