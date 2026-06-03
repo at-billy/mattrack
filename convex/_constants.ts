@@ -1,17 +1,16 @@
 import { ConvexError } from "convex/values";
 
 // ── Role taxonomy ──────────────────────────────────────────────────────────────
-// Rank roles (granted by admins via grantRole):
-export const RANK_ROLES = ["member", "core", "command"];
-// Function roles (requestable, then granted):
-export const FUNCTION_ROLES = ["crafter", "logistics", "provider"];
-// Roles an admin may grant/revoke through grantRole/revokeRole.
-// Deliberately excludes "admin" (granted only via grantAdmin), "recruit" (sign-up state),
-// "removed" (set only by removeMember) and any "*_pending" placeholder.
-export const GRANTABLE_ROLES = [...RANK_ROLES, ...FUNCTION_ROLES];
+// Mattrack functional roles. A user can hold several at once; "admin" is special.
+// A user with NONE of these is "pending" (signed up, awaiting approval).
+export const ROLES = ["gatherer", "logistics", "crafter", "distributor", "admin"];
+// Roles a user may request at sign-up and an admin may grant/revoke.
+// "admin" is excluded — granted only via grantAdmin / claimBootstrapAdmin.
+export const REQUESTABLE_ROLES = ["gatherer", "logistics", "crafter", "distributor"];
+export const GRANTABLE_ROLES = REQUESTABLE_ROLES;
 
-// Roles a project can target for visibility.
-export const TASK_TARGET_ROLES = ["member", "core", "command", "admin"];
+// Roles a workorder/task can target for visibility.
+export const TASK_TARGET_ROLES = ["gatherer", "logistics", "crafter", "distributor", "admin"];
 
 // ── Enums ──────────────────────────────────────────────────────────────────────
 export const TASK_PRIORITIES = ["urgent", "high", "normal", "whenever"];

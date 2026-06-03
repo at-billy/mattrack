@@ -5,7 +5,8 @@ export default defineSchema({
   users: defineTable({
     username: v.string(),
     passwordHash: v.string(),
-    roles: v.array(v.string()), // "recruit" | "member" | "core" | "command" | "admin"
+    roles: v.array(v.string()),                      // approved: gatherer|logistics|crafter|distributor|admin (empty = pending)
+    requestedRoles: v.optional(v.array(v.string())), // pending requests awaiting admin approval
   }).index("by_username", ["username"]),
 
   sessions: defineTable({

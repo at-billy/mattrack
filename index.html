@@ -36,10 +36,11 @@ body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background
 
 /* ── ROLE & STATUS TAGS ──────────────────────────────────────────── */
 .role-tag{font-size:var(--text-md);font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border:1px solid #000;}
-.role-tag.recruit{border-color:#bbb;color:#999;}
-.role-tag.member{border-color:#60a5fa;color:#2563eb;}
-.role-tag.core{border-color:#f59e0b;color:#d97706;}
-.role-tag.command{border-color:var(--red);color:var(--red);}
+.role-tag.pending{border-color:#bbb;color:#999;}
+.role-tag.gatherer{border-color:#16a34a;color:#16a34a;}
+.role-tag.logistics{border-color:#2563eb;color:#2563eb;}
+.role-tag.crafter{border-color:#d97706;color:#d97706;}
+.role-tag.distributor{border-color:#7c3aed;color:#7c3aed;}
 .role-tag.admin{background:#000;color:#fff;}
 .role-tag.removed{border-color:#fca5a5;color:#ef4444;}
 .live-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;}
@@ -1358,8 +1359,14 @@ function showAuth(tab='signin') {
     body = `
       <div class="field"><label class="lbl">Username</label><input id="su-user" type="text" placeholder="choose a username"></div>
       <div class="field"><label class="lbl">Password</label><input id="su-pass" type="password" placeholder="create a password"></div>
+      <div class="field">
+        <label class="lbl">Which role(s) do you want?</label>
+        <div style="display:grid;gap:8px;margin-top:6px;">
+          ${ROLE_DEFS.map(r=>`<label class="chk-row" style="margin:0;"><input type="checkbox" class="su-role" value="${r.id}"> <span style="font-size:var(--text-md);">${r.label}</span></label>`).join('')}
+        </div>
+      </div>
       <div style="font-size:var(--text-md);color:var(--fg);margin-bottom:16px;padding:10px 14px;background:#f5f5f5;">
-        New accounts start as <strong>Recruit</strong>. An admin can promote your role.
+        Your account stays <strong>pending</strong> until an admin approves your role request(s).
       </div>
       <div class="err-msg" id="su-err"></div>
       <button class="btn btn-black" style="width:100%;justify-content:center;" onclick="doSignUp()">Create Account</button>`;
@@ -1462,10 +1469,12 @@ async function doSignIn() {
 async function doSignUp() {
   const username=(document.getElementById('su-user')||{value:''}).value.trim();
   const password=(document.getElementById('su-pass')||{value:''}).value;
+  const requestedRoles=[...document.querySelectorAll('.su-role:checked')].map(c=>c.value);
   if(!username||!password){showErr('su-err','Fill in all fields');return;}
   if(password.length<6){showErr('su-err','Password must be at least 6 characters');return;}
+  if(!requestedRoles.length){showErr('su-err','Pick at least one role to request');return;}
   try {
-    const res=await convexMutation('users:signUp',{username,password});
+    const res=await convexMutation('users:signUp',{username,password,requestedRoles});
     state.user=res; state.sessionToken=res.token;
     localStorage.setItem('mattrack_token',res.token); showApp();
   } catch(e){
@@ -1492,10 +1501,16 @@ function showApp() {
   document.getElementById('root').innerHTML=`<div id="nav"></div><div id="page-wrap"></div>`;
   renderNav(); renderPage(); startData();
 }
+// The four requestable/grantable roles (admin is special, granted separately).
+const ROLE_DEFS = [
+  {id:'gatherer',    label:'Gatherer'},
+  {id:'logistics',   label:'Logistics'},
+  {id:'crafter',     label:'Crafter'},
+  {id:'distributor', label:'Distributor'},
+];
+function roleLabel(role){ return (ROLE_DEFS.find(r=>r.id===role)||{}).label || (role.charAt(0).toUpperCase()+role.slice(1)); }
 function roleTagHtml(role) {
-  const labels={'recruit':'Recruit','member':'Member','core':'Core','command':'Command','admin':'Admin','removed':'Removed'};
-  const cls={'recruit':' recruit','member':' member','core':' core','command':' command','admin':' admin','removed':' removed'};
-  return `<span class="role-tag${cls[role]||''}">${labels[role]||role}</span>`;
+  return `<span class="role-tag ${role}">${roleLabel(role)}</span>`;
 }
 function isAdmin(u)   { return u && (u.roles||[]).includes('admin'); }
 function isCommand(u) { return u && (u.roles||[]).includes('command'); }
@@ -1510,7 +1525,14 @@ function hasAdmin() {
   if (!state.allUsers.length) return true;
   return state.allUsers.some(u=>(u.roles||[]).includes('admin'));
 }
-function isRecruit(u) { return u && (u.roles||[]).length===1 && (u.roles||[]).includes('recruit'); }
+// "pending": signed up but holds no approved functional role yet. (Name kept for
+// minimal churn; semantically this is the pending/unapproved gate.)
+function isRecruit(u) {
+  if(!u) return false;
+  const roles=u.roles||[];
+  if(roles.includes('removed')) return false;
+  return !roles.some(r=>['gatherer','logistics','crafter','distributor','admin'].includes(r));
+}
 
 // Make clickable nav items keyboard-focusable + activatable (Enter/Space via global handler).
 function a11yNavify(){
@@ -1569,7 +1591,7 @@ function renderNav() {
     const openLotteries=state.lotteries.filter(l=>l.status==='open'||l.status==='drawn').length;
     sub=`
       <div class="nav-sub-item${currentPage==='archive'?' active':''}" onclick="goTo('archive')">Log</div>
-      ${isAdmin(u)?`<div class="nav-sub-item${currentPage==='admin'?' active':''}" onclick="goTo('admin')">${(()=>{const pending=state.allUsers.filter(u=>isRecruit(u)).length+state.passwordResets.length;return `Admin${pending?` (${pending})`:''}`})()}</div>`:''}
+      ${isAdmin(u)?`<div class="nav-sub-item${currentPage==='admin'?' active':''}" onclick="goTo('admin')">${(()=>{const pending=state.allUsers.filter(u=>(u.requestedRoles||[]).length>0).length+state.passwordResets.length;return `Admin${pending?` (${pending})`:''}`})()}</div>`:''}
       ${canManageLottery(u)?`<div class="nav-sub-item${currentPage==='lottery'?' active':''}" onclick="goTo('lottery')">Lottery${openLotteries?' ('+openLotteries+')':''}</div>`:''}
       <div class="nav-sub-item${currentPage==='member'?' active':''}" onclick="goTo('member')">${esc(u.username)}</div>
       <div class="nav-sub-item" onclick="doLogout()">Sign out</div>`;
@@ -1836,6 +1858,8 @@ function pageOverview() {
 
 function pageRecruitOverview(u) {
   const noAdmin = !hasAdmin();
+  const me = state.allUsers.find(x=>x._id===u._id);
+  const requested = (me && me.requestedRoles) || [];
   return `
     <div class="page-head">
       <div class="page-head-left">
@@ -1851,25 +1875,16 @@ function pageRecruitOverview(u) {
         <strong>First account on a fresh install.</strong> No admin exists yet — click <strong>Claim Admin</strong> above to make this account the administrator and set things up.
       </div>`:''}
       <div style="font-size:var(--text-lg);font-weight:900;letter-spacing:-.5px;margin-bottom:16px;">WELCOME</div>
-      <div style="font-size:var(--text-md);color:var(--fg);line-height:1.7;margin-bottom:32px;">
-        This is the wing's operations tracker for inventory, logistics, projects and lottery, all in one place.
-        Your account is created, but it's locked until an admin confirms your membership.
+      <div style="font-size:var(--text-md);color:var(--fg);line-height:1.7;margin-bottom:28px;">
+        Mattrack tracks the org's material pipeline — gathering, logistics, crafting and distribution.
+        Your account is created, but it stays locked until an admin approves your role request.
       </div>
 
-      <div style="font-size:var(--text-sm);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--fg);margin-bottom:14px;">What happens next</div>
-      <div style="display:grid;gap:14px;margin-bottom:32px;">
-        ${[
-          ['1','An admin verifies you in our Discord and grants you the Member role.'],
-          ['2','Once approved, sign back in and the full tracker opens up automatically.'],
-        ].map(([n,t])=>`<div style="display:flex;gap:14px;align-items:flex-start;">
-          <span style="flex-shrink:0;width:30px;height:30px;border:2px solid #000;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:var(--text-sm);">${n}</span>
-          <span style="font-size:var(--text-md);color:var(--fg);line-height:1.5;padding-top:3px;">${t}</span>
-        </div>`).join('')}
-      </div>
+      <div style="font-size:var(--text-sm);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--fg);margin-bottom:10px;">Role${requested.length!==1?'s':''} you requested</div>
+      <div style="margin-bottom:32px;">${requested.length?requested.map(r=>roleTagHtml(r)).join(' '):'<span style="color:var(--fg);font-size:var(--text-md);">None yet — an admin can still grant you a role.</span>'}</div>
 
       <div style="font-size:var(--text-sm);color:var(--fg);padding:14px 18px;background:var(--bg2);line-height:1.6;">
-        Nothing to do here for now. You can close this tab and come back once you've been approved.
-        Your sign-in stays the same.
+        An admin will review and approve your role(s). Once approved, the matching parts of the tracker open up automatically — your sign-in stays the same.
       </div>
     </div>`;
 }
@@ -3083,10 +3098,10 @@ function pageAdmin() {
 
 function renderAdminContent() {
   const u=state.user;
-  const MANAGEABLE=['member','core','command'];
+  const MANAGEABLE=ROLE_DEFS.map(r=>r.id);
   const members=state.allUsers.filter(u=>!u.roles.includes('removed'));
   const removedMembers=state.allUsers.filter(u=>u.roles.includes('removed'));
-  const pendingApps = state.applications.filter(a=>a.status==='pending');
+  const roleRequests = members.filter(m=>(m.requestedRoles||[]).length>0);
   const resets = (state.passwordResets||[]).slice().sort((a,b)=>b._creationTime-a._creationTime);
 
   return `
@@ -3116,40 +3131,27 @@ function renderAdminContent() {
       }).join('')}
     </div>`:''}
 
-    ${pendingApps.length?`
+    ${roleRequests.length?`
     <div style="margin-bottom:56px;">
       <div style="font-size:var(--text-md);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--red);display:flex;align-items:center;gap:12px;">
-        Recruit Applications
-        <span style="background:var(--red);color:#fff;padding:1px 8px;font-size:var(--text-md);">${pendingApps.length} pending</span>
+        Role Requests
+        <span style="background:var(--red);color:#fff;padding:1px 8px;font-size:var(--text-md);">${roleRequests.reduce((s,m)=>s+(m.requestedRoles||[]).length,0)}</span>
       </div>
-      ${pendingApps.map(app=>{
-        const member = state.allUsers.find(m=>m._id===app.userId);
-        return `<div style="padding:20px;border:2px solid #000;margin-bottom:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
-            <div>
-              <div style="font-size:var(--text-lg);font-weight:900;">${esc(app.userName)}</div>
-              <div style="font-size:var(--text-sm);color:var(--fg);margin-top:2px;">Applied ${fmtDate(app._creationTime)}</div>
+      ${roleRequests.map(m=>`<div style="padding:18px 20px;border:2px solid #000;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+          <div style="font-size:var(--text-lg);font-weight:900;">${esc(m.username)}</div>
+          <div style="font-size:var(--text-sm);color:var(--fg);">${m.roles.length?'already has: '+m.roles.map(roleLabel).join(', '):'pending — no role yet'}</div>
+        </div>
+        <div style="display:grid;gap:8px;">
+          ${(m.requestedRoles||[]).map(role=>`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            ${roleTagHtml(role)}
+            <div style="margin-left:auto;display:flex;gap:6px;">
+              <button class="btn btn-black btn-sm" onclick="adminApproveRole('${esc(m._id)}','${escJs(m.username)}','${role}')">Approve</button>
+              <button class="btn-del" onclick="adminDenyRole('${esc(m._id)}','${escJs(m.username)}','${role}')">Deny</button>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              ${member&&!member.roles.includes('member')?`<button class="btn btn-black btn-sm" onclick="adminAcceptRecruit('${esc(app._id)}','${esc(app.userId)}','${escJs(app.userName)}')">Accept as Member</button>`:''}
-            </div>
-          </div>
-          <div style="display:grid;gap:14px;">
-            <div>
-              <div style="font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg);margin-bottom:4px;">Discord &amp; SC Handles</div>
-              <div style="font-size:var(--text-md);white-space:pre-wrap;">${esc(app.handles)}</div>
-            </div>
-            <div>
-              <div style="font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg);margin-bottom:4px;">Why they want to join</div>
-              <div style="font-size:var(--text-md);white-space:pre-wrap;">${esc(app.whyJoin)}</div>
-            </div>
-            <div>
-              <div style="font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--fg);margin-bottom:4px;">Desired role</div>
-              <div style="font-size:var(--text-md);white-space:pre-wrap;">${esc(app.role)}</div>
-            </div>
-          </div>
-        </div>`;
-      }).join('')}
+          </div>`).join('')}
+        </div>
+      </div>`).join('')}
     </div>`:''}
 
 
@@ -3161,13 +3163,13 @@ function renderAdminContent() {
         return `<div style="display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-bottom:1px solid var(--border-m);flex-wrap:wrap;">
           <div style="min-width:160px;">
             <div style="font-weight:700;font-size:var(--text-md);">${esc(m.username)}${isMe?' <span style="color:var(--fg);font-size:var(--text-md);">(you)</span>':''}</div>
-            <div style="margin-top:4px;">${m.roles.map(r=>roleTagHtml(r)).join(' ')}</div>
+            <div style="margin-top:4px;">${m.roles.length?m.roles.map(r=>roleTagHtml(r)).join(' '):roleTagHtml('pending')}</div>
           </div>
           ${!removed?`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1;">
             ${MANAGEABLE.map(role=>{
               const has=m.roles.includes(role);
-              if(has) return `<button class="btn-ghost btn-sm" style="border-color:#fca5a5;color:#ef4444;" onclick="adminRevokeRole('${esc(m._id)}','${escJs(m.username)}','${role}')">− ${role.charAt(0).toUpperCase()+role.slice(1)}</button>`;
-              return `<button class="btn-ghost btn-sm" onclick="adminGrantRole('${esc(m._id)}','${escJs(m.username)}','${role}')">+ ${role.charAt(0).toUpperCase()+role.slice(1)}</button>`;
+              if(has) return `<button class="btn-ghost btn-sm" style="border-color:#fca5a5;color:#ef4444;" onclick="adminRevokeRole('${esc(m._id)}','${escJs(m.username)}','${role}')">− ${roleLabel(role)}</button>`;
+              return `<button class="btn-ghost btn-sm" onclick="adminGrantRole('${esc(m._id)}','${escJs(m.username)}','${role}')">+ ${roleLabel(role)}</button>`;
             }).join('')}
             ${!m.roles.includes('admin')&&!isMe?`<button class="btn-ghost btn-sm" onclick="adminGrantAdmin('${esc(m._id)}','${escJs(m.username)}')">+ Admin</button>`:''}
           </div>
@@ -3273,8 +3275,28 @@ async function adminMarkAppReviewed(appId) {
   } catch(e){notifyError(e);}
 }
 
+async function adminApproveRole(targetId, targetName, role) {
+  if(!await confirmModal(`Approve ${roleLabel(role)} for ${targetName}?`)) return;
+  try {
+    await convexMutation('users:approveRole',{sessionToken:state.sessionToken,targetUserId:targetId,role});
+    toast(`${roleLabel(role)} approved for ${targetName}`);
+    await refreshAll();
+    const el=document.getElementById('admin-wrap'); if(el) el.innerHTML=renderAdminContent();
+  } catch(e){notifyError(e);}
+}
+
+async function adminDenyRole(targetId, targetName, role) {
+  if(!await confirmModal(`Deny ${targetName}'s ${roleLabel(role)} request?`)) return;
+  try {
+    await convexMutation('users:denyRole',{sessionToken:state.sessionToken,targetUserId:targetId,role});
+    toast(`${roleLabel(role)} request denied`);
+    await refreshAll();
+    const el=document.getElementById('admin-wrap'); if(el) el.innerHTML=renderAdminContent();
+  } catch(e){notifyError(e);}
+}
+
 async function adminGrantRole(targetId, targetName, role) {
-  const label=role.charAt(0).toUpperCase()+role.slice(1);
+  const label=roleLabel(role);
   if(!await confirmModal(`Grant ${label} role to ${targetName}?`)) return;
   try {
     await convexMutation('users:grantRole',{sessionToken:state.sessionToken,targetUserId:targetId,role});
@@ -3429,12 +3451,7 @@ const TASK_PRIORITIES = [
   {id:'normal',  label:'Normal',   cls:'p-normal'},
   {id:'whenever',label:'Whenever', cls:'p-whenever'},
 ];
-const NAVY_ROLES = [
-  {id:'member',  label:'Member'},
-  {id:'core',    label:'Core'},
-  {id:'command', label:'Command'},
-  {id:'admin',   label:'Admin'},
-];
+const NAVY_ROLES = [...ROLE_DEFS, {id:'admin', label:'Admin'}];
 
 function setTasksFilter(f){ tasksFilter=f; tasksSearchActive=false; tasksSearch=''; expandedTasks.clear(); renderPage(); renderNav(); }
 function openProjectFromOverview(taskId){

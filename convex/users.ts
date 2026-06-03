@@ -2,7 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireSession } from "./_helpers";
 import { hashPassword, verifyPassword, isLegacyHash } from "./_password";
-import { GRANTABLE_ROLES, FUNCTION_ROLES, assertIn } from "./_constants";
+import { REQUESTABLE_ROLES, GRANTABLE_ROLES, assertIn } from "./_constants";
 
 export const authenticate = mutation({
   args: { username: v.string(), password: v.string() },
@@ -42,7 +42,7 @@ export const getAllUsers = query({
     // Only non-sensitive fields are returned; passwordHash is never projected.
     await requireSession(ctx.db, sessionToken);
     const users = await ctx.db.query("users").collect();
-    return users.map(u => ({ _id: u._id, username: u.username, roles: u.roles }));
+    return users.map(u => ({ _id: u._id, username: u.username, roles: u.roles, requestedRoles: u.requestedRoles ?? [] }));
   },
 });
 
@@ -50,6 +50,7 @@ export const signUp = mutation({
   args: {
     username: v.string(),
     password: v.string(),
+    requestedRoles: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     // Validate username server-side: trim, length, charset. Never trust client formatting.
@@ -66,15 +67,15 @@ export const signUp = mutation({
 
     // Hash server-side with PBKDF2 + per-user salt. The raw password is never stored.
     const passwordHash = await hashPassword(args.password);
-    // Role is forced server-side — new accounts are always recruits, regardless of client input.
-    const roles = ["recruit"];
-    const id = await ctx.db.insert("users", { username, passwordHash, roles });
+    // New accounts hold NO approved roles (pending). They request roles, an admin approves.
+    const requestedRoles = [...new Set(args.requestedRoles ?? [])].filter(r => REQUESTABLE_ROLES.includes(r));
+    const id = await ctx.db.insert("users", { username, passwordHash, roles: [], requestedRoles });
     const user = await ctx.db.get(id);
     await ctx.db.insert("archive", {
       type: "user_joined",
       userId: id,
       userName: username,
-      details: { roles },
+      details: { requestedRoles },
     });
     const token = crypto.randomUUID();
     await ctx.db.insert("sessions", { userId: id, token, createdAt: Date.now() });
@@ -96,40 +97,42 @@ export const claimBootstrapAdmin = mutation({
   },
 });
 
+// Approve a requested role: move it from requestedRoles → roles.
 export const approveRole = mutation({
-  args: { sessionToken: v.string(), targetUserId: v.id("users"), pendingRole: v.string(), fullRole: v.string() },
-  handler: async (ctx, { sessionToken, targetUserId, pendingRole, fullRole }) => {
+  args: { sessionToken: v.string(), targetUserId: v.id("users"), role: v.string() },
+  handler: async (ctx, { sessionToken, targetUserId, role }) => {
     const admin = await requireSession(ctx.db, sessionToken);
     if (!admin.roles.includes("admin")) throw new ConvexError("Not authorized");
-    assertIn(fullRole, GRANTABLE_ROLES, "role");
+    assertIn(role, GRANTABLE_ROLES, "role");
     const target = await ctx.db.get(targetUserId);
     if (!target) throw new ConvexError("User not found");
-    const newRoles = target.roles.filter(r => r !== pendingRole);
-    if (!newRoles.includes(fullRole)) newRoles.push(fullRole);
-    await ctx.db.patch(targetUserId, { roles: newRoles });
+    const roles = target.roles.includes(role) ? target.roles : [...target.roles, role];
+    const requestedRoles = (target.requestedRoles ?? []).filter(r => r !== role);
+    await ctx.db.patch(targetUserId, { roles, requestedRoles });
     await ctx.db.insert("archive", {
       type: "role_approved",
       userId: admin._id,
       userName: admin.username,
-      details: { targetUsername: target.username, role: fullRole },
+      details: { targetUsername: target.username, role },
     });
   },
 });
 
+// Deny a requested role: drop it from requestedRoles.
 export const denyRole = mutation({
-  args: { sessionToken: v.string(), targetUserId: v.id("users"), pendingRole: v.string() },
-  handler: async (ctx, { sessionToken, targetUserId, pendingRole }) => {
+  args: { sessionToken: v.string(), targetUserId: v.id("users"), role: v.string() },
+  handler: async (ctx, { sessionToken, targetUserId, role }) => {
     const admin = await requireSession(ctx.db, sessionToken);
     if (!admin.roles.includes("admin")) throw new ConvexError("Not authorized");
     const target = await ctx.db.get(targetUserId);
     if (!target) throw new ConvexError("User not found");
-    const newRoles = target.roles.filter(r => r !== pendingRole);
-    await ctx.db.patch(targetUserId, { roles: newRoles });
+    const requestedRoles = (target.requestedRoles ?? []).filter(r => r !== role);
+    await ctx.db.patch(targetUserId, { requestedRoles });
     await ctx.db.insert("archive", {
       type: "role_denied",
       userId: admin._id,
       userName: admin.username,
-      details: { targetUsername: target.username, role: pendingRole },
+      details: { targetUsername: target.username, role },
     });
   },
 });
@@ -142,7 +145,7 @@ export const removeMember = mutation({
     if (admin._id === targetUserId) throw new ConvexError("Cannot remove yourself");
     const target = await ctx.db.get(targetUserId);
     if (!target) throw new ConvexError("User not found");
-    await ctx.db.patch(targetUserId, { roles: ["removed"] });
+    await ctx.db.patch(targetUserId, { roles: ["removed"], requestedRoles: [] });
     await ctx.db.insert("archive", {
       type: "member_removed",
       userId: admin._id,
@@ -160,8 +163,8 @@ export const restoreMember = mutation({
     const target = await ctx.db.get(targetUserId);
     if (!target) throw new ConvexError("User not found");
     if (!target.roles.includes("removed")) throw new ConvexError("User is not removed");
-    // Bring them back as a plain member (clears the "removed" tombstone).
-    await ctx.db.patch(targetUserId, { roles: ["member"] });
+    // Bring them back as pending (no roles) — admin re-grants as needed.
+    await ctx.db.patch(targetUserId, { roles: [], requestedRoles: [] });
     await ctx.db.insert("archive", {
       type: "member_restored",
       userId: admin._id,
@@ -187,31 +190,31 @@ export const changePassword = mutation({
   },
 });
 
+// A signed-in user requests an additional role (goes to requestedRoles).
 export const requestRole = mutation({
   args: { sessionToken: v.string(), role: v.string() },
   handler: async (ctx, { sessionToken, role }) => {
-    if (!FUNCTION_ROLES.includes(role)) throw new ConvexError("Role not requestable");
+    if (!REQUESTABLE_ROLES.includes(role)) throw new ConvexError("Role not requestable");
     const user = await requireSession(ctx.db, sessionToken);
-    const pendingRole = role === "provider" ? role : role + "_pending";
     if (user.roles.includes(role)) throw new ConvexError("Already have this role");
-    if (user.roles.includes(pendingRole)) throw new ConvexError("Already requested");
-    await ctx.db.patch(user._id, { roles: [...user.roles, pendingRole] });
+    const requested = user.requestedRoles ?? [];
+    if (requested.includes(role)) throw new ConvexError("Already requested");
+    await ctx.db.patch(user._id, { requestedRoles: [...requested, role] });
   },
 });
 
+// Admin grants a role directly (also clears any matching pending request).
 export const grantRole = mutation({
   args: { sessionToken: v.string(), targetUserId: v.id("users"), role: v.string() },
   handler: async (ctx, { sessionToken, targetUserId, role }) => {
     const admin = await requireSession(ctx.db, sessionToken);
     if (!admin.roles.includes("admin")) throw new ConvexError("Not authorized");
-    assertIn(role, GRANTABLE_ROLES, "role"); // never "admin"/"recruit"/"removed"/junk
+    assertIn(role, GRANTABLE_ROLES, "role"); // never "admin"/"removed"/junk
     const target = await ctx.db.get(targetUserId);
     if (!target) throw new ConvexError("User not found");
-    const pendingRole = role + "_pending";
-    // Always strip recruit when any real role is granted — recruits become members
-    const newRoles = target.roles.filter(r => r !== pendingRole && r !== role && r !== "recruit");
-    newRoles.push(role);
-    await ctx.db.patch(targetUserId, { roles: newRoles });
+    const roles = target.roles.includes(role) ? target.roles : [...target.roles, role];
+    const requestedRoles = (target.requestedRoles ?? []).filter(r => r !== role);
+    await ctx.db.patch(targetUserId, { roles, requestedRoles });
     await ctx.db.insert("archive", {
       type: "role_approved",
       userId: admin._id,
@@ -229,9 +232,9 @@ export const revokeRole = mutation({
     assertIn(role, GRANTABLE_ROLES, "role"); // cannot revoke "admin" here
     const target = await ctx.db.get(targetUserId);
     if (!target) throw new ConvexError("User not found");
-    const pendingRole = role + "_pending";
-    const newRoles = target.roles.filter(r => r !== role && r !== pendingRole);
-    await ctx.db.patch(targetUserId, { roles: newRoles });
+    const roles = target.roles.filter(r => r !== role);
+    const requestedRoles = (target.requestedRoles ?? []).filter(r => r !== role);
+    await ctx.db.patch(targetUserId, { roles, requestedRoles });
     await ctx.db.insert("archive", {
       type: "role_denied",
       userId: admin._id,
