@@ -191,4 +191,23 @@ export default defineSchema({
     addedBy: v.id("users"),
     addedByName: v.string(),
   }).index("by_status", ["status"]),
+
+  // ── Workorders — the pipeline spine (pickup now; transport/craft/move later) ──
+  workorders: defineTable({
+    kind: v.string(),                       // "pickup"
+    status: v.string(),                     // "open" | "claimed" | "done" | "cancelled"
+    // pickup (gatherer intake): a rough haul to be collected
+    matType: v.optional(v.string()),        // "Mineable" | "Salvage" | "Loot"
+    roughQty: v.optional(v.number()),
+    unit: v.optional(v.string()),
+    holder: v.optional(v.string()),         // who currently has the mats
+    location: v.optional(v.string()),
+    system: v.optional(v.string()),
+    note: v.optional(v.string()),
+    // claim (logistics)
+    claimedById: v.optional(v.id("users")),
+    claimedByName: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdByName: v.string(),
+  }).index("by_status", ["status"]).index("by_kind", ["kind"]),
 });

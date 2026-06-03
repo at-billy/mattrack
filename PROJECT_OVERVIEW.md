@@ -57,8 +57,8 @@ first account can **claim bootstrap admin**.
 1. **Roles** — 5 roles, request-on-signup, multi-role, admin approval. ✅ done
 2. **Catalogs** — materials (+ quality steps), items (+ recipes), locations; admin CRUD + seed import. ✅ done
 3. **Stock/ledger** — references catalogs, lifecycle states, rough→confirmed quantities. ✅ done
-4. **Gatherer intake** → auto Pickup WO. ← *next*
-5. **Logistics** — transport WOs (claim, Levski default, handover, security flag) + manifest entry.
+4. **Gatherer intake** → auto Pickup WO. ✅ done
+5. **Logistics** — transport WOs (claim, Levski default, handover, security flag) + manifest entry. ← *next*
 6. **Craft WOs** — recipe-driven consume → produce, multi-claim, availability/priority.
 7. **Distribution** — handout to person / FRCoin event + log.
 8. **Pipeline view** ("where is everything") + polish.

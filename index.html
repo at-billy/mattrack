@@ -982,7 +982,7 @@ function compDefaultValue(comp) {
 // ─── CONFIG / STATE ───────────────────────────────────────────────────────────
 let CONVEX_URL = localStorage.getItem('mattrack_url') || 'https://focused-snake-268.convex.cloud';
 let currentPage = 'overview';
-const state = { user: null, sessionToken: null, navItems: [], archive: [], allUsers: [], tasks: [], lotteries: [], applications: [], logistics: [], passwordResets: [], catalog: { materials: [], items: [], locations: [] }, stock: [] };
+const state = { user: null, sessionToken: null, navItems: [], archive: [], allUsers: [], tasks: [], lotteries: [], applications: [], logistics: [], passwordResets: [], catalog: { materials: [], items: [], locations: [] }, stock: [], workorders: [] };
 // Archive pagination: state.archive holds the reactive recent window; archiveOlder
 // accumulates on-demand pages fetched via archive:loadOlder on the Log page.
 let archiveOlder = [];
@@ -1129,7 +1129,7 @@ async function refreshAll(silent=false) {
   try {
     const tok = state.sessionToken;
     const EMPTY_CAT = { materials: [], items: [], locations: [] };
-    const [navItems, archive, allUsers, tasks, lotteries, applications, logistics, passwordResets, catalog, stock] = await Promise.all([
+    const [navItems, archive, allUsers, tasks, lotteries, applications, logistics, passwordResets, catalog, stock, workorders] = await Promise.all([
       convexQuery('items:getAll',{sessionToken:tok}).catch(()=>[]),
       convexQuery('archive:getAll',{sessionToken:tok}).catch(()=>[]),
       convexQuery('users:getAllUsers',{sessionToken:tok}).catch(()=>[]),
@@ -1140,6 +1140,7 @@ async function refreshAll(silent=false) {
       convexQuery('passwordResets:list',{sessionToken:tok}).catch(()=>[]),
       convexQuery('catalog:getAll',{sessionToken:tok}).catch(()=>EMPTY_CAT),
       convexQuery('stock:getAll',{sessionToken:tok}).catch(()=>[]),
+      convexQuery('workorders:getAll',{sessionToken:tok}).catch(()=>[]),
     ]);
     state.navItems      = navItems      || [];
     state.archive       = archive       || [];
@@ -1151,6 +1152,7 @@ async function refreshAll(silent=false) {
     state.passwordResets = passwordResets || [];
     state.catalog       = catalog       || EMPTY_CAT;
     state.stock         = stock         || [];
+    state.workorders    = workorders    || [];
     // Sync logged-in user's roles from server
     if(state.user) {
       const fresh=state.allUsers.find(u=>u._id===state.user._id);
@@ -1175,6 +1177,7 @@ const REALTIME_TABLES = [
   ['passwordResets', 'list', 'passwordResets'],
   ['catalog',      'getAll', 'catalog'],
   ['stock',        'getAll', 'stock'],
+  ['workorders',   'getAll', 'workorders'],
 ];
 
 function startData() {
@@ -1255,7 +1258,12 @@ function updateLiveView(silent=false) {
     if(el) el.innerHTML=renderAdminContent();
   }
   if (currentPage==='tasks') {
-    const el=document.getElementById('tasks-list'); if(el) el.innerHTML=renderTasksList();
+    const active = document.activeElement;
+    const typing = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT') && document.getElementById('page-wrap')?.contains(active);
+    if(!typing){
+      const c=document.getElementById('wo-controls'); if(c) c.innerHTML=renderWoControls();
+      const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoList();
+    }
     renderNav();
   }
   if (currentPage==='lottery') {
@@ -1520,6 +1528,11 @@ function roleTagHtml(role) {
   return `<span class="role-tag ${role}">${roleLabel(role)}</span>`;
 }
 function isAdmin(u)   { return u && (u.roles||[]).includes('admin'); }
+function hasRole(u,r){ return u && (u.roles||[]).includes(r); }
+function isGatherer(u){ return hasRole(u,'gatherer'); }
+function isLogistics(u){ return hasRole(u,'logistics'); }
+function isCrafter(u){ return hasRole(u,'crafter'); }
+function isDistributor(u){ return hasRole(u,'distributor'); }
 function isCommand(u) { return u && (u.roles||[]).includes('command'); }
 function canManageLottery(u) { return isAdmin(u) || isCommand(u); }
 function canCreateTask(u)    { return u && (u.roles||[]).some(r=>['admin','command'].includes(r)); }
@@ -1580,13 +1593,7 @@ function renderNav() {
   if(main==='mat'){
     sub=`<div class="nav-sub-item" style="cursor:default;">Welcome back, ${esc(u.username)}</div>`;
   } else if(main==='task'){
-    const oc=state.tasks.filter(t=>t.status==='open').length;
-    const mine=state.tasks.filter(t=>t.status==='open'&&t.members.some(m=>m.userId===u._id)).length;
-    sub=`
-      <div class="nav-sub-item${tasksFilter==='open'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('open')">Open${oc>0?` (${oc})`:''}</div>
-      <div class="nav-sub-item${tasksFilter==='mine'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('mine')">Mine${mine>0?` (${mine})`:''}</div>
-      <div class="nav-sub-item${tasksFilter==='closed'&&!tasksSearchActive?' active':''}" onclick="setTasksFilter('closed')">Closed</div>
-      <div class="nav-sub-item${tasksSearchActive?' active':''}" onclick="toggleTaskSearch()">Search</div>`;
+    sub='';
   } else if(main==='items'){
     sub='';
   } else if(main==='log'){
@@ -1604,7 +1611,7 @@ function renderNav() {
   el.innerHTML=`
     <div id="nav-primary">
       <div class="nav-main${main==='mat'?' active':''}" onclick="goTo('overview')">MAT</div>
-      <div class="nav-main${main==='task'?' active':''}" onclick="goTo('tasks')">TASK</div>
+      <div class="nav-main${main==='task'?' active':''}" onclick="goTo('tasks')">WORK</div>
       <div class="nav-main${main==='items'?' active':''}" onclick="goTo('items')">STOCK</div>
       <div class="nav-main outline${main==='log'?' active':''}" onclick="goTo('archive')">LOG</div>
     </div>
@@ -1635,7 +1642,7 @@ function renderPageContent() {
   } else {
     document.body.classList.remove('fp-on');
     pw.style.marginTop=navH+'px';
-    const pages={overview:pageOverview,items:pageStock,tasks:pageTasks,archive:pageArchive,admin:pageAdmin,member:pageMember,lottery:pageLottery,catalog:pageCatalog};
+    const pages={overview:pageOverview,items:pageStock,tasks:pageWorkorders,archive:pageArchive,admin:pageAdmin,member:pageMember,lottery:pageLottery,catalog:pageCatalog};
     pw.innerHTML=`<div class="page">${(pages[currentPage]||pageOverview)()}</div>`;
   }
 }
@@ -3087,6 +3094,126 @@ async function submitChangePassword(){
 }
 
 // ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
+// ─── WORKORDERS (pipeline spine; step 4 = gatherer pickup intake) ──────────────
+function woStatusLabel(s){ return ({open:'Open',claimed:'Claimed',done:'Done',cancelled:'Cancelled'})[s]||s; }
+let woStatusF='all', woSearch='', woSearchActive=false;
+function setWoStatusF(s){ woStatusF=s; rerenderWo(); }
+function toggleWoSearch(){ woSearchActive=!woSearchActive; if(!woSearchActive) woSearch=''; rerenderWo(); }
+function woSearchInput(v){ woSearch=v; const el=document.getElementById('wo-list'); if(el) el.innerHTML=renderWoList(); }
+function rerenderWo(){
+  const c=document.getElementById('wo-controls'); if(c) c.innerHTML=renderWoControls();
+  const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoList();
+  if(woSearchActive){ const i=document.getElementById('wo-search'); if(i){ i.focus(); const x=i.value; try{i.setSelectionRange(x.length,x.length);}catch(e){} } }
+}
+function woRows(){
+  const order={open:0,claimed:1,done:2,cancelled:3};
+  let rows=state.workorders;
+  if(woStatusF!=='all') rows=rows.filter(w=>w.status===woStatusF);
+  const q=woSearch.trim().toLowerCase();
+  if(q) rows=rows.filter(w=>(w.holder||'').toLowerCase().includes(q)||(w.location||'').toLowerCase().includes(q)||(w.matType||'').toLowerCase().includes(q)||(w.note||'').toLowerCase().includes(q));
+  return [...rows].sort((a,b)=>(order[a.status]-order[b.status])||(b._creationTime-a._creationTime));
+}
+
+function pageWorkorders(){
+  const u=state.user;
+  const canReport = isGatherer(u)||isAdmin(u);
+  const open=state.workorders.filter(w=>w.status==='open').length;
+  return `
+    <div class="page-head">
+      <div class="page-head-left"><div class="page-lead">${open} open pickup${open===1?'':'s'}</div></div>
+      ${canReport?`<button class="btn btn-black" onclick="openIntakeModal()">+ Report a Haul</button>`:''}
+    </div>
+    <div id="wo-content" style="margin-top:32px;">
+      <div id="wo-controls">${renderWoControls()}</div>
+      <div id="wo-list">${renderWoList()}</div>
+    </div>`;
+}
+
+function renderWoControls(){
+  const sbtn=(id,label)=>`<button class="btn-ghost btn-sm${woStatusF===id?' active':''}" onclick="setWoStatusF('${id}')">${label}</button>`;
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+      ${sbtn('all','All')}${sbtn('open','Open')}${sbtn('claimed','Claimed')}${sbtn('done','Done')}${sbtn('cancelled','Cancelled')}
+      <div style="flex:1;"></div>
+      <button class="btn-ghost btn-sm${woSearchActive?' active':''}" onclick="toggleWoSearch()">${woSearchActive?'Close Search':'Search'}</button>
+    </div>
+    ${woSearchActive?`<div style="margin-bottom:20px;"><input id="wo-search" type="text" placeholder="Search holder, location, type…" value="${esc(woSearch)}" style="width:100%;max-width:400px;" oninput="woSearchInput(this.value)"></div>`:''}`;
+}
+
+function renderWoList(){
+  if(!state.workorders.length) return `<div class="empty">No workorders yet. Gatherers can report a haul.</div>`;
+  const rows=woRows();
+  if(!rows.length) return `<div class="empty">No workorders match this filter.</div>`;
+  const u=state.user;
+  return `<table class="cards">
+    <thead><tr><th>Type</th><th>Rough Qty</th><th>Held By</th><th>Location</th><th>Status</th><th>Claimed By</th><th>By</th><th></th></tr></thead>
+    <tbody>${rows.map(w=>{
+      const canClaim = (isLogistics(u)||isAdmin(u)) && w.status==='open';
+      const canDone  = (isLogistics(u)||isAdmin(u)) && w.status==='claimed';
+      const canUnclaim = w.status==='claimed' && (isAdmin(u)||w.claimedById===u._id);
+      const canCancel = (w.status==='open'||w.status==='claimed') && (isAdmin(u)||w.createdBy===u._id);
+      const canDelete = (w.status==='done'||w.status==='cancelled') && (isAdmin(u)||w.createdBy===u._id);
+      return `<tr>
+        <td data-label="Type" style="font-weight:700;">${esc(w.matType||'—')}${w.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(w.note)}</div>`:''}</td>
+        <td data-label="Rough Qty">~${w.roughQty} <span style="color:var(--fg);font-size:var(--text-sm);">${esc(w.unit||'SCU')}</span></td>
+        <td data-label="Held By">${esc(w.holder||'—')}</td>
+        <td data-label="Location" style="font-size:var(--text-md);">${esc(w.location||'—')}${w.system?` <span class="sys-badge">${esc(w.system)}</span>`:''}</td>
+        <td data-label="Status" style="font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${woStatusLabel(w.status)}</td>
+        <td data-label="Claimed By">${esc(w.claimedByName||'—')}</td>
+        <td data-label="By" style="color:var(--fg);">${esc(w.createdByName)}</td>
+        <td data-label="" style="white-space:nowrap;">
+          ${canClaim?`<button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="woClaim('${esc(w._id)}')">Claim</button>`:''}
+          ${canDone?`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="woComplete('${esc(w._id)}')">Mark Done</button>`:''}
+          ${canUnclaim?`<button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="woUnclaim('${esc(w._id)}')">Unclaim</button>`:''}
+          ${canCancel?`<button class="btn-del" onclick="woCancel('${esc(w._id)}')">Cancel</button>`:''}
+          ${canDelete?`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Delete">&times;</button>`:''}
+        </td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+function openIntakeModal(){
+  const locs=[...state.catalog.locations].sort((a,b)=>a.name.localeCompare(b.name));
+  const myName=state.user.username;
+  showModal(`
+    <div class="modal-title">Report a haul</div>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">Just the basics — logistics will pick it up and do the detailed manifest.</p>
+    <div class="grid2">
+      <div class="field"><label class="lbl">Who has the mats</label><input id="in-holder" type="text" value="${esc(myName)}"></div>
+      <div class="field"><label class="lbl">Type</label><select id="in-type"><option>Mineable</option><option>Salvage</option><option>Loot</option></select></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label class="lbl">Location</label><select id="in-loc">${locs.length?locs.map(l=>`<option value="${esc(l.name)}">${esc(l.name)}${l.isBase?' (base)':''}</option>`).join(''):'<option value="">— add locations first —</option>'}</select></div>
+      <div class="field"><label class="lbl">Roughly how much (SCU)</label><input id="in-qty" type="number" step="any" placeholder="e.g. 200"></div>
+    </div>
+    <div class="field"><label class="lbl">Note (optional)</label><input id="in-note" type="text" placeholder="anything useful for pickup"></div>
+    <div class="err-msg" id="in-err"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-black" onclick="submitIntake()">Report</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+async function submitIntake(){
+  const V=x=>(document.getElementById(x)||{value:''}).value;
+  const holder=V('in-holder').trim();
+  const matType=V('in-type');
+  const location=V('in-loc');
+  const roughQty=Number(V('in-qty'));
+  const note=V('in-note').trim();
+  if(!holder){ showErr('in-err','Who has the mats?'); return; }
+  if(!location){ showErr('in-err','Pick a location'); return; }
+  if(!(roughQty>0)){ showErr('in-err','Roughly how much? (greater than 0)'); return; }
+  const loc=state.catalog.locations.find(l=>l.name===location);
+  try{
+    await convexMutation('workorders:createPickup',{sessionToken:state.sessionToken,holder,location,system:loc?loc.system:undefined,matType,roughQty,unit:'SCU',note:note||undefined});
+    toast('Haul reported — pickup created'); closeModal(); await refreshAll(); renderPage();
+  }catch(e){ showErr('in-err', e.message); }
+}
+async function woClaim(id){ try{ await convexMutation('workorders:claim',{sessionToken:state.sessionToken,id}); toast('Claimed'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
+async function woUnclaim(id){ try{ await convexMutation('workorders:unclaim',{sessionToken:state.sessionToken,id}); toast('Released'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
+async function woComplete(id){ if(!await confirmModal('Mark this pickup as done?')) return; try{ await convexMutation('workorders:complete',{sessionToken:state.sessionToken,id}); toast('Done'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
+async function woCancel(id){ if(!await confirmModal('Cancel this workorder?')) return; try{ await convexMutation('workorders:cancel',{sessionToken:state.sessionToken,id}); toast('Cancelled'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
+async function woDelete(id){ if(!await confirmModal('Delete this workorder permanently?')) return; try{ await convexMutation('workorders:remove',{sessionToken:state.sessionToken,id}); toast('Deleted'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
+
 // ─── STOCK / LEDGER ─────────────────────────────────────────────────────────
 const STOCK_STATUS_DEFS = [
   {id:'reported',         label:'Reported'},
