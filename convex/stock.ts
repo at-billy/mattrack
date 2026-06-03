@@ -125,6 +125,17 @@ export const remove = mutation({
     if (!row) throw new ConvexError("Stock not found");
     const isAdmin = user.roles.includes("admin");
     if (!isAdmin && row.addedBy !== user._id) throw new ConvexError("Not authorized — you can only remove stock you added");
+    // Clean up any active pickup that references this stock (one-item pickups get
+    // deleted; multi-item ones just drop this line).
+    const pickups = await ctx.db.query("workorders").withIndex("by_kind", q => q.eq("kind", "pickup")).collect();
+    for (const wo of pickups) {
+      if (wo.status === "done" || wo.status === "cancelled") continue;
+      const items = wo.items ?? [];
+      if (!items.some(it => it.stockId === id)) continue;
+      const remaining = items.filter(it => it.stockId !== id);
+      if (remaining.length === 0) await ctx.db.delete(wo._id);
+      else await ctx.db.patch(wo._id, { items: remaining });
+    }
     await ctx.db.delete(id);
     await ctx.db.insert("archive", {
       type: "stock_removed",

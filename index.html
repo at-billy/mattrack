@@ -3125,7 +3125,6 @@ function woRows(){
 async function woAccept(id){ try{ await convexMutation('workorders:claim',{sessionToken:state.sessionToken,id}); toast('Accepted — you have it'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 async function woComplete(id){ if(!await confirmModal('Mark complete? The materials move to the base.')) return; try{ await convexMutation('workorders:complete',{sessionToken:state.sessionToken,id}); toast('Delivered to base'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 async function woAbandon(id){ if(!await confirmModal('Abandon this pickup? It goes back to open for someone else.')) return; try{ await convexMutation('workorders:unclaim',{sessionToken:state.sessionToken,id}); toast('Released'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
-async function woCancel(id){ if(!await confirmModal('Cancel this workorder?')) return; try{ await convexMutation('workorders:cancel',{sessionToken:state.sessionToken,id}); toast('Cancelled'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 async function woDelete(id){ if(!await confirmModal('Delete this workorder permanently?')) return; try{ await convexMutation('workorders:remove',{sessionToken:state.sessionToken,id}); toast('Deleted'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 
 function pageWorkorders(){
@@ -3145,7 +3144,7 @@ function pageWorkorders(){
 function renderWoControls(){
   const sbtn=(id,label)=>`<button class="btn-ghost btn-sm${woStatusF===id?' active':''}" onclick="setWoStatusF('${id}')">${label}</button>`;
   return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
-      ${sbtn('all','All')}${sbtn('open','Open')}${sbtn('claimed','Accepted')}${sbtn('done','Done')}${sbtn('cancelled','Cancelled')}
+      ${sbtn('all','All')}${sbtn('open','Open')}${sbtn('claimed','Accepted')}${sbtn('done','Done')}
       <div style="flex:1;"></div>
       <button class="btn-ghost btn-sm${woSearchActive?' active':''}" onclick="toggleWoSearch()">${woSearchActive?'Close Search':'Search'}</button>
     </div>
@@ -3166,8 +3165,7 @@ function renderWoList(){
       const mine = w.claimedById===u._id;
       const canAccept   = w.status==='open' && canMove;
       const canFinish   = w.status==='claimed' && (isAdmin(u)||mine);
-      const canCancel   = w.status==='open' && (isAdmin(u)||w.createdBy===u._id);
-      const canDelete   = (w.status==='done'||w.status==='cancelled') && (isAdmin(u)||w.createdBy===u._id);
+      const canDelete   = w.status==='done' && (isAdmin(u)||w.createdBy===u._id);
       const items=w.items||[];
       const itemsHtml = items.length ? items.map(it=>`${esc(it.name)}${it.qualityStep?` Q${it.qualityStep}`:''} ×${it.qty} ${esc(it.unit)}`).join('<br>') : '—';
       return `<tr>
@@ -3180,7 +3178,6 @@ function renderWoList(){
           ${canAccept?`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="woAccept('${esc(w._id)}')">Accept</button>`:''}
           ${canFinish?`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="woComplete('${esc(w._id)}')">Complete</button>`:''}
           ${canFinish?`<button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`:''}
-          ${canCancel?`<button class="btn-del" onclick="woCancel('${esc(w._id)}')">Cancel</button>`:''}
           ${canDelete?`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Delete">&times;</button>`:''}
         </td>
       </tr>`;
@@ -3302,9 +3299,11 @@ function renderStockList(){
 
 function stockKindChanged(){
   const kind=document.getElementById('st-kind').value;
-  const sel=document.getElementById('st-name'); if(!sel) return;
+  const dl=document.getElementById('st-name-list'); if(!dl) return;
   const list=(kind==='material'?state.catalog.materials:state.catalog.items).slice().sort((a,b)=>a.name.localeCompare(b.name));
-  sel.innerHTML='<option value="">— select —</option>'+list.map(x=>`<option value="${esc(x.name)}">${esc(x.name)}</option>`).join('');
+  dl.innerHTML=list.map(x=>`<option value="${esc(x.name)}"></option>`).join('');
+  const nm=document.getElementById('st-name');
+  if(nm && nm.value && !list.some(x=>x.name===nm.value)) nm.value=''; // clear an invalid name on kind switch
   stockNameChanged();
 }
 function stockNameChanged(){
@@ -3333,7 +3332,7 @@ function openStockModal(id){
       <div class="field"><label class="lbl">Kind</label><select id="st-kind" onchange="stockKindChanged()"${dis}>
         <option value="material"${(row?row.kind:(stockView==='items'?'item':'material'))==='material'?' selected':''}>Material</option>
         <option value="item"${(row?row.kind:(stockView==='items'?'item':'material'))==='item'?' selected':''}>Item</option></select></div>
-      <div class="field"><label class="lbl">Name</label><select id="st-name" onchange="stockNameChanged()"${dis}></select></div>
+      <div class="field"><label class="lbl">Name</label><input id="st-name" list="st-name-list" autocomplete="off" placeholder="type to search…" oninput="stockNameChanged()"${dis}><datalist id="st-name-list"></datalist></div>
     </div>
     <div class="grid2">
       <div class="field" id="st-qwrap"><label class="lbl">Quality</label><select id="st-q"></select></div>
@@ -3360,8 +3359,10 @@ function openStockModal(id){
 }
 async function saveStock(id){
   const V=x=>(document.getElementById(x)||{value:''}).value;
-  const kind=V('st-kind'), name=V('st-name');
+  const kind=V('st-kind'), name=V('st-name').trim();
   if(!name){ showErr('st-err','Pick a name'); return; }
+  const inCatalog = kind==='material' ? state.catalog.materials.some(x=>x.name===name) : state.catalog.items.some(x=>x.name===name);
+  if(!inCatalog){ showErr('st-err','Pick a name from the list'); return; }
   const qty=Number(V('st-qty'));
   if(!(qty>0)){ showErr('st-err','Quantity must be greater than 0'); return; }
   const unit=V('st-unit')||'SCU';
