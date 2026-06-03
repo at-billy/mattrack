@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { requireSession } from "./_helpers";
+import { requireSession, assertRole } from "./_helpers";
 
 const lotteryItemSchema = v.object({
   id: v.string(),
@@ -13,9 +13,15 @@ const lotteryItemSchema = v.object({
   value: v.number(),
 });
 
+function canManageLottery(roles: string[]) {
+  return roles.some(r => ["admin", "command"].includes(r));
+}
+
 export const getAll = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { sessionToken: v.string() },
+  handler: async (ctx, { sessionToken }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    assertRole(user, ["admin", "command"]);
     return await ctx.db.query("lotteries").collect();
   },
 });
@@ -27,7 +33,7 @@ export const create = mutation({
   },
   handler: async (ctx, { sessionToken, title }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const id = await ctx.db.insert("lotteries", {
       title,
       status: "draft",
@@ -47,7 +53,7 @@ export const updateTitle = mutation({
   },
   handler: async (ctx, { sessionToken, lotteryId, title }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
     if (lottery.status !== "draft") throw new Error("Can only modify draft lotteries");
@@ -63,7 +69,7 @@ export const addItem = mutation({
   },
   handler: async (ctx, { sessionToken, lotteryId, item }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
     if (lottery.status !== "draft") throw new Error("Can only modify draft lotteries");
@@ -79,7 +85,7 @@ export const removeItem = mutation({
   },
   handler: async (ctx, { sessionToken, lotteryId, itemId }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
     if (lottery.status !== "draft") throw new Error("Can only modify draft lotteries");
@@ -96,7 +102,7 @@ export const updateItemValue = mutation({
   },
   handler: async (ctx, { sessionToken, lotteryId, itemId, value }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
     if (lottery.status !== "draft") throw new Error("Can only modify draft lotteries");
@@ -114,7 +120,7 @@ export const generatePackages = mutation({
   },
   handler: async (ctx, { sessionToken, lotteryId, packageCount }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
     if (lottery.status !== "draft") throw new Error("Can only generate packages for draft lotteries");
@@ -154,7 +160,7 @@ export const openLottery = mutation({
   },
   handler: async (ctx, { sessionToken, lotteryId }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
     if (!lottery.packages?.length) throw new Error("Generate packages first");
@@ -203,7 +209,7 @@ export const closeLottery = mutation({
   },
   handler: async (ctx, { sessionToken, lotteryId }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
     if (lottery.status !== "open" && lottery.status !== "drawn") throw new Error("Lottery must be open or drawn to close");
@@ -218,7 +224,7 @@ export const backToDraft = mutation({
   },
   handler: async (ctx, { sessionToken, lotteryId }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
     // Clear winners/picks only — keep entries (interested) and external names
@@ -237,7 +243,7 @@ export const remove = mutation({
   },
   handler: async (ctx, { sessionToken, lotteryId }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     await ctx.db.delete(lotteryId);
   },
 });
@@ -246,7 +252,7 @@ export const addExternalName = mutation({
   args: { sessionToken: v.string(), lotteryId: v.id("lotteries"), name: v.string() },
   handler: async (ctx, { sessionToken, lotteryId, name }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
     if (lottery.status !== "open") throw new Error("Can only add names to open lotteries");
@@ -262,7 +268,7 @@ export const bulkAddExternalNames = mutation({
   args: { sessionToken: v.string(), lotteryId: v.id("lotteries"), names: v.array(v.string()) },
   handler: async (ctx, { sessionToken, lotteryId, names }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
     if (lottery.status !== "open") throw new Error("Can only add names to open lotteries");
@@ -280,7 +286,7 @@ export const removeExternalName = mutation({
   args: { sessionToken: v.string(), lotteryId: v.id("lotteries"), name: v.string() },
   handler: async (ctx, { sessionToken, lotteryId, name }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
     if (lottery.status !== "open") throw new Error("Can only modify open lotteries");
@@ -314,7 +320,7 @@ export const throwHat = mutation({
     let participantName: string;
 
     if (externalName) {
-      if (!user.roles.includes("admin")) throw new Error("Only admins can throw hat for external names");
+      if (!canManageLottery(user.roles)) throw new Error("Only command/admin can throw hat for external names");
       const ext = lottery.externalNames ?? [];
       if (!ext.includes(externalName)) throw new Error("External name not found in lottery");
       participantId = `ext_${externalName}`;
@@ -354,7 +360,7 @@ export const removeHat = mutation({
     if (lottery.status !== "open") throw new Error("Lottery is not open");
 
     const isOwn = participantId === user._id || participantId === `ext_${user.username}`;
-    if (!isOwn && !user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!isOwn && !canManageLottery(user.roles)) throw new Error("Not authorized");
 
     const packages = (lottery.packages ?? []).map(p =>
       p.pkgId === pkgId
@@ -369,7 +375,7 @@ export const runDraw = mutation({
   args: { sessionToken: v.string(), lotteryId: v.id("lotteries") },
   handler: async (ctx, { sessionToken, lotteryId }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    if (!user.roles.includes("admin")) throw new Error("Not authorized");
+    if (!canManageLottery(user.roles)) throw new Error("Not authorized");
     const lottery = await ctx.db.get(lotteryId);
     if (!lottery) throw new Error("Lottery not found");
     if (lottery.status !== "open") throw new Error("Lottery must be open to run draw");
