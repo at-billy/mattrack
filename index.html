@@ -3127,7 +3127,7 @@ function pageCatalog(){
         ${tab('materials','Materials')}${tab('items','Items')}${tab('locations','Locations')}
         <input id="cat-search" type="text" placeholder="Search ${catalogTab}…" value="${esc(catalogSearch)}" style="max-width:240px;margin:0;" oninput="catalogSearch=this.value;renderCatalogList()">
         <div style="flex:1;"></div>
-        ${empty?`<button class="btn-ghost btn-sm" onclick="importCatalogSeed()">Import seed data</button>`:''}
+        <button class="btn-ghost btn-sm" onclick="importCatalogSeed()">Import seed data</button>
       </div>
       <div id="catalog-list">${body}</div>
     </div>`;
