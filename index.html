@@ -3115,13 +3115,10 @@ function woRows(){
 }
 
 function pageWorkorders(){
-  const u=state.user;
-  const canReport = isGatherer(u)||isAdmin(u);
   const open=state.workorders.filter(w=>w.status==='open').length;
   return `
     <div class="page-head">
       <div class="page-head-left"><div class="page-lead">${open} open pickup${open===1?'':'s'}</div></div>
-      ${canReport?`<button class="btn btn-black" onclick="openIntakeModal()">+ Report a Haul</button>`:''}
     </div>
     <div id="wo-content" style="margin-top:32px;">
       <div id="wo-controls">${renderWoControls()}</div>
@@ -3145,18 +3142,20 @@ function renderWoList(){
   if(!rows.length) return `<div class="empty">No workorders match this filter.</div>`;
   const u=state.user;
   return `<table class="cards">
-    <thead><tr><th>Type</th><th>Rough Qty</th><th>Held By</th><th>Location</th><th>Status</th><th>Claimed By</th><th>By</th><th></th></tr></thead>
+    <thead><tr><th>Location</th><th>Items</th><th>Status</th><th>Claimed By</th><th>By</th><th></th></tr></thead>
     <tbody>${rows.map(w=>{
       const canClaim = (isLogistics(u)||isAdmin(u)) && w.status==='open';
       const canDone  = (isLogistics(u)||isAdmin(u)) && w.status==='claimed';
       const canUnclaim = w.status==='claimed' && (isAdmin(u)||w.claimedById===u._id);
       const canCancel = (w.status==='open'||w.status==='claimed') && (isAdmin(u)||w.createdBy===u._id);
       const canDelete = (w.status==='done'||w.status==='cancelled') && (isAdmin(u)||w.createdBy===u._id);
+      const items=w.items||[];
+      const itemsHtml = items.length
+        ? items.map(it=>`${esc(it.name)}${it.qualityStep?` Q${it.qualityStep}`:''} ×${it.qty} ${esc(it.unit)}`).join('<br>')
+        : '—';
       return `<tr>
-        <td data-label="Type" style="font-weight:700;">${esc(w.matType||'—')}${w.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(w.note)}</div>`:''}</td>
-        <td data-label="Rough Qty">~${w.roughQty} <span style="color:var(--fg);font-size:var(--text-sm);">${esc(w.unit||'SCU')}</span></td>
-        <td data-label="Held By">${esc(w.holder||'—')}</td>
-        <td data-label="Location" style="font-size:var(--text-md);">${esc(w.location||'—')}${w.system?` <span class="sys-badge">${esc(w.system)}</span>`:''}</td>
+        <td data-label="Location" style="font-weight:700;">${esc(w.location||'—')}${w.system?` <span class="sys-badge">${esc(w.system)}</span>`:''}${w.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(w.note)}</div>`:''}</td>
+        <td data-label="Items" style="font-size:var(--text-sm);color:var(--fg);">${itemsHtml}</td>
         <td data-label="Status" style="font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${woStatusLabel(w.status)}</td>
         <td data-label="Claimed By">${esc(w.claimedByName||'—')}</td>
         <td data-label="By" style="color:var(--fg);">${esc(w.createdByName)}</td>
@@ -3171,43 +3170,6 @@ function renderWoList(){
     }).join('')}</tbody></table>`;
 }
 
-function openIntakeModal(){
-  const locs=[...state.catalog.locations].sort((a,b)=>a.name.localeCompare(b.name));
-  const myName=state.user.username;
-  showModal(`
-    <div class="modal-title">Report a haul</div>
-    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">Just the basics — logistics will pick it up and do the detailed manifest.</p>
-    <div class="grid2">
-      <div class="field"><label class="lbl">Who has the mats</label><input id="in-holder" type="text" value="${esc(myName)}"></div>
-      <div class="field"><label class="lbl">Type</label><select id="in-type"><option>Mineable</option><option>Salvage</option><option>Loot</option></select></div>
-    </div>
-    <div class="grid2">
-      <div class="field"><label class="lbl">Location</label><select id="in-loc">${locs.length?locs.map(l=>`<option value="${esc(l.name)}">${esc(l.name)}${l.isBase?' (base)':''}</option>`).join(''):'<option value="">— add locations first —</option>'}</select></div>
-      <div class="field"><label class="lbl">Roughly how much (SCU)</label><input id="in-qty" type="number" step="any" placeholder="e.g. 200"></div>
-    </div>
-    <div class="field"><label class="lbl">Note (optional)</label><input id="in-note" type="text" placeholder="anything useful for pickup"></div>
-    <div class="err-msg" id="in-err"></div>
-    <div style="display:flex;gap:10px;margin-top:8px;">
-      <button class="btn btn-black" onclick="submitIntake()">Report</button>
-      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-    </div>`);
-}
-async function submitIntake(){
-  const V=x=>(document.getElementById(x)||{value:''}).value;
-  const holder=V('in-holder').trim();
-  const matType=V('in-type');
-  const location=V('in-loc');
-  const roughQty=Number(V('in-qty'));
-  const note=V('in-note').trim();
-  if(!holder){ showErr('in-err','Who has the mats?'); return; }
-  if(!location){ showErr('in-err','Pick a location'); return; }
-  if(!(roughQty>0)){ showErr('in-err','Roughly how much? (greater than 0)'); return; }
-  const loc=state.catalog.locations.find(l=>l.name===location);
-  try{
-    await convexMutation('workorders:createPickup',{sessionToken:state.sessionToken,holder,location,system:loc?loc.system:undefined,matType,roughQty,unit:'SCU',note:note||undefined});
-    toast('Haul reported — pickup created'); closeModal(); await refreshAll(); renderPage();
-  }catch(e){ showErr('in-err', e.message); }
-}
 async function woClaim(id){ try{ await convexMutation('workorders:claim',{sessionToken:state.sessionToken,id}); toast('Claimed'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 async function woUnclaim(id){ try{ await convexMutation('workorders:unclaim',{sessionToken:state.sessionToken,id}); toast('Released'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 async function woComplete(id){ if(!await confirmModal('Mark this pickup as done?')) return; try{ await convexMutation('workorders:complete',{sessionToken:state.sessionToken,id}); toast('Done'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
@@ -3225,7 +3187,50 @@ const STOCK_STATUS_DEFS = [
   {id:'handed_out',       label:'Handed Out'},
 ];
 function stockStatusLabel(s){ return (STOCK_STATUS_DEFS.find(x=>x.id===s)||{}).label || s; }
+
+// ── Reusable system → location cascade picker (catalog-driven) ──────────────────
+const NO_SYSTEM='(no system)';
+function locPickerSystems(){ return [...new Set(state.catalog.locations.map(l=>l.system||NO_SYSTEM))].sort(); }
+function locPickerLocs(sys){ return state.catalog.locations.filter(l=>(l.system||NO_SYSTEM)===sys).sort((a,b)=>a.name.localeCompare(b.name)); }
+function locOptionsHtml(sys, selected){ return locPickerLocs(sys).map(l=>`<option value="${esc(l.name)}"${selected===l.name?' selected':''}>${esc(l.name)}${l.isBase?' (base)':''}</option>`).join(''); }
+// Two stacked fields: a System select that filters a Location select.
+function locationPicker(prefix, location){
+  const cur = location ? state.catalog.locations.find(l=>l.name===location) : null;
+  const systems = locPickerSystems();
+  const sys = cur ? (cur.system||NO_SYSTEM) : (systems[0]||'');
+  return `
+    <div class="field"><label class="lbl">System</label>
+      <select id="${prefix}-sys" onchange="locPickerSysChanged('${prefix}')">${systems.map(s=>`<option${s===sys?' selected':''}>${esc(s)}</option>`).join('')}</select></div>
+    <div class="field"><label class="lbl">Location</label>
+      <select id="${prefix}-loc">${locOptionsHtml(sys, location)}</select></div>`;
+}
+function locPickerSysChanged(prefix){
+  const sysEl=document.getElementById(prefix+'-sys'); const sel=document.getElementById(prefix+'-loc');
+  if(sysEl && sel) sel.innerHTML=locOptionsHtml(sysEl.value);
+}
+function pickedLocation(prefix){ return (document.getElementById(prefix+'-loc')||{value:''}).value; }
+function pickedLocationSystem(prefix){ const o=state.catalog.locations.find(l=>l.name===pickedLocation(prefix)); return o?o.system:undefined; }
 let stockKindF='all', stockStatusF='all', stockLocF='all', stockSearch='', stockSearchActive=false;
+let stockSel = new Set(); // selected reported-stock ids for pickup creation
+function canPickStock(u){ return isGatherer(u)||isAdmin(u); }
+function toggleStockSel(id){ if(stockSel.has(id)) stockSel.delete(id); else stockSel.add(id); const c=document.getElementById('stock-controls'); if(c) c.innerHTML=renderStockControls(); }
+function toggleStockSelAll(on){
+  const reported=stockRows().filter(s=>s.status==='reported');
+  if(on) reported.forEach(s=>stockSel.add(s._id)); else reported.forEach(s=>stockSel.delete(s._id));
+  rerenderStock();
+}
+async function createPickupFromSel(){
+  const reportedIds=new Set(state.stock.filter(s=>s.status==='reported').map(s=>s._id));
+  const ids=[...stockSel].filter(id=>reportedIds.has(id));
+  if(!ids.length){ toast('Select reported stock first'); return; }
+  if(!await confirmModal(`Create pickup work order(s) for ${ids.length} stock entr${ids.length===1?'y':'ies'}? They'll be grouped by location.`)) return;
+  try{
+    const out=await convexMutation('workorders:createPickupFromStock',{sessionToken:state.sessionToken,stockIds:ids});
+    stockSel.clear();
+    toast(`Created ${out.created} pickup${out.created===1?'':'s'} (${out.items} item${out.items===1?'':'s'})`);
+    await refreshAll(); renderPage();
+  }catch(e){ notifyError(e); }
+}
 function setStockKind(k){ stockKindF=k; rerenderStock(); }
 function setStockStatusF(s){ stockStatusF=s; rerenderStock(); }
 function setStockLocF(l){ stockLocF=l; rerenderStock(); }
@@ -3274,6 +3279,7 @@ function renderStockControls(){
         <option value="all"${stockLocF==='all'?' selected':''}>Any location</option>
         ${locs.map(l=>`<option value="${esc(l)}"${stockLocF===l?' selected':''}>${esc(l)}</option>`).join('')}
       </select>
+      ${(()=>{ const u=state.user; const reportedIds=new Set(state.stock.filter(s=>s.status==='reported').map(s=>s._id)); const n=[...stockSel].filter(id=>reportedIds.has(id)).length; return canPickStock(u)&&n?`<button class="btn btn-black btn-sm" onclick="createPickupFromSel()">Create Pickup (${n})</button>`:''; })()}
       <div style="flex:1;"></div>
       <button class="btn-ghost btn-sm${stockSearchActive?' active':''}" onclick="toggleStockSearch()">${stockSearchActive?'Close Search':'Search'}</button>
     </div>
@@ -3285,11 +3291,17 @@ function renderStockList(){
   const rows=stockRows();
   if(!rows.length) return `<div class="empty">No stock matches this filter.</div>`;
   const u=state.user;
+  const canPick=canPickStock(u);
+  const reported=rows.filter(s=>s.status==='reported');
+  const allSel=reported.length>0 && reported.every(s=>stockSel.has(s._id));
+  const selHead=canPick?`<th style="width:28px;"><input type="checkbox" ${allSel?'checked':''} onclick="toggleStockSelAll(this.checked)" aria-label="Select all reported"></th>`:'';
   return `<table class="cards">
-    <thead><tr><th>Name</th><th>Kind</th><th>Quality</th><th>Qty</th><th>Location</th><th>Held By</th><th>Status</th><th></th></tr></thead>
+    <thead><tr>${selHead}<th>Name</th><th>Kind</th><th>Quality</th><th>Qty</th><th>Location</th><th>Held By</th><th>Status</th><th></th></tr></thead>
     <tbody>${rows.map(s=>{
       const canEdit = isAdmin(u) || s.addedBy===u._id;
+      const selCell=canPick?`<td data-label="">${s.status==='reported'?`<input type="checkbox" ${stockSel.has(s._id)?'checked':''} onclick="toggleStockSel('${esc(s._id)}')">`:''}</td>`:'';
       return `<tr>
+        ${selCell}
         <td data-label="Name" style="font-weight:700;">${esc(s.name)}${s.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(s.note)}</div>`:''}</td>
         <td data-label="Kind">${s.kind==='material'?'Material':'Item'}</td>
         <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.kind==='material'&&s.qualityStep?`Q${s.qualityStep}${s.qualityValue!=null?' · '+s.qualityValue:''}`:'—'}</td>
@@ -3329,7 +3341,6 @@ function stockNameChanged(){
 }
 function openStockModal(id){
   const row = id ? state.stock.find(s=>s._id===id) : null;
-  const locs=[...state.catalog.locations].sort((a,b)=>a.name.localeCompare(b.name));
   const myName = state.user.username;
   const dis = row ? ' disabled' : '';
   showModal(`
@@ -3348,10 +3359,8 @@ function openStockModal(id){
       <div class="field"><label class="lbl">Unit</label><input id="st-unit" type="text" value="${row?esc(row.unit):''}" readonly></div>
       <div class="field"><label class="lbl">Held by</label><input id="st-held" type="text" value="${row?esc(row.heldBy):esc(myName)}"></div>
     </div>
-    <div class="grid2">
-      <div class="field"><label class="lbl">Location</label><select id="st-loc">${locs.map(l=>`<option value="${esc(l.name)}"${row&&row.location===l.name?' selected':''}>${esc(l.name)}${l.isBase?' (base)':''}</option>`).join('')}</select></div>
-      <div class="field"><label class="lbl">Status</label><select id="st-status">${STOCK_STATUS_DEFS.map(s=>`<option value="${s.id}"${(row?row.status:'reported')===s.id?' selected':''}>${s.label}</option>`).join('')}</select></div>
-    </div>
+    <div class="grid2">${locationPicker('st', row?row.location:undefined)}</div>
+    <div class="field"><label class="lbl">Status</label><select id="st-status">${STOCK_STATUS_DEFS.map(s=>`<option value="${s.id}"${(row?row.status:'reported')===s.id?' selected':''}>${s.label}</option>`).join('')}</select></div>
     <div class="field"><label class="lbl">Note (optional)</label><input id="st-note" type="text" value="${row?esc(row.note||''):''}"></div>
     <div class="err-msg" id="st-err"></div>
     <div style="display:flex;gap:10px;margin-top:8px;">

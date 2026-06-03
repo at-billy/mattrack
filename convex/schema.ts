@@ -196,14 +196,18 @@ export default defineSchema({
   workorders: defineTable({
     kind: v.string(),                       // "pickup"
     status: v.string(),                     // "open" | "claimed" | "done" | "cancelled"
-    // pickup (gatherer intake): a rough haul to be collected
-    matType: v.optional(v.string()),        // "Mineable" | "Salvage" | "Loot"
-    roughQty: v.optional(v.number()),
-    unit: v.optional(v.string()),
-    holder: v.optional(v.string()),         // who currently has the mats
-    location: v.optional(v.string()),
+    location: v.optional(v.string()),       // where the haul is (pickup source)
     system: v.optional(v.string()),
     note: v.optional(v.string()),
+    // pickup: the selected stock rows to collect from this location
+    items: v.optional(v.array(v.object({
+      stockId: v.id("stock"),
+      name: v.string(),
+      kind: v.string(),
+      qty: v.number(),
+      unit: v.string(),
+      qualityStep: v.optional(v.number()),
+    }))),
     // claim (logistics)
     claimedById: v.optional(v.id("users")),
     claimedByName: v.optional(v.string()),

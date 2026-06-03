@@ -1,9 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireSession, requireMember, assertRole } from "./_helpers";
-import { assertLen } from "./_constants";
-
-const MAT_TYPES = ["Mineable", "Salvage", "Loot"];
 
 export const getAll = query({
   args: { sessionToken: v.string() },
@@ -13,47 +10,53 @@ export const getAll = query({
   },
 });
 
-// Gatherer intake → a Pickup workorder. Minimal admin: who has it, where,
-// roughly how much, and the type. Logistics will claim + manifest it later.
-export const createPickup = mutation({
-  args: {
-    sessionToken: v.string(),
-    holder: v.string(),
-    location: v.string(),
-    system: v.optional(v.string()),
-    matType: v.string(),
-    roughQty: v.number(),
-    unit: v.optional(v.string()),
-    note: v.optional(v.string()),
-  },
-  handler: async (ctx, a) => {
-    const user = await requireSession(ctx.db, a.sessionToken);
+// Create pickup workorders from selected "reported" stock rows. Rows are grouped
+// by location → one pickup WO per location. The picked rows move to "in_transit".
+export const createPickupFromStock = mutation({
+  args: { sessionToken: v.string(), stockIds: v.array(v.id("stock")) },
+  handler: async (ctx, { sessionToken, stockIds }) => {
+    const user = await requireSession(ctx.db, sessionToken);
     assertRole(user, ["gatherer", "admin"]);
-    if (!a.holder.trim()) throw new ConvexError("Who has the mats is required");
-    if (!a.location.trim()) throw new ConvexError("Location is required");
-    if (!MAT_TYPES.includes(a.matType)) throw new ConvexError("Invalid type");
-    if (!(a.roughQty > 0)) throw new ConvexError("Rough quantity must be greater than 0");
-    if (a.note) assertLen(a.note, 500, "note");
-    const id = await ctx.db.insert("workorders", {
-      kind: "pickup",
-      status: "open",
-      matType: a.matType,
-      roughQty: a.roughQty,
-      unit: a.unit?.trim() || "SCU",
-      holder: a.holder.trim(),
-      location: a.location.trim(),
-      system: a.system?.trim() || undefined,
-      note: a.note?.trim() || undefined,
-      createdBy: user._id,
-      createdByName: user.username,
-    });
+    if (!stockIds.length) throw new ConvexError("Select at least one stock entry");
+
+    // Load + validate (must exist and be 'reported').
+    const rows = [];
+    for (const sid of stockIds) {
+      const s = await ctx.db.get(sid);
+      if (!s) continue;
+      if (s.status !== "reported") throw new ConvexError(`"${s.name}" is not in Reported status`);
+      rows.push(s);
+    }
+    if (!rows.length) throw new ConvexError("No eligible stock to pick up");
+
+    // Group by location.
+    const byLoc: Record<string, typeof rows> = {};
+    for (const s of rows) (byLoc[s.location] ??= []).push(s);
+
+    let created = 0;
+    for (const [location, group] of Object.entries(byLoc)) {
+      const items = group.map(s => ({
+        stockId: s._id, name: s.name, kind: s.kind, qty: s.qty, unit: s.unit, qualityStep: s.qualityStep,
+      }));
+      await ctx.db.insert("workorders", {
+        kind: "pickup",
+        status: "open",
+        location,
+        system: group[0].system,
+        items,
+        createdBy: user._id,
+        createdByName: user.username,
+      });
+      for (const s of group) await ctx.db.patch(s._id, { status: "in_transit" });
+      created++;
+    }
     await ctx.db.insert("archive", {
       type: "workorder_created",
       userId: user._id,
       userName: user.username,
-      details: { kind: "pickup", matType: a.matType, roughQty: a.roughQty, location: a.location.trim() },
+      details: { kind: "pickup", count: created, items: rows.length },
     });
-    return id;
+    return { created, items: rows.length };
   },
 });
 
@@ -83,8 +86,8 @@ export const unclaim = mutation({
   },
 });
 
-// Mark a pickup done (logistics/admin). Step 5 replaces this with the manifest
-// flow that turns the rough haul into itemised stock.
+// Mark a pickup done (logistics/admin): the haul has reached the base, so its
+// stock moves in_transit → at_base.
 export const complete = mutation({
   args: { sessionToken: v.string(), id: v.id("workorders") },
   handler: async (ctx, { sessionToken, id }) => {
@@ -92,6 +95,10 @@ export const complete = mutation({
     assertRole(user, ["logistics", "admin"]);
     const wo = await ctx.db.get(id);
     if (!wo) throw new ConvexError("Workorder not found");
+    for (const it of wo.items ?? []) {
+      const s = await ctx.db.get(it.stockId);
+      if (s && s.status === "in_transit") await ctx.db.patch(it.stockId, { status: "at_base" });
+    }
     await ctx.db.patch(id, { status: "done" });
     await ctx.db.insert("archive", {
       type: "workorder_completed",
@@ -102,7 +109,7 @@ export const complete = mutation({
   },
 });
 
-// Cancel (the creator or an admin).
+// Cancel (the creator or an admin): release the picked stock back to reported.
 export const cancel = mutation({
   args: { sessionToken: v.string(), id: v.id("workorders") },
   handler: async (ctx, { sessionToken, id }) => {
@@ -111,6 +118,10 @@ export const cancel = mutation({
     if (!wo) throw new ConvexError("Workorder not found");
     const isAdmin = user.roles.includes("admin");
     if (!isAdmin && wo.createdBy !== user._id) throw new ConvexError("Not authorized");
+    for (const it of wo.items ?? []) {
+      const s = await ctx.db.get(it.stockId);
+      if (s && s.status === "in_transit") await ctx.db.patch(it.stockId, { status: "reported" });
+    }
     await ctx.db.patch(id, { status: "cancelled" });
   },
 });
