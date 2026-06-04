@@ -3448,12 +3448,13 @@ function openReportModal(){
 }
 function addReportLine(){
   _rpLines++;
+  const mats=[...state.catalog.materials].sort((a,b)=>a.name.localeCompare(b.name));
   const row=document.createElement('div');
   row.className='rp-line';
   row.style.cssText='display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;';
   row.innerHTML=`
     <select class="rp-type" style="flex:0 0 auto;width:120px;"><option>Mineable</option><option>Salvage</option><option>Loot</option></select>
-    <input class="rp-what" type="text" placeholder="what is it" style="flex:1;min-width:140px;">
+    <select class="rp-what" style="flex:1;min-width:160px;"><option value="">— what is it —</option>${mats.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}</select>
     <input class="rp-qty" type="number" min="0" step="any" placeholder="~qty" style="width:80px;">
     <input class="rp-unit" type="text" value="SCU" style="width:64px;">
     <button class="btn-del" onclick="this.closest('.rp-line').remove()" aria-label="Remove">&times;</button>`;
@@ -5663,7 +5664,7 @@ async function claimBootstrapAdmin() {
     o.trigger.setAttribute('aria-expanded','false');
     window.removeEventListener('scroll', o.reposition, true);
     window.removeEventListener('resize', o.reposition);
-    if(refocus){ try{ o.trigger.focus(); }catch(e){} }
+    if(refocus){ try{ o.trigger.focus({preventScroll:true}); }catch(e){} }
   }
 
   function reposition(trigger, panel){
@@ -5690,8 +5691,17 @@ async function claimBootstrapAdmin() {
   function setActiveEl(el){
     if(!open) return;
     open.listWrap.querySelectorAll('.cs-option.cs-active').forEach(x=>x.classList.remove('cs-active'));
-    if(el){ el.classList.add('cs-active'); el.scrollIntoView({block:'nearest'}); open.active=visEls().indexOf(el); }
+    if(el){ el.classList.add('cs-active'); scrollPanelTo(el); open.active=visEls().indexOf(el); }
     else open.active=-1;
+  }
+  // Scroll the active option into view WITHIN the panel only — never the page
+  // behind it (which made the background jump).
+  function scrollPanelTo(el){
+    const p=open&&open.panel; if(!p||!el) return;
+    const pr=p.getBoundingClientRect(), er=el.getBoundingClientRect();
+    const stick=open.searchInput?((p.querySelector('.cs-searchwrap')||{}).offsetHeight||0):0;
+    if(er.top < pr.top+stick) p.scrollTop -= (pr.top+stick - er.top);
+    else if(er.bottom > pr.bottom) p.scrollTop += (er.bottom - pr.bottom);
   }
   function moveActive(delta){ const els=visEls(); if(!els.length) return; let i=(open.active<0?-1:open.active)+delta; if(i<0)i=0; if(i>=els.length)i=els.length-1; setActiveEl(els[i]); }
   function chooseActive(){ const els=visEls(); if(open && open.active>=0 && els[open.active]) choose(Number(els[open.active].dataset.idx)); else closeOpen(true); }
@@ -5752,7 +5762,7 @@ async function claimBootstrapAdmin() {
         else if(e.key==='Enter'){ e.preventDefault(); chooseActive(); }
         else if(e.key==='Escape'){ e.preventDefault(); closeOpen(true); }
       });
-      setTimeout(()=>{ try{ searchInput.focus(); }catch(e){} },0);
+      setTimeout(()=>{ try{ searchInput.focus({preventScroll:true}); }catch(e){} },0);
     }
   }
 
