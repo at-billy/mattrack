@@ -3193,7 +3193,16 @@ function rerenderWo(){
 
 // ── shared workorder actions ──
 async function woAccept(id){ try{ await convexMutation('workorders:claim',{sessionToken:state.sessionToken,id}); toast('Accepted — agreed to collect'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
-async function woComplete(id){ const wo=state.workorders.find(w=>w._id===id); const msg=wo&&wo.kind==='delivery'?'Confirm you received these materials? They move to At Base, held by you.':'Confirm you met the gatherer and collected these materials? They move into your hold and a delivery is created for crafters.'; if(!await confirmModal(msg)) return; try{ await convexMutation('workorders:complete',{sessionToken:state.sessionToken,id}); toast(wo&&wo.kind==='delivery'?'Received at base':'Collected — delivery created'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
+async function woComplete(id){
+  const wo=state.workorders.find(w=>w._id===id); const k=wo?wo.kind:'';
+  const msg = k==='delivery' ? 'Confirm you received these materials? They move to At Base, held by you.'
+            : k==='move' ? 'Confirm you collected these finished goods from the crafter? They move into your hold and a distribution delivery is created.'
+            : k==='distribution' ? 'Confirm you received these finished goods? They move into your stockpile.'
+            : 'Confirm you met the gatherer and collected these materials? They move into your hold and a delivery is created for crafters.';
+  if(!await confirmModal(msg)) return;
+  const done = k==='delivery'?'Received at base':k==='move'?'Collected — distribution delivery created':k==='distribution'?'Received into stockpile':'Collected';
+  try{ await convexMutation('workorders:complete',{sessionToken:state.sessionToken,id}); toast(done); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
+}
 async function woAbandon(id){ if(!await confirmModal('Abandon this? It goes back to open for someone else.')) return; try{ await convexMutation('workorders:unclaim',{sessionToken:state.sessionToken,id}); toast('Released'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 async function woDelete(id){ if(!await confirmModal('Delete this workorder permanently?')) return; try{ await convexMutation('workorders:remove',{sessionToken:state.sessionToken,id}); toast('Deleted'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 
@@ -3231,16 +3240,17 @@ function renderCraftOrders(){
   }).join('')}</div>`;
 }
 
-// Crafter's own page: the items they've crafted (their inventory) + Offer.
+// Crafter's own page: the items they've crafted. "Send" hands them to logistics
+// (the Move leg), who deliver them to a distributor.
 function renderCraftInventory(){
   const u=state.user;
   const locked=lockedStockSet();
   let rows=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&(isAdmin(u)||s.heldBy===u.username)&&searchMatch('wo', s.name, s.location, s.heldBy));
-  rows = cfInvF==='offered' ? rows.filter(s=>locked.has(s._id)) : rows.filter(s=>!locked.has(s._id));
+  rows = cfInvF==='shipping' ? rows.filter(s=>locked.has(s._id)) : rows.filter(s=>!locked.has(s._id));
   const val=(s,c)=>{ switch(c){ case 'qty':return s.qty||0; case 'quality':return s.qualityValue!=null?s.qualityValue:-1; case 'location':return s.location||''; case 'heldby':return s.heldBy||''; default:return s.name||''; } };
   rows=[...rows].sort((a,b)=>cmpVals(val(a,cfInvSortCol),val(b,cfInvSortCol),cfInvSortDir));
-  if(!rows.length) return `<div class="empty">${cfInvF==='offered'?'Nothing offered right now.':'No finished items yet. Hit “Craft” to make what’s being asked for.'}</div>`;
-  const canOffer=isCrafter(u)||isAdmin(u);
+  if(!rows.length) return `<div class="empty">${cfInvF==='shipping'?'Nothing waiting on logistics right now.':'No finished items yet. Hit “Craft” to make what’s being asked for.'}</div>`;
+  const canSend=isCrafter(u)||isAdmin(u);
   const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['location','Location']].concat(isAdmin(u)?[['heldby','Held By']]:[]);
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setCfInvSort',cfInvSortCol,cfInvSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(s=>`<tr>
     <td data-label="Item" style="font-weight:700;">${esc(s.name)}</td>
@@ -3248,11 +3258,11 @@ function renderCraftInventory(){
     <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.qualityValue!=null?`Q ${s.qualityValue}`:'—'}</td>
     <td data-label="Location" style="font-size:var(--text-md);">${esc(s.location||'—')}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}</td>
     ${isAdmin(u)?`<td data-label="Held By">${esc(s.heldBy)}</td>`:''}
-    <td data-label="" style="white-space:nowrap;">${cfInvF==='offered'?`<span style="font-size:var(--text-sm);color:var(--mid);text-transform:uppercase;letter-spacing:.04em;">Offered</span>`:(canOffer?`<button class="btn btn-black btn-sm" onclick="doOfferOne('${esc(s._id)}')">Offer</button>`:'')}</td>
+    <td data-label="" style="white-space:nowrap;">${cfInvF==='shipping'?`<span style="font-size:var(--text-sm);color:var(--mid);text-transform:uppercase;letter-spacing:.04em;">With logistics</span>`:(canSend?`<button class="btn btn-black btn-sm" onclick="doSendOne('${esc(s._id)}')">Send</button>`:'')}</td>
   </tr>`).join('')}</tbody></table>`;
 }
-async function doOfferOne(id){
-  try{ const out=await convexMutation('distribution:offerItems',{sessionToken:state.sessionToken,stockIds:[id]}); toast(`Offered (${out.offered})`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
+async function doSendOne(id){
+  try{ const out=await convexMutation('workorders:createMove',{sessionToken:state.sessionToken,stockIds:[id]}); toast(`Sent to logistics (${out.sent})`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
 }
 
 // Crafter's "Craft" button → modal of what's being asked for, craft right there.
@@ -3363,9 +3373,9 @@ function renderWoControls(){
   if(woView==='pickup')     filters=`${b('setPkF',pkF,'open','Open')}${b('setPkF',pkF,'claimed','Accepted')}${b('setPkF',pkF,'done','Done')}`;
   else if(woView==='transfers')  filters=`${b('setTrF',trF,'open','Open')}${b('setTrF',trF,'inprogress','In Progress')}${b('setTrF',trF,'done','Done')}`;
   else if(woView==='crafting')   filters=isCrafter(u)
-    ? `${b('setCfInvF',cfInvF,'available','Finished')}${b('setCfInvF',cfInvF,'offered','Offered')}`
+    ? `${b('setCfInvF',cfInvF,'available','Finished')}${b('setCfInvF',cfInvF,'shipping','Shipping')}`
     : `${b('setCfF',cfF,'open','Open')}${b('setCfF',cfF,'done','Done')}`;
-  else if(woView==='distribution') filters=`${b('setDsF',dsF,'available','Available')}${b('setDsF',dsF,'instock','In Stockpile')}${b('setDsF',dsF,'handedout','Handed Out')}`;
+  else if(woView==='distribution') filters=`${b('setDsF',dsF,'instock','In Stockpile')}${b('setDsF',dsF,'handedout','Handed Out')}`;
   return searchBar('wo', filters, 'Search…', 'toggleWoSearch()', 'woSearchInput(this.value)');
 }
 function renderWoListActive(){
@@ -3408,44 +3418,43 @@ function renderPickupTable(){
 }
 
 // ── Transfers table (deliveries + crafter↔distributor handovers) ──
-function transferBucket(w){ if(w.status==='done') return 'done'; if(w.status==='claimed'||w.status==='agreed') return 'inprogress'; return 'open'; }
+const TRANSFER_KINDS=['delivery','move','distribution'];
+// who may accept an OPEN transfer of each kind
+function transferAcceptRole(kind){ return kind==='delivery'?'crafter':kind==='move'?'logistics':'distributor'; }
+function transferBucket(w){ if(w.status==='done') return 'done'; if(w.status==='claimed') return 'inprogress'; return 'open'; }
 function transferVisible(w,u){
-  if(w.kind==='delivery') return true;
-  return w.giverId===u._id||w.takerId===u._id||w.giverName===u.username||w.takerName===u.username||(w.direction==='offer'&&w.status==='open'&&(isDistributor(u)||isAdmin(u)));
+  if(isAdmin(u)) return true;
+  if(w.createdBy===u._id||w.claimedById===u._id) return true;
+  if(w.status==='open' && hasRole(u, transferAcceptRole(w.kind))) return true;
+  return false;
 }
-function transferActiveCount(){ const u=state.user; return state.workorders.filter(w=>(w.kind==='delivery'||w.kind==='handover')&&w.status!=='done'&&transferVisible(w,u)).length; }
+function transferActiveCount(){ const u=state.user; return state.workorders.filter(w=>TRANSFER_KINDS.includes(w.kind)&&w.status!=='done'&&transferVisible(w,u)).length; }
 function transferFields(w){
-  const what=(w.items||[]).map(it=>`${esc(it.name)} ×${it.qty}`).join(', ')||'—';
-  if(w.kind==='delivery') return { what, from:w.createdByName||'—', to:w.claimedByName||'any crafter', stage:woStatusLabel(w.status), stageOrder:({open:0,claimed:1,done:2})[w.status]??9, type:'Delivery' };
-  const stage = w.status==='agreed'?'Agreed':w.status==='done'?'Done':(w.direction==='offer'?'Offered':'Requested');
-  return { what, from:w.giverName||'—', to:w.takerName||'any distributor', stage, stageOrder:({open:0,agreed:1,done:2})[w.status]??9, type:w.direction==='offer'?'Offer':'Request' };
+  const what=(w.items||[]).map(it=>`${esc(it.name)}${it.qualityStep!=null?` Q${it.qualityStep}`:''} ×${it.qty}`).join(', ')||'—';
+  const to = w.claimedByName || (w.kind==='delivery'?'any crafter':w.kind==='move'?'any logistics':'any distributor');
+  const type = w.kind==='delivery'?'Delivery':w.kind==='move'?'Move':'Distribution';
+  return { what, from:w.createdByName||'—', to, stage:woStatusLabel(w.status), stageOrder:({open:0,claimed:1,done:2})[w.status]??9, type, destLocation:w.destLocation };
 }
 function renderTransfers(){
   const u=state.user;
   const val=(w,c)=>{ const f=transferFields(w); return c==='stage'?f.stageOrder:(f[c]||''); };
-  let rows=state.workorders.filter(w=>(w.kind==='delivery'||w.kind==='handover')&&transferVisible(w,u)&&transferBucket(w)===trF&&(()=>{const f=transferFields(w);return searchMatch('wo', f.what, f.from, f.to, f.stage, f.type);})())
+  let rows=state.workorders.filter(w=>TRANSFER_KINDS.includes(w.kind)&&transferVisible(w,u)&&transferBucket(w)===trF&&(()=>{const f=transferFields(w);return searchMatch('wo', f.what, f.from, f.to, f.stage, f.type);})())
     .sort((a,b)=>cmpVals(val(a,trSortCol),val(b,trSortCol),trSortDir));
   if(!rows.length) return `<div class="empty">No ${trF==='open'?'open':trF==='inprogress'?'in-progress':'completed'} transfers${searchGet('wo').text?' match your search':''}.</div>`;
   const cols=[['what','What'],['from','From'],['to','To'],['stage','Stage']];
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setTrSort',trSortCol,trSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(w=>{
     const f=transferFields(w);
-    const iAmGiver=w.giverId===u._id||w.giverName===u.username;
-    const iAmTaker=w.takerId===u._id||w.takerName===u.username;
     const mine=w.claimedById===u._id;
+    const canAccept = w.status==='open' && (isAdmin(u)||hasRole(u, transferAcceptRole(w.kind)));
+    const canFinish = w.status==='claimed' && (isAdmin(u)||mine);
+    const canDelete = w.status==='done' && (isAdmin(u)||w.createdBy===u._id);
+    const acceptCall = w.kind==='distribution' ? `openDistAccept('${esc(w._id)}')` : `woAccept('${esc(w._id)}')`;
     let acts='';
-    if(w.kind==='delivery'){
-      const canAct=isAdmin(u)||hasRole(u,'crafter');
-      if(w.status==='open'&&canAct) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="woAccept('${esc(w._id)}')">Accept</button>`;
-      if(w.status==='claimed'&&(isAdmin(u)||mine)){ acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="woComplete('${esc(w._id)}')">Confirm receipt</button>`; acts+=`<button class="btn btn-outline btn-sm" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`; }
-      if(w.status==='done'&&(isAdmin(u)||w.createdBy===u._id)) acts+=`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Delete">&times;</button>`;
-    } else {
-      if(w.status==='open'&&w.direction==='offer'&&(isDistributor(u)||isAdmin(u))&&!iAmGiver) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="openAcceptOfferModal('${esc(w._id)}')">Accept</button>`;
-      if(w.status==='open'&&w.direction==='request'&&iAmGiver&&(isCrafter(u)||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="doAcceptRequest('${esc(w._id)}')">Accept</button>`;
-      if(w.status==='agreed'&&(iAmTaker||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="doConfirmHandover('${esc(w._id)}')">Confirm receipt</button>`;
-      if(w.status!=='done'&&(iAmGiver||iAmTaker||isAdmin(u))) acts+=`<button class="btn btn-outline btn-sm" onclick="doCancelHandover('${esc(w._id)}')">Cancel</button>`;
-    }
+    if(canAccept) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="${acceptCall}">Accept</button>`;
+    if(canFinish){ acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="woComplete('${esc(w._id)}')">Confirm ${w.kind==='move'?'collected':'receipt'}</button>`; acts+=`<button class="btn btn-outline btn-sm" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`; }
+    if(canDelete) acts+=`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Delete">&times;</button>`;
     return `<tr>
-      <td data-label="What" style="font-weight:700;">${f.what}<div style="font-size:var(--text-xs);font-weight:400;color:var(--mid);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;">${f.type}</div></td>
+      <td data-label="What" style="font-weight:700;">${f.what}<div style="font-size:var(--text-xs);font-weight:400;color:var(--mid);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;">${f.type}${f.destLocation?` → ${esc(f.destLocation)}`:''}</div></td>
       <td data-label="From">${esc(f.from)}</td>
       <td data-label="To">${esc(f.to)}</td>
       <td data-label="Stage" style="font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${esc(f.stage)}</td>
@@ -3454,22 +3463,24 @@ function renderTransfers(){
   }).join('')}</tbody></table>`;
 }
 
-// ── Start a handover: offer (crafter) / request (distributor) ──
-function lockedStockSet(){ const set=new Set(); state.workorders.filter(w=>w.kind==='handover'&&(w.status==='open'||w.status==='agreed')).forEach(h=>(h.items||[]).forEach(it=>set.add(it.stockId))); return set; }
-// Distributor requests one finished item straight from a crafter's inventory.
-function openRequestLoc(id){
-  const s=state.stock.find(x=>x._id===id); if(!s) return;
+// ── Finished-goods shipping (crafter → logistics → distributor) ──
+function lockedStockSet(){ const set=new Set(); state.workorders.filter(w=>(w.kind==='move'||w.kind==='distribution')&&w.status!=='done').forEach(h=>(h.items||[]).forEach(it=>set.add(it.stockId))); return set; }
+// Distributor names their stockpile when accepting a Distribution delivery.
+function openDistAccept(id){
   showModal(`
-    <div class="modal-title">Request ${esc(s.name)}</div>
-    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">From <strong>${esc(s.heldBy)}</strong> — they'll be notified to agree and meet you. Pick where you'll stockpile it.</p>
-    <div class="grid2">${locationPicker('rq', null)}</div>
-    <div class="err-msg" id="rq-err"></div>
-    <div style="display:flex;gap:10px;margin-top:var(--space-2);"><button class="btn btn-black" onclick="doRequestLoc('${esc(s._id)}')">Send request</button><button class="btn btn-outline" onclick="closeModal()">Cancel</button></div>`);
+    <div class="modal-title">Accept delivery</div>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">You'll meet logistics to receive these finished goods. Pick where you'll stockpile them.</p>
+    <div class="grid2">${locationPicker('da', null)}</div>
+    <div class="err-msg" id="da-err"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-black" onclick="doDistAccept('${esc(id)}')">Accept</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
 }
-async function doRequestLoc(id){
-  const location=pickedLocation('rq'); const system=pickedLocationSystem('rq');
-  if(!location){ showErr('rq-err','Pick a stockpile location'); return; }
-  try{ await convexMutation('distribution:requestItems',{sessionToken:state.sessionToken,stockIds:[id],location,system}); toast('Request sent'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('rq-err',e.message); }
+async function doDistAccept(id){
+  const location=pickedLocation('da'); const system=pickedLocationSystem('da');
+  if(!location){ showErr('da-err','Pick a stockpile location'); return; }
+  try{ await convexMutation('workorders:claim',{sessionToken:state.sessionToken,id,location,system}); toast('Accepted — meet logistics to receive'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('da-err',e.message); }
 }
 
 // ─── GATHERER REPORT (light intake) ────────────────────────────────────────────
@@ -3602,33 +3613,17 @@ async function submitManifest(id){
 }
 
 // ─── DISTRIBUTION (step 7) ─────────────────────────────────────────────────────
-// The distributor's page. Available = browse crafters' finished items and request
-// them; In Stockpile = what they hold → hand out; Handed Out = history.
+// The distributor's page: their stockpile → hand out; Handed Out = history.
+// Finished goods arrive via logistics (the Distribution delivery in Transfers).
 function renderDistribution(){
   const u=state.user;
   const isDist=isDistributor(u)||isAdmin(u);
   const val=(s,c)=>{ switch(c){ case 'qty':return s.qty||0; case 'quality':return s.qualityValue!=null?s.qualityValue:-1; case 'location':return s.location||''; case 'heldby':return s.heldBy||''; default:return s.name||''; } };
 
-  if(dsF==='available'){
-    const locked=lockedStockSet();
-    let rows=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&s.heldBy!==u.username&&!locked.has(s._id)&&searchMatch('wo', s.name, s.location, s.heldBy))
-      .sort((a,b)=>cmpVals(val(a,dsSortCol),val(b,dsSortCol),dsSortDir));
-    if(!rows.length) return `<div class="empty">No finished items available to request${searchGet('wo').text?' match your search':' right now'}.</div>`;
-    const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['heldby','Crafter'],['location','Location']];
-    return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setDsSort',dsSortCol,dsSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(s=>`<tr>
-      <td data-label="Item" style="font-weight:700;">${esc(s.name)}</td>
-      <td data-label="Qty" style="font-weight:700;">${s.qty} <span style="font-weight:400;color:var(--fg);font-size:var(--text-sm);">${esc(s.unit)}</span></td>
-      <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.qualityValue!=null?`Q ${s.qualityValue}`:'—'}</td>
-      <td data-label="Crafter">${esc(s.heldBy)}</td>
-      <td data-label="Location" style="font-size:var(--text-md);">${esc(s.location||'—')}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}</td>
-      <td data-label="" style="white-space:nowrap;">${isDist?`<button class="btn btn-black btn-sm" onclick="openRequestLoc('${esc(s._id)}')">Request</button>`:''}</td>
-    </tr>`).join('')}</tbody></table>`;
-  }
-
   const wantStatus = dsF==='handedout' ? 'handed_out' : 'with_distributor';
   let rows=state.stock.filter(s=>s.kind==='item'&&s.status===wantStatus&&(isAdmin(u)||s.heldBy===u.username)&&searchMatch('wo', s.name, s.location, s.heldBy))
     .sort((a,b)=>cmpVals(val(a,dsSortCol),val(b,dsSortCol),dsSortDir));
-  if(!rows.length) return `<div class="empty">${searchGet('wo').text?'Nothing matches your search.':(dsF==='handedout'?'Nothing handed out yet.':'Your stockpile is empty. Check Available to request finished items from crafters.')}</div>`;
+  if(!rows.length) return `<div class="empty">${searchGet('wo').text?'Nothing matches your search.':(dsF==='handedout'?'Nothing handed out yet.':'Your stockpile is empty. Finished goods arrive via logistics — accept a delivery in Transfers.')}</div>`;
   const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['location','Location']].concat(isAdmin(u)?[['heldby','Held By']]:[]);
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setDsSort',dsSortCol,dsSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(s=>`<tr>
     <td data-label="Item" style="font-weight:700;">${esc(s.name)}${s.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(s.note)}</div>`:''}</td>
@@ -3638,33 +3633,6 @@ function renderDistribution(){
     ${isAdmin(u)?`<td data-label="Held By">${esc(s.heldBy)}</td>`:''}
     <td data-label="" style="white-space:nowrap;">${(isDist&&dsF==='instock')?`<button class="btn btn-black btn-sm" onclick="openHandoutModal('${esc(s._id)}')">Hand Out</button>`:''}</td>
   </tr>`).join('')}</tbody></table>`;
-}
-function openAcceptOfferModal(id){
-  showModal(`
-    <div class="modal-title">Accept offer</div>
-    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">You'll meet the crafter in-game to receive these. Pick where you'll stockpile them.</p>
-    <div class="grid2">${locationPicker('ao', null)}</div>
-    <div class="err-msg" id="ao-err"></div>
-    <div style="display:flex;gap:10px;margin-top:var(--space-2);">
-      <button class="btn btn-black" onclick="doAcceptOffer('${esc(id)}')">Accept</button>
-      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-    </div>`);
-}
-async function doAcceptOffer(id){
-  const location=pickedLocation('ao'); const system=pickedLocationSystem('ao');
-  if(!location){ showErr('ao-err','Pick a location'); return; }
-  try{ await convexMutation('distribution:acceptHandover',{sessionToken:state.sessionToken,id,location,system}); toast('Accepted — meet to hand over'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('ao-err',e.message); }
-}
-async function doAcceptRequest(id){
-  try{ await convexMutation('distribution:acceptHandover',{sessionToken:state.sessionToken,id}); toast('Agreed — meet to hand over'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
-}
-async function doConfirmHandover(id){
-  if(!confirm('Confirm you met the crafter and received these items? They move into your stockpile.')) return;
-  try{ const out=await convexMutation('distribution:confirmHandover',{sessionToken:state.sessionToken,id}); toast(`Handed over (${out.moved})`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
-}
-async function doCancelHandover(id){
-  if(!confirm('Call off this handover?')) return;
-  try{ await convexMutation('distribution:cancelHandover',{sessionToken:state.sessionToken,id}); toast('Handover cancelled'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
 }
 function openHandoutModal(id){
   const s=state.stock.find(x=>x._id===id); if(!s) return;

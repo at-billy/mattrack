@@ -10,26 +10,33 @@ export const getAll = query({
   },
 });
 
-// Accept a workorder.
-//  • pickup (logistics): stock reported → in_transit, and an automatic Delivery
-//    workorder is created for crafters to receive the haul at base.
-//  • delivery (crafter): the crafter signs on as the receiver.
+// Accept a workorder (agree to do it — nothing moves until the accepter confirms).
+//  • pickup (logistics): collect gathered materials from a gatherer.
+//  • delivery (crafter): receive materials at base.
+//  • move (logistics): collect finished goods from a crafter.
+//  • distribution (distributor): receive finished goods — names their stockpile.
 export const claim = mutation({
-  args: { sessionToken: v.string(), id: v.id("workorders") },
-  handler: async (ctx, { sessionToken, id }) => {
+  args: { sessionToken: v.string(), id: v.id("workorders"), location: v.optional(v.string()), system: v.optional(v.string()) },
+  handler: async (ctx, { sessionToken, id, location, system }) => {
     const user = await requireSession(ctx.db, sessionToken);
     const wo = await ctx.db.get(id);
     if (!wo) throw new ConvexError("Workorder not found");
     if (wo.status !== "open") throw new ConvexError("Workorder is not open");
+    const base = { status: "claimed", claimedById: user._id, claimedByName: user.username } as const;
 
     if (wo.kind === "pickup") {
-      // Logistics agrees to collect — nothing moves yet. The gatherer still
-      // holds the materials in-game; they move only when logi confirms receipt.
       assertRole(user, ["logistics", "admin"]);
-      await ctx.db.patch(id, { status: "claimed", claimedById: user._id, claimedByName: user.username });
+      await ctx.db.patch(id, base);
     } else if (wo.kind === "delivery") {
       assertRole(user, ["crafter", "admin"]);
-      await ctx.db.patch(id, { status: "claimed", claimedById: user._id, claimedByName: user.username });
+      await ctx.db.patch(id, base);
+    } else if (wo.kind === "move") {
+      assertRole(user, ["logistics", "admin"]);
+      await ctx.db.patch(id, base);
+    } else if (wo.kind === "distribution") {
+      assertRole(user, ["distributor", "admin"]);
+      if (!location?.trim()) throw new ConvexError("Stockpile location is required");
+      await ctx.db.patch(id, { ...base, destLocation: location.trim(), destSystem: system?.trim() || undefined });
     } else {
       throw new ConvexError("This workorder cannot be accepted");
     }
@@ -46,13 +53,17 @@ export const unclaim = mutation({
     if (!wo) throw new ConvexError("Workorder not found");
     const isAdmin = user.roles.includes("admin");
     if (!isAdmin && wo.claimedById !== user._id) throw new ConvexError("Not authorized");
-    await ctx.db.patch(id, { status: "open", claimedById: undefined, claimedByName: undefined });
+    await ctx.db.patch(id, { status: "open", claimedById: undefined, claimedByName: undefined, destLocation: undefined, destSystem: undefined });
   },
 });
 
-// The crafter confirms they received a delivery (the taker confirms receipt) →
-// materials move to at_base, held by them. (Pickups are completed via
-// receivePickup, which also enters the confirmed stock.)
+// The receiver confirms they met the holder and got the goods. That's when
+// custody moves.
+//  • delivery (crafter): materials → at_base (Levski), held by them.
+//  • move (logistics): finished goods → in_transit (held by logi), and a
+//    Distribution delivery is created for a distributor to receive.
+//  • distribution (distributor): finished goods → with_distributor, held by them,
+//    at their chosen stockpile.
 export const complete = mutation({
   args: { sessionToken: v.string(), id: v.id("workorders") },
   handler: async (ctx, { sessionToken, id }) => {
@@ -61,12 +72,40 @@ export const complete = mutation({
     if (!wo) throw new ConvexError("Workorder not found");
     const isAdmin = user.roles.includes("admin");
     if (!isAdmin && wo.claimedById !== user._id) throw new ConvexError("Not authorized — only the accepter");
-    if (wo.kind !== "delivery") throw new ConvexError("This workorder isn't completed here");
-    for (const it of wo.items ?? []) {
-      const s = await ctx.db.get(it.stockId);
-      if (s && (s.status === "in_transit" || s.status === "reported")) {
-        await ctx.db.patch(it.stockId, { status: "at_base", heldBy: user.username });
+    const baseLoc = (await ctx.db.query("locationCatalog").collect()).find(l => l.isBase);
+
+    if (wo.kind === "delivery") {
+      for (const it of wo.items ?? []) {
+        const s = await ctx.db.get(it.stockId);
+        if (s && (s.status === "in_transit" || s.status === "reported")) {
+          await ctx.db.patch(it.stockId, { status: "at_base", heldBy: user.username, location: baseLoc ? baseLoc.name : s.location, system: baseLoc ? baseLoc.system : s.system });
+        }
       }
+    } else if (wo.kind === "move") {
+      // Logi collected finished goods from the crafter.
+      for (const it of wo.items ?? []) {
+        const s = await ctx.db.get(it.stockId);
+        if (s && s.status === "crafted") await ctx.db.patch(it.stockId, { status: "in_transit", heldBy: user.username });
+      }
+      // Now create the Distribution delivery for a distributor to receive.
+      await ctx.db.insert("workorders", {
+        kind: "distribution", status: "open",
+        location: baseLoc ? baseLoc.name : wo.location,
+        system: baseLoc ? baseLoc.system : wo.system,
+        items: wo.items,
+        note: `Finished goods inbound — collected by ${user.username}`,
+        sourcePickupId: wo._id,
+        createdBy: user._id, createdByName: user.username,
+      });
+    } else if (wo.kind === "distribution") {
+      for (const it of wo.items ?? []) {
+        const s = await ctx.db.get(it.stockId);
+        if (s && (s.status === "in_transit" || s.status === "crafted")) {
+          await ctx.db.patch(it.stockId, { status: "with_distributor", heldBy: user.username, location: wo.destLocation || s.location, system: wo.destSystem || undefined });
+        }
+      }
+    } else {
+      throw new ConvexError("This workorder isn't completed here");
     }
     await ctx.db.patch(id, { status: "done" });
     await ctx.db.insert("archive", {
@@ -74,6 +113,40 @@ export const complete = mutation({
       userId: user._id, userName: user.username,
       details: { kind: wo.kind, location: wo.location },
     });
+  },
+});
+
+// A crafter ships finished goods to logistics for distribution (the client's
+// Move leg). Nothing moves yet — logistics collects, then delivers to a
+// distributor.
+export const createMove = mutation({
+  args: { sessionToken: v.string(), stockIds: v.array(v.id("stock")) },
+  handler: async (ctx, { sessionToken, stockIds }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    assertRole(user, ["crafter", "admin"]);
+    // stock already promised to a move/distribution can't be shipped again
+    const locked = new Set<string>();
+    for (const w of (await ctx.db.query("workorders").withIndex("by_kind", q => q.eq("kind", "move")).collect())) if (w.status !== "done") for (const it of w.items ?? []) locked.add(it.stockId);
+    for (const w of (await ctx.db.query("workorders").withIndex("by_kind", q => q.eq("kind", "distribution")).collect())) if (w.status !== "done") for (const it of w.items ?? []) locked.add(it.stockId);
+    const items: any[] = [];
+    for (const sid of stockIds) {
+      const s = await ctx.db.get(sid);
+      if (!s || s.kind !== "item" || s.status !== "crafted") continue;
+      if (s.heldBy !== user.username && !user.roles.includes("admin")) continue;
+      if (locked.has(sid)) continue;
+      items.push({ stockId: s._id, name: s.name, kind: s.kind, qty: s.qty, unit: s.unit, qualityStep: s.qualityValue ?? undefined });
+    }
+    if (!items.length) throw new ConvexError("Nothing to send (already shipping, or not your finished items)");
+    const baseLoc = (await ctx.db.query("locationCatalog").collect()).find(l => l.isBase);
+    await ctx.db.insert("workorders", {
+      kind: "move", status: "open",
+      location: baseLoc ? baseLoc.name : undefined,
+      system: baseLoc ? baseLoc.system : undefined,
+      items,
+      note: `Finished goods to distribute — from ${user.username}`,
+      createdBy: user._id, createdByName: user.username,
+    });
+    return { sent: items.length };
   },
 });
 
