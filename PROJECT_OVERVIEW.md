@@ -57,7 +57,7 @@ first account can **claim bootstrap admin**.
 1. **Roles** — 5 roles, request-on-signup, multi-role, admin approval. ✅ done
 2. **Catalogs** — materials (+ quality steps), items (+ recipes), locations; admin CRUD + seed import. ✅ done
 3. **Stock/ledger** — references catalogs, lifecycle states, rough→confirmed quantities. ✅ done
-4. **Gatherer intake** → auto Pickup WO. ✅ done
+4. **Gatherer intake** — light REPORT tab (rough lines: type/what/how much) → one Pickup; logistics manifests rough→confirmed stock on receipt. ✅ done
 5. **Logistics** — pickup accept → auto Delivery task for crafters → receive at base. ✅ done
 6. **Craft WOs** — recipe-driven consume → produce, availability/priority. ✅ done
 7. **Distribution** — distributor pulls crafted items → stockpile → hand out (request/event) + log. ✅ done

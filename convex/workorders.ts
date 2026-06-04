@@ -50,11 +50,9 @@ export const unclaim = mutation({
   },
 });
 
-// The receiver confirms they met the holder and got the goods (the taker confirms
-// receipt — that's when custody actually moves).
-//  • pickup (logistics): materials reported → in_transit, now held by logistics,
-//    and the Delivery task for crafters is created/stacked.
-//  • delivery (crafter): materials → at_base, held by the crafter.
+// The crafter confirms they received a delivery (the taker confirms receipt) →
+// materials move to at_base, held by them. (Pickups are completed via
+// receivePickup, which also enters the confirmed stock.)
 export const complete = mutation({
   args: { sessionToken: v.string(), id: v.id("workorders") },
   handler: async (ctx, { sessionToken, id }) => {
@@ -63,44 +61,115 @@ export const complete = mutation({
     if (!wo) throw new ConvexError("Workorder not found");
     const isAdmin = user.roles.includes("admin");
     if (!isAdmin && wo.claimedById !== user._id) throw new ConvexError("Not authorized — only the accepter");
-    if (wo.kind === "delivery") {
-      for (const it of wo.items ?? []) {
-        const s = await ctx.db.get(it.stockId);
-        if (s && (s.status === "in_transit" || s.status === "reported")) {
-          await ctx.db.patch(it.stockId, { status: "at_base", heldBy: user.username });
-        }
-      }
-    } else if (wo.kind === "pickup") {
-      // Logi met the gatherer and received the materials.
-      for (const it of wo.items ?? []) {
-        const s = await ctx.db.get(it.stockId);
-        if (s && s.status === "reported") await ctx.db.patch(it.stockId, { status: "in_transit", heldBy: user.username });
-      }
-      // Now the materials are inbound — create/stack the crafters' Delivery task.
-      const base = (await ctx.db.query("locationCatalog").collect()).find(l => l.isBase);
-      const myOpen = (await ctx.db.query("workorders").withIndex("by_kind", q => q.eq("kind", "delivery")).collect())
-        .find(d => d.status === "open" && d.createdBy === user._id);
-      if (myOpen) {
-        await ctx.db.patch(myOpen._id, { items: [...(myOpen.items ?? []), ...(wo.items ?? [])] });
-      } else {
-        await ctx.db.insert("workorders", {
-          kind: "delivery", status: "open",
-          location: base ? base.name : wo.location,
-          system: base ? base.system : wo.system,
-          items: wo.items,
-          note: `Inbound to base — picked up by ${user.username}`,
-          sourcePickupId: wo._id,
-          createdBy: user._id, createdByName: user.username,
-        });
+    if (wo.kind !== "delivery") throw new ConvexError("This workorder isn't completed here");
+    for (const it of wo.items ?? []) {
+      const s = await ctx.db.get(it.stockId);
+      if (s && (s.status === "in_transit" || s.status === "reported")) {
+        await ctx.db.patch(it.stockId, { status: "at_base", heldBy: user.username });
       }
     }
     await ctx.db.patch(id, { status: "done" });
     await ctx.db.insert("archive", {
       type: "workorder_completed",
-      userId: user._id,
-      userName: user.username,
+      userId: user._id, userName: user.username,
       details: { kind: wo.kind, location: wo.location },
     });
+  },
+});
+
+// A gatherer files a light intake: rough lines (type / what / how much) at one
+// location, combined into a single open Pickup. No stock yet — logistics turns
+// this into confirmed stock when they collect it.
+const GATHER_TYPES = ["Mineable", "Salvage", "Loot"];
+export const reportGather = mutation({
+  args: {
+    sessionToken: v.string(),
+    location: v.string(),
+    system: v.optional(v.string()),
+    lines: v.array(v.object({ type: v.string(), what: v.string(), approxQty: v.number(), unit: v.optional(v.string()), note: v.optional(v.string()) })),
+  },
+  handler: async (ctx, { sessionToken, location, system, lines }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    assertRole(user, ["gatherer", "admin"]);
+    if (!location.trim()) throw new ConvexError("Where is it? Pick a location");
+    if (!lines.length) throw new ConvexError("Add at least one line");
+    const report = lines.map(l => {
+      if (!GATHER_TYPES.includes(l.type)) throw new ConvexError("Type must be Mineable, Salvage or Loot");
+      if (!l.what.trim()) throw new ConvexError("Say what it is");
+      if (!(l.approxQty > 0)) throw new ConvexError("Rough amount must be greater than 0");
+      return { type: l.type, what: l.what.trim().slice(0, 120), approxQty: l.approxQty, unit: (l.unit || "SCU").trim(), note: l.note?.trim() || undefined };
+    });
+    const id = await ctx.db.insert("workorders", {
+      kind: "pickup", status: "open",
+      location: location.trim(), system: system?.trim() || undefined,
+      report,
+      createdBy: user._id, createdByName: user.username,
+    });
+    await ctx.db.insert("archive", { type: "gather_reported", userId: user._id, userName: user.username, details: { count: report.length, location: location.trim() } });
+    return id;
+  },
+});
+
+// Logistics collects a reported pickup and enters the confirmed manifest: exact
+// material, quality and quantity. This creates the real (in_transit) stock held
+// by logistics and the crafters' Delivery task, then closes the pickup.
+export const receivePickup = mutation({
+  args: {
+    sessionToken: v.string(),
+    id: v.id("workorders"),
+    location: v.string(),
+    system: v.optional(v.string()),
+    lines: v.array(v.object({ name: v.string(), qualityStep: v.optional(v.number()), qty: v.number(), unit: v.optional(v.string()) })),
+  },
+  handler: async (ctx, { sessionToken, id, location, system, lines }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    const wo = await ctx.db.get(id);
+    if (!wo || wo.kind !== "pickup") throw new ConvexError("Pickup not found");
+    const isAdmin = user.roles.includes("admin");
+    if (!isAdmin && !user.roles.includes("logistics")) throw new ConvexError("Logistics only");
+    if (!isAdmin && wo.claimedById !== user._id) throw new ConvexError("Accept the pickup first");
+    if (wo.status !== "claimed") throw new ConvexError("Pickup must be accepted first");
+    if (!location.trim()) throw new ConvexError("Location is required");
+    if (!lines.length) throw new ConvexError("Enter at least one confirmed line");
+
+    const items: any[] = [];
+    for (const l of lines) {
+      const mat = await ctx.db.query("materialCatalog").withIndex("by_name", q => q.eq("name", l.name.trim())).first();
+      if (!mat) throw new ConvexError(`Unknown material: ${l.name}`);
+      if (!(l.qty > 0)) throw new ConvexError(`Quantity must be greater than 0 for ${l.name}`);
+      let qualityValue: number | undefined;
+      if (l.qualityStep != null) { const qd = mat.qualities.find(x => x.step === l.qualityStep); qualityValue = qd ? qd.value : undefined; }
+      const stockId = await ctx.db.insert("stock", {
+        kind: "material", name: mat.name, category: mat.category,
+        qualityStep: l.qualityStep, qualityValue,
+        qty: l.qty, unit: l.unit || mat.unit,
+        location: location.trim(), system: system?.trim() || undefined,
+        heldBy: user.username, status: "in_transit",
+        addedBy: user._id, addedByName: user.username,
+      });
+      items.push({ stockId, name: mat.name, kind: "material", qty: l.qty, unit: l.unit || mat.unit, qualityStep: l.qualityStep });
+    }
+
+    // Create/stack the crafters' Delivery task with the confirmed stock.
+    const base = (await ctx.db.query("locationCatalog").collect()).find(l => l.isBase);
+    const myOpen = (await ctx.db.query("workorders").withIndex("by_kind", q => q.eq("kind", "delivery")).collect())
+      .find(d => d.status === "open" && d.createdBy === user._id);
+    if (myOpen) {
+      await ctx.db.patch(myOpen._id, { items: [...(myOpen.items ?? []), ...items] });
+    } else {
+      await ctx.db.insert("workorders", {
+        kind: "delivery", status: "open",
+        location: base ? base.name : wo.location,
+        system: base ? base.system : wo.system,
+        items,
+        note: `Inbound to base — picked up by ${user.username}`,
+        sourcePickupId: wo._id,
+        createdBy: user._id, createdByName: user.username,
+      });
+    }
+    await ctx.db.patch(id, { status: "done" });
+    await ctx.db.insert("archive", { type: "workorder_completed", userId: user._id, userName: user.username, details: { kind: "pickup", location: location.trim(), count: items.length } });
+    return { received: items.length };
   },
 });
 

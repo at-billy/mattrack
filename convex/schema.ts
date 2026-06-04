@@ -213,6 +213,15 @@ export default defineSchema({
     takerName: v.optional(v.string()),
     destLocation: v.optional(v.string()),           // distributor's stockpile
     destSystem: v.optional(v.string()),
+    // pickup: the gatherer's ROUGH report (no exact stock yet — logistics
+    // turns this into confirmed stock at manifest time).
+    report: v.optional(v.array(v.object({
+      type: v.string(),                 // Mineable | Salvage | Loot
+      what: v.string(),                 // rough free-text description
+      approxQty: v.number(),
+      unit: v.optional(v.string()),
+      note: v.optional(v.string()),
+    }))),
     // pickup: the selected stock rows to collect from this location
     items: v.optional(v.array(v.object({
       stockId: v.id("stock"),

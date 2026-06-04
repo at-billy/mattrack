@@ -67,19 +67,6 @@ export const create = mutation({
       userName: user.username,
       details: { name: rest.name.trim(), qty: rest.qty, unit: rest.unit, kind: rest.kind },
     });
-    // Materials added to stock auto-create a Pickup workorder (open) so the
-    // pipeline starts itself. Logistics then picks them up to move to base.
-    if (rest.kind === "material" && rest.status === "reported") {
-      await ctx.db.insert("workorders", {
-        kind: "pickup",
-        status: "open",
-        location: rest.location.trim(),
-        system: rest.system?.trim() || undefined,
-        items: [{ stockId: id, name: rest.name.trim(), kind: rest.kind, qty: rest.qty, unit: rest.unit, qualityStep: rest.qualityStep }],
-        createdBy: user._id,
-        createdByName: user.username,
-      });
-    }
     return id;
   },
 });
