@@ -1540,6 +1540,29 @@ function isGatherer(u){ return hasRole(u,'gatherer'); }
 function isLogistics(u){ return hasRole(u,'logistics'); }
 function isCrafter(u){ return hasRole(u,'crafter'); }
 function isDistributor(u){ return hasRole(u,'distributor'); }
+// Which sub-pages a role actually acts on. Materials/Items are always available
+// to everyone (the shared ledger); the front page + LOG are always shown too.
+function workViewsAllowed(u){
+  const v=[];
+  if(isLogistics(u)||isAdmin(u)) v.push('pickup');
+  if(isCrafter(u)||isDistributor(u)||isAdmin(u)) v.push('transfers');
+  if(isCrafter(u)||isAdmin(u)) v.push('crafting');
+  if(isDistributor(u)||isAdmin(u)) v.push('distribution');
+  return v;
+}
+function roleWorkDefault(u){
+  const a=workViewsAllowed(u);
+  if(isCrafter(u)&&a.includes('crafting')) return 'crafting';
+  if(isDistributor(u)&&a.includes('distribution')) return 'distribution';
+  if(isLogistics(u)&&a.includes('pickup')) return 'pickup';
+  return a[0]||'pickup';
+}
+function roleStockDefault(u){
+  const ledger=isLogistics(u)||isCrafter(u)||isDistributor(u)||isAdmin(u);
+  return (isGatherer(u)&&!ledger) ? 'report' : 'materials';
+}
+function goWorkSection(){ woView=roleWorkDefault(state.user); currentPage='tasks'; renderNav(); renderPage(); }
+function goStockSection(){ stockView=roleStockDefault(state.user); currentPage='items'; renderNav(); renderPage(); }
 function isCommand(u) { return u && (u.roles||[]).includes('command'); }
 function canManageLottery(u) { return isAdmin(u) || isCommand(u); }
 function canCreateTask(u)    { return u && (u.roles||[]).some(r=>['admin','command'].includes(r)); }
@@ -1600,18 +1623,15 @@ function renderNav() {
   if(main==='mat'){
     sub=`<div class="nav-sub-item" style="cursor:default;">Welcome back, ${esc(u.username)}</div>`;
   } else if(main==='task'){
-    sub=`
-      <div class="nav-sub-item${woView==='pickup'?' active':''}" onclick="setWoView('pickup')">Pickup</div>
-      <div class="nav-sub-item${woView==='transfers'?' active':''}" onclick="setWoView('transfers')">Transfers</div>
-      <div class="nav-sub-item${woView==='crafting'?' active':''}" onclick="setWoView('crafting')">Crafting</div>
-      <div class="nav-sub-item${woView==='distribution'?' active':''}" onclick="setWoView('distribution')">Distribution</div>`;
+    const wa=workViewsAllowed(u);
+    const wItem=(v,label)=>wa.includes(v)?`<div class="nav-sub-item${woView===v?' active':''}" onclick="setWoView('${v}')">${label}</div>`:'';
+    sub=`${wItem('pickup','Pickup')}${wItem('transfers','Transfers')}${wItem('crafting','Crafting')}${wItem('distribution','Distribution')}`;
   } else if(main==='items'){
     const canReport=isGatherer(u)||isAdmin(u);
-    const canLedger=isLogistics(u)||isCrafter(u)||isDistributor(u)||isAdmin(u);
     sub=`
       ${canReport?`<div class="nav-sub-item${stockView==='report'?' active':''}" onclick="setStockView('report')">Report</div>`:''}
-      ${canLedger?`<div class="nav-sub-item${stockView==='materials'?' active':''}" onclick="setStockView('materials')">Materials</div>`:''}
-      ${canLedger?`<div class="nav-sub-item${stockView==='items'?' active':''}" onclick="setStockView('items')">Items</div>`:''}`;
+      <div class="nav-sub-item${stockView==='materials'?' active':''}" onclick="setStockView('materials')">Materials</div>
+      <div class="nav-sub-item${stockView==='items'?' active':''}" onclick="setStockView('items')">Items</div>`;
   } else if(main==='log'){
     const openLotteries=state.lotteries.filter(l=>l.status==='open'||l.status==='drawn').length;
     sub=`
@@ -1627,8 +1647,8 @@ function renderNav() {
   el.innerHTML=`
     <div id="nav-primary">
       <div class="nav-main${main==='mat'?' active':''}" onclick="goTo('overview')">MAT</div>
-      ${(isLogistics(u)||isCrafter(u)||isDistributor(u)||isAdmin(u))?`<div class="nav-main${main==='task'?' active':''}" onclick="goTo('tasks')">WORK</div>`:''}
-      <div class="nav-main${main==='items'?' active':''}" onclick="goTo('items')">STOCK</div>
+      ${workViewsAllowed(u).length?`<div class="nav-main${main==='task'?' active':''}" onclick="goWorkSection()">WORK</div>`:''}
+      <div class="nav-main${main==='items'?' active':''}" onclick="goStockSection()">STOCK</div>
       <div class="nav-main outline${main==='log'?' active':''}" onclick="goTo('archive')">LOG</div>
     </div>
     ${sub?`<div id="nav-sub">${sub}</div>`:''}`;
@@ -3264,6 +3284,9 @@ async function saveCraftOrder(){
 // ── Page + controls ──
 function pageWorkorders(){
   const u=state.user;
+  const wa=workViewsAllowed(u);
+  if(!wa.length){ currentPage='overview'; return pageOverview(); }
+  if(!wa.includes(woView)) woView=wa[0];
   if(woView==='crafting'){
     const amCrafter=isCrafter(u);
     let lead, btn='';
@@ -3703,8 +3726,8 @@ function stockRows(){
 function stockViewsAllowed(){
   const u=state.user; const v=[];
   if(isGatherer(u)||isAdmin(u)) v.push('report');
-  if(isLogistics(u)||isCrafter(u)||isDistributor(u)||isAdmin(u)) v.push('materials','items');
-  return v.length?v:['materials'];
+  v.push('materials','items'); // shared ledger — always visible
+  return v;
 }
 function ensureStockView(){ const a=stockViewsAllowed(); if(!a.includes(stockView)) stockView=a[0]; }
 function pageStock(){
