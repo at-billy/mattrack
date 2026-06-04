@@ -1268,8 +1268,6 @@ function updateLiveView(silent=false) {
     const typing = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT') && document.getElementById('page-wrap')?.contains(active);
     if(!typing){
       const dk=document.getElementById('wo-dist'); if(dk) dk.innerHTML=renderDistribution();
-      const ck=document.getElementById('wo-craft'); if(ck) ck.innerHTML=renderCraftOrders();
-      const cfc=document.getElementById('cf-controls'); if(cfc) cfc.innerHTML=renderCraftControls();
       const c=document.getElementById('wo-controls'); if(c) c.innerHTML=renderWoControls();
       const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoListActive();
     }
@@ -3130,19 +3128,23 @@ function cmpVals(av,bv,dir){ const c=(typeof av==='number'&&typeof bv==='number'
 // ── per-page filter + sort state ──
 let pkF='open', pkSortCol='location', pkSortDir='asc';   // Pickup
 let trF='open', trSortCol='stage', trSortDir='asc';      // Transfers
-let cfF='open';                                          // Crafting
+let cfF='open';                                          // Crafting — admin order filter
+let cfInvF='available', cfInvSortCol='name', cfInvSortDir='asc'; // Crafting — crafter inventory
 let dsF='instock', dsSortCol='name', dsSortDir='asc';    // Distribution
-function setWoView(v){ woView=v; pkF='open'; trF='open'; cfF='open'; dsF='instock'; renderNav(); renderPage(); }
+function setWoView(v){ woView=v; pkF='open'; trF='open'; cfF='open'; cfInvF='available'; dsF='instock'; renderNav(); renderPage(); }
 function setPkF(f){ pkF=f; rerenderWo(); }
 function setTrF(f){ trF=f; rerenderWo(); }
-function setCfF(f){ cfF=f; const c=document.getElementById('cf-controls'); if(c) c.innerHTML=renderCraftControls(); const l=document.getElementById('wo-craft'); if(l) l.innerHTML=renderCraftOrders(); }
+function setCfF(f){ cfF=f; rerenderWo(); }
+function setCfInvF(f){ cfInvF=f; rerenderWo(); }
 function setDsF(f){ dsF=f; rerenderWo(); }
-function setPkSort(c){ if(pkSortCol===c) pkSortDir=(pkSortDir==='asc'?'desc':'asc'); else { pkSortCol=c; pkSortDir='asc'; } const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderPickupTable(); }
-function setTrSort(c){ if(trSortCol===c) trSortDir=(trSortDir==='asc'?'desc':'asc'); else { trSortCol=c; trSortDir='asc'; } const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderTransfers(); }
+function setPkSort(c){ if(pkSortCol===c) pkSortDir=(pkSortDir==='asc'?'desc':'asc'); else { pkSortCol=c; pkSortDir='asc'; } reListWo(); }
+function setTrSort(c){ if(trSortCol===c) trSortDir=(trSortDir==='asc'?'desc':'asc'); else { trSortCol=c; trSortDir='asc'; } reListWo(); }
+function setCfInvSort(c){ if(cfInvSortCol===c) cfInvSortDir=(cfInvSortDir==='asc'?'desc':'asc'); else { cfInvSortCol=c; cfInvSortDir='asc'; } reListWo(); }
 function setDsSort(c){ if(dsSortCol===c) dsSortDir=(dsSortDir==='asc'?'desc':'asc'); else { dsSortCol=c; dsSortDir='asc'; } const l=document.getElementById('wo-dist'); if(l) l.innerHTML=renderDistribution(); }
+function reListWo(){ const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoListActive(); }
 function rerenderWo(){
   const c=document.getElementById('wo-controls'); if(c) c.innerHTML=renderWoControls();
-  const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoListActive();
+  reListWo();
   const d=document.getElementById('wo-dist'); if(d) d.innerHTML=renderDistribution();
 }
 
@@ -3159,21 +3161,16 @@ function craftAvail(item){
   const myMats=state.stock.filter(s=>s.kind==='material'&&s.status==='at_base'&&s.heldBy===u.username);
   return Math.floor(Math.min(...item.recipe.map(r=>{ const have=myMats.filter(s=>s.name===r.materialName).reduce((a,s)=>a+s.qty,0); return r.qty>0?(have+1e-9)/r.qty:Infinity; })));
 }
-function renderCraftControls(){
-  const b=(id,l)=>`<button class="btn-ghost btn-sm${cfF===id?' active':''}" onclick="setCfF('${id}')">${l}</button>`;
-  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">${b('open','Open')}${b('done','Done')}</div>`;
-}
+// Admin's demand list (the craft orders). Crafters don't see this — they craft
+// via the Craft modal off their own inventory page.
 function renderCraftOrders(){
   const u=state.user;
   let orders=state.workorders.filter(w=>w.kind==='craft'&&w.status===cfF);
   orders=orders.sort((a,b)=>((CRAFT_PRIO[a.priority]??2)-(CRAFT_PRIO[b.priority]??2))||(b._creationTime-a._creationTime));
   if(!orders.length) return `<div class="empty">No ${cfF==='open'?'open':'completed'} craft orders${cfF==='open'&&isAdmin(u)?' — add one above':''}.</div>`;
-  const canCraft=isCrafter(u)||isAdmin(u);
   return `<div>${orders.map(o=>{
     const item=state.catalog.items.find(it=>it.name===o.itemName);
     const recipe=item?item.recipe:[];
-    const remaining=(o.qtyNeeded||0)-(o.qtyDone||0);
-    const avail=Math.min(craftAvail(item), remaining);
     const recipeHtml=recipe.length?recipe.map(r=>`${esc(r.materialName)} ×${r.qty}`).join(', '):'<span style="color:var(--red);">no recipe</span>';
     return `<div style="padding:16px 0;border-bottom:1px solid var(--border-m);display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
       <div style="flex:1;min-width:240px;">
@@ -3183,18 +3180,63 @@ function renderCraftOrders(){
           <span style="font-size:var(--text-sm);color:var(--fg);">${o.qtyDone||0}/${o.qtyNeeded||0} done${o.status==='done'?' · complete':''}</span>
         </div>
         <div style="font-size:var(--text-sm);color:var(--fg);margin-top:4px;">Recipe: ${recipeHtml}</div>
-        ${canCraft&&o.status==='open'?`<div style="font-size:var(--text-sm);color:${avail>0?'#16a34a':'var(--red)'};margin-top:4px;">You can craft ${avail} now from your materials at base</div>`:''}
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
-        ${canCraft&&o.status==='open'&&avail>0?`<input id="cq-${o._id}" type="number" min="1" max="${avail}" value="1" style="width:64px;"><button class="btn btn-black btn-sm" onclick="doCraft('${esc(o._id)}')">Craft</button>`:''}
         ${(isAdmin(u)||o.createdBy===u._id)?`<button class="btn-del" onclick="woDelete('${esc(o._id)}')" aria-label="Delete">&times;</button>`:''}
       </div>
     </div>`;
   }).join('')}</div>`;
 }
-async function doCraft(orderId){
-  const inp=document.getElementById('cq-'+orderId); const count=Math.max(1, Number(inp?inp.value:1)||1);
-  try{ const out=await convexMutation('workorders:craftItem',{sessionToken:state.sessionToken,orderId,count}); toast(`Crafted ${out.crafted}${out.quality!=null?' · Q'+out.quality:''}`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
+
+// Crafter's own page: the items they've crafted (their inventory) + Offer.
+function renderCraftInventory(){
+  const u=state.user;
+  const locked=lockedStockSet();
+  let rows=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&(isAdmin(u)||s.heldBy===u.username));
+  rows = cfInvF==='offered' ? rows.filter(s=>locked.has(s._id)) : rows.filter(s=>!locked.has(s._id));
+  const val=(s,c)=>{ switch(c){ case 'qty':return s.qty||0; case 'quality':return s.qualityValue!=null?s.qualityValue:-1; case 'location':return s.location||''; case 'heldby':return s.heldBy||''; default:return s.name||''; } };
+  rows=[...rows].sort((a,b)=>cmpVals(val(a,cfInvSortCol),val(b,cfInvSortCol),cfInvSortDir));
+  if(!rows.length) return `<div class="empty">${cfInvF==='offered'?'Nothing offered right now.':'No finished items yet. Hit “Craft” to make what’s being asked for.'}</div>`;
+  const canOffer=isCrafter(u)||isAdmin(u);
+  const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['location','Location']].concat(isAdmin(u)?[['heldby','Held By']]:[]);
+  return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setCfInvSort',cfInvSortCol,cfInvSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(s=>`<tr>
+    <td data-label="Item" style="font-weight:700;">${esc(s.name)}</td>
+    <td data-label="Qty" style="font-weight:700;">${s.qty} <span style="font-weight:400;color:var(--fg);font-size:var(--text-sm);">${esc(s.unit)}</span></td>
+    <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.qualityValue!=null?`Q ${s.qualityValue}`:'—'}</td>
+    <td data-label="Location" style="font-size:var(--text-md);">${esc(s.location||'—')}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}</td>
+    ${isAdmin(u)?`<td data-label="Held By">${esc(s.heldBy)}</td>`:''}
+    <td data-label="" style="white-space:nowrap;">${cfInvF==='offered'?`<span style="font-size:var(--text-sm);color:var(--mid);text-transform:uppercase;letter-spacing:.04em;">Offered</span>`:(canOffer?`<button class="btn btn-black btn-sm" onclick="doOfferOne('${esc(s._id)}')">Offer</button>`:'')}</td>
+  </tr>`).join('')}</tbody></table>`;
+}
+async function doOfferOne(id){
+  try{ const out=await convexMutation('distribution:offerItems',{sessionToken:state.sessionToken,stockIds:[id]}); toast(`Offered (${out.offered})`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
+}
+
+// Crafter's "Craft" button → modal of what's being asked for, craft right there.
+function openCraftModal(){
+  const orders=state.workorders.filter(w=>w.kind==='craft'&&w.status==='open')
+    .sort((a,b)=>((CRAFT_PRIO[a.priority]??2)-(CRAFT_PRIO[b.priority]??2))||(b._creationTime-a._creationTime));
+  if(!orders.length){ showModal(`<div class="modal-title">Craft</div><div class="empty">Nothing is being asked for right now.</div><div style="margin-top:14px;"><button class="btn btn-outline" onclick="closeModal()">Close</button></div>`); return; }
+  showModal(`
+    <div class="modal-title">What's being asked for</div>
+    <div style="max-height:60vh;overflow:auto;">${orders.map(o=>{
+      const item=state.catalog.items.find(it=>it.name===o.itemName);
+      const recipe=item?item.recipe:[];
+      const remaining=(o.qtyNeeded||0)-(o.qtyDone||0);
+      const avail=Math.min(craftAvail(item),remaining);
+      const recipeHtml=recipe.length?recipe.map(r=>`${esc(r.materialName)} ×${r.qty}`).join(', '):'<span style="color:var(--red);">no recipe</span>';
+      return `<div style="padding:14px 0;border-bottom:1px solid var(--border-m);">
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">${priorityTag(o.priority)}<span style="font-weight:900;">${esc(o.itemName)}</span><span style="font-size:var(--text-sm);color:var(--fg);">${o.qtyDone||0}/${o.qtyNeeded||0} done</span></div>
+        <div style="font-size:var(--text-sm);color:var(--fg);margin-top:4px;">Recipe: ${recipeHtml}</div>
+        <div style="font-size:var(--text-sm);color:${avail>0?'#16a34a':'var(--red)'};margin-top:4px;">You can craft ${avail} now from your materials at base</div>
+        ${avail>0?`<div style="margin-top:8px;display:flex;gap:6px;align-items:center;"><input id="cqm-${o._id}" type="number" min="1" max="${avail}" value="1" style="width:72px;"><button class="btn btn-black btn-sm" onclick="doCraftModal('${esc(o._id)}')">Craft</button></div>`:''}
+      </div>`;
+    }).join('')}</div>
+    <div style="margin-top:12px;"><button class="btn btn-outline" onclick="closeModal()">Close</button></div>`);
+}
+async function doCraftModal(orderId){
+  const inp=document.getElementById('cqm-'+orderId); const count=Math.max(1, Number(inp?inp.value:1)||1);
+  try{ const out=await convexMutation('workorders:craftItem',{sessionToken:state.sessionToken,orderId,count}); toast(`Crafted ${out.crafted}${out.quality!=null?' · Q'+out.quality:''}`); closeModal(); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
 }
 function openCraftOrderModal(){
   const items=[...state.catalog.items].sort((a,b)=>a.name.localeCompare(b.name));
@@ -3223,59 +3265,69 @@ async function saveCraftOrder(){
 function pageWorkorders(){
   const u=state.user;
   if(woView==='crafting'){
-    const craftOpen=state.workorders.filter(w=>w.kind==='craft'&&w.status==='open').length;
+    const amCrafter=isCrafter(u);
+    let lead, btn='';
+    if(amCrafter){
+      lead='Your crafted items';
+      btn=`<button class="btn btn-black" onclick="openCraftModal()">Craft</button>${isAdmin(u)?`<button class="btn btn-outline" style="margin-left:8px;" onclick="openCraftOrderModal()">+ Craft Order</button>`:''}`;
+    } else {
+      const craftOpen=state.workorders.filter(w=>w.kind==='craft'&&w.status==='open').length;
+      lead=`${craftOpen} open craft order${craftOpen===1?'':'s'}`;
+      btn=isAdmin(u)?`<button class="btn btn-black" onclick="openCraftOrderModal()">+ Craft Order</button>`:'';
+    }
     return `
       <div class="page-head">
-        <div class="page-head-left"><div class="page-lead">${craftOpen} open craft order${craftOpen===1?'':'s'}</div></div>
-        ${isAdmin(u)?`<button class="btn btn-black" onclick="openCraftOrderModal()">+ Craft Order</button>`:''}
+        <div class="page-head-left"><div class="page-lead">${lead}</div></div>
+        ${btn}
       </div>
       <div id="wo-content" style="margin-top:32px;">
-        <div id="cf-controls">${renderCraftControls()}</div>
-        <div id="wo-craft">${renderCraftOrders()}</div>
+        <div id="wo-controls">${renderWoControls()}</div>
+        <div id="wo-list">${renderWoListActive()}</div>
       </div>`;
   }
   if(woView==='distribution'){
     return `
-      <div class="page-head"><div class="page-head-left"><div class="page-lead">Your stockpile</div></div></div>
+      <div class="page-head"><div class="page-head-left"><div class="page-lead">Distribution</div></div></div>
       <div id="wo-content" style="margin-top:32px;">
         <div id="wo-controls">${renderWoControls()}</div>
         <div id="wo-dist">${renderDistribution()}</div>
       </div>`;
   }
-  let lead, headBtns='';
+  let lead;
   if(woView==='pickup'){
     const n=state.workorders.filter(w=>w.kind==='pickup'&&w.status==='open').length;
     lead=`${n} open pickup${n===1?'':'s'}`;
   } else {
     const n=transferActiveCount();
     lead=`${n} transfer${n===1?'':'s'} in progress`;
-    headBtns=transfersHeadButtons(u);
   }
   return `
     <div class="page-head">
       <div class="page-head-left"><div class="page-lead">${lead}</div></div>
-      ${headBtns}
     </div>
     <div id="wo-content" style="margin-top:32px;">
       <div id="wo-controls">${renderWoControls()}</div>
       <div id="wo-list">${renderWoListActive()}</div>
     </div>`;
 }
-function transfersHeadButtons(u){
-  let b='';
-  if(isCrafter(u)||isAdmin(u)) b+=`<button class="btn btn-outline" onclick="openOfferModal()">Offer finished items</button>`;
-  if(isDistributor(u)||isAdmin(u)) b+=`<button class="btn btn-black" style="margin-left:8px;" onclick="openRequestModal()">Request items</button>`;
-  return b?`<div style="display:flex;flex-wrap:wrap;gap:8px;">${b}</div>`:'';
-}
 function renderWoControls(){
+  const u=state.user;
   const b=(setter,cur,id,l)=>`<button class="btn-ghost btn-sm${cur===id?' active':''}" onclick="${setter}('${id}')">${l}</button>`;
   const wrap=inner=>`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">${inner}</div>`;
   if(woView==='pickup')     return wrap(`${b('setPkF',pkF,'open','Open')}${b('setPkF',pkF,'claimed','Accepted')}${b('setPkF',pkF,'done','Done')}`);
   if(woView==='transfers')  return wrap(`${b('setTrF',trF,'open','Open')}${b('setTrF',trF,'inprogress','In Progress')}${b('setTrF',trF,'done','Done')}`);
-  if(woView==='distribution') return wrap(`${b('setDsF',dsF,'instock','In Stockpile')}${b('setDsF',dsF,'handedout','Handed Out')}`);
+  if(woView==='crafting')   return isCrafter(u)
+    ? wrap(`${b('setCfInvF',cfInvF,'available','Finished')}${b('setCfInvF',cfInvF,'offered','Offered')}`)
+    : wrap(`${b('setCfF',cfF,'open','Open')}${b('setCfF',cfF,'done','Done')}`);
+  if(woView==='distribution') return wrap(`${b('setDsF',dsF,'available','Available')}${b('setDsF',dsF,'instock','In Stockpile')}${b('setDsF',dsF,'handedout','Handed Out')}`);
   return '';
 }
-function renderWoListActive(){ return woView==='pickup'?renderPickupTable():woView==='transfers'?renderTransfers():''; }
+function renderWoListActive(){
+  if(woView==='pickup') return renderPickupTable();
+  if(woView==='transfers') return renderTransfers();
+  if(woView==='crafting') return isCrafter(state.user)?renderCraftInventory():renderCraftOrders();
+  return '';
+}
 
 // ── Pickup table (gatherer → logistics) ──
 function renderPickupTable(){
@@ -3357,48 +3409,20 @@ function renderTransfers(){
 
 // ── Start a handover: offer (crafter) / request (distributor) ──
 function lockedStockSet(){ const set=new Set(); state.workorders.filter(w=>w.kind==='handover'&&(w.status==='open'||w.status==='agreed')).forEach(h=>(h.items||[]).forEach(it=>set.add(it.stockId))); return set; }
-function openOfferModal(){
-  const u=state.user, locked=lockedStockSet();
-  const mine=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&s.heldBy===u.username&&!locked.has(s._id)).sort((a,b)=>a.name.localeCompare(b.name));
-  if(!mine.length){ showModal(`<div class="modal-title">Offer finished items</div><div class="empty">You have no finished items to offer.</div><div style="margin-top:14px;"><button class="btn btn-outline" onclick="closeModal()">Close</button></div>`); return; }
+// Distributor requests one finished item straight from a crafter's inventory.
+function openRequestLoc(id){
+  const s=state.stock.find(x=>x._id===id); if(!s) return;
   showModal(`
-    <div class="modal-title">Offer finished items</div>
-    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:12px;">Pick what to offer to the distributors. A distributor accepts, you meet, they confirm receipt.</p>
-    <div style="max-height:280px;overflow:auto;border:1px solid var(--border-m);padding:10px;">${mine.map(s=>`<label style="display:flex;gap:8px;align-items:center;padding:5px 0;cursor:pointer;"><input type="checkbox" class="of-chk" value="${esc(s._id)}"> <span>${esc(s.name)} ×${s.qty}${s.qualityValue!=null?` · Q${s.qualityValue}`:''}</span></label>`).join('')}</div>
-    <div class="err-msg" id="of-err"></div>
-    <div style="display:flex;gap:10px;margin-top:8px;"><button class="btn btn-black" onclick="doOfferSelected()">Offer</button><button class="btn btn-outline" onclick="closeModal()">Cancel</button></div>`);
-}
-async function doOfferSelected(){
-  const ids=[...document.querySelectorAll('.of-chk:checked')].map(c=>c.value);
-  if(!ids.length){ showErr('of-err','Select at least one item'); return; }
-  try{ const out=await convexMutation('distribution:offerItems',{sessionToken:state.sessionToken,stockIds:ids}); toast(`Offered (${out.offered})`); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('of-err',e.message); }
-}
-function openRequestModal(){
-  const u=state.user, locked=lockedStockSet();
-  const pool=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&s.heldBy!==u.username&&!locked.has(s._id));
-  const crafters=[...new Set(pool.map(s=>s.heldBy))].sort();
-  if(!crafters.length){ showModal(`<div class="modal-title">Request items</div><div class="empty">No finished items available to request.</div><div style="margin-top:14px;"><button class="btn btn-outline" onclick="closeModal()">Close</button></div>`); return; }
-  window._reqPool=pool;
-  showModal(`
-    <div class="modal-title">Request items</div>
-    <div class="field"><label class="lbl">From crafter</label><select id="rq-crafter" onchange="reqRenderItems()">${crafters.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select></div>
-    <div class="field"><label class="lbl">Items</label><div id="rq-items" style="max-height:200px;overflow:auto;border:1px solid var(--border-m);padding:10px;"></div></div>
+    <div class="modal-title">Request ${esc(s.name)}</div>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">From <strong>${esc(s.heldBy)}</strong> — they'll be notified to agree and meet you. Pick where you'll stockpile it.</p>
     <div class="grid2">${locationPicker('rq', null)}</div>
     <div class="err-msg" id="rq-err"></div>
-    <div style="display:flex;gap:10px;margin-top:8px;"><button class="btn btn-black" onclick="doRequestSelected()">Send request</button><button class="btn btn-outline" onclick="closeModal()">Cancel</button></div>`);
-  reqRenderItems();
+    <div style="display:flex;gap:10px;margin-top:8px;"><button class="btn btn-black" onclick="doRequestLoc('${esc(s._id)}')">Send request</button><button class="btn btn-outline" onclick="closeModal()">Cancel</button></div>`);
 }
-function reqRenderItems(){
-  const sel=document.getElementById('rq-crafter'); if(!sel) return;
-  const items=(window._reqPool||[]).filter(s=>s.heldBy===sel.value).sort((a,b)=>a.name.localeCompare(b.name));
-  document.getElementById('rq-items').innerHTML = items.length?items.map(s=>`<label style="display:flex;gap:8px;align-items:center;padding:5px 0;cursor:pointer;"><input type="checkbox" class="rq-chk" value="${esc(s._id)}"> <span>${esc(s.name)} ×${s.qty}${s.qualityValue!=null?` · Q${s.qualityValue}`:''}</span></label>`).join(''):'<div class="empty">No items.</div>';
-}
-async function doRequestSelected(){
-  const ids=[...document.querySelectorAll('.rq-chk:checked')].map(c=>c.value);
-  if(!ids.length){ showErr('rq-err','Select at least one item'); return; }
+async function doRequestLoc(id){
   const location=pickedLocation('rq'); const system=pickedLocationSystem('rq');
   if(!location){ showErr('rq-err','Pick a stockpile location'); return; }
-  try{ await convexMutation('distribution:requestItems',{sessionToken:state.sessionToken,stockIds:ids,location,system}); toast('Request sent'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('rq-err',e.message); }
+  try{ await convexMutation('distribution:requestItems',{sessionToken:state.sessionToken,stockIds:[id],location,system}); toast('Request sent'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('rq-err',e.message); }
 }
 
 // ─── GATHERER REPORT (light intake) ────────────────────────────────────────────
@@ -3524,16 +3548,33 @@ async function submitManifest(id){
 }
 
 // ─── DISTRIBUTION (step 7) ─────────────────────────────────────────────────────
-// Distribution = the distributor's task: hand out from their stockpile. Receiving
-// items from crafters lives in the Transfers tab.
+// The distributor's page. Available = browse crafters' finished items and request
+// them; In Stockpile = what they hold → hand out; Handed Out = history.
 function renderDistribution(){
   const u=state.user;
   const isDist=isDistributor(u)||isAdmin(u);
-  const wantStatus = dsF==='handedout' ? 'handed_out' : 'with_distributor';
   const val=(s,c)=>{ switch(c){ case 'qty':return s.qty||0; case 'quality':return s.qualityValue!=null?s.qualityValue:-1; case 'location':return s.location||''; case 'heldby':return s.heldBy||''; default:return s.name||''; } };
+
+  if(dsF==='available'){
+    const locked=lockedStockSet();
+    let rows=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&s.heldBy!==u.username&&!locked.has(s._id))
+      .sort((a,b)=>cmpVals(val(a,dsSortCol),val(b,dsSortCol),dsSortDir));
+    if(!rows.length) return `<div class="empty">No finished items available to request right now.</div>`;
+    const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['heldby','Crafter'],['location','Location']];
+    return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setDsSort',dsSortCol,dsSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(s=>`<tr>
+      <td data-label="Item" style="font-weight:700;">${esc(s.name)}</td>
+      <td data-label="Qty" style="font-weight:700;">${s.qty} <span style="font-weight:400;color:var(--fg);font-size:var(--text-sm);">${esc(s.unit)}</span></td>
+      <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.qualityValue!=null?`Q ${s.qualityValue}`:'—'}</td>
+      <td data-label="Crafter">${esc(s.heldBy)}</td>
+      <td data-label="Location" style="font-size:var(--text-md);">${esc(s.location||'—')}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}</td>
+      <td data-label="" style="white-space:nowrap;">${isDist?`<button class="btn btn-black btn-sm" onclick="openRequestLoc('${esc(s._id)}')">Request</button>`:''}</td>
+    </tr>`).join('')}</tbody></table>`;
+  }
+
+  const wantStatus = dsF==='handedout' ? 'handed_out' : 'with_distributor';
   let rows=state.stock.filter(s=>s.kind==='item'&&s.status===wantStatus&&(isAdmin(u)||s.heldBy===u.username))
     .sort((a,b)=>cmpVals(val(a,dsSortCol),val(b,dsSortCol),dsSortDir));
-  if(!rows.length) return `<div class="empty">${dsF==='handedout'?'Nothing handed out yet.':'Your stockpile is empty. Accept an offer or request items in the Transfers tab to stock them.'}</div>`;
+  if(!rows.length) return `<div class="empty">${dsF==='handedout'?'Nothing handed out yet.':'Your stockpile is empty. Check Available to request finished items from crafters.'}</div>`;
   const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['location','Location']].concat(isAdmin(u)?[['heldby','Held By']]:[]);
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setDsSort',dsSortCol,dsSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(s=>`<tr>
     <td data-label="Item" style="font-weight:700;">${esc(s.name)}${s.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(s.note)}</div>`:''}</td>
