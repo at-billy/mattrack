@@ -23,32 +23,10 @@ export const claim = mutation({
     if (wo.status !== "open") throw new ConvexError("Workorder is not open");
 
     if (wo.kind === "pickup") {
+      // Logistics agrees to collect — nothing moves yet. The gatherer still
+      // holds the materials in-game; they move only when logi confirms receipt.
       assertRole(user, ["logistics", "admin"]);
-      for (const it of wo.items ?? []) {
-        const s = await ctx.db.get(it.stockId);
-        if (s && s.status === "reported") await ctx.db.patch(it.stockId, { status: "in_transit" });
-      }
       await ctx.db.patch(id, { status: "claimed", claimedById: user._id, claimedByName: user.username });
-      // Stack into this logi's existing OPEN delivery if one exists; else create
-      // a new Delivery task for crafters to receive at base.
-      const base = (await ctx.db.query("locationCatalog").collect()).find(l => l.isBase);
-      const myOpen = (await ctx.db.query("workorders").withIndex("by_kind", q => q.eq("kind", "delivery")).collect())
-        .find(d => d.status === "open" && d.createdBy === user._id);
-      if (myOpen) {
-        await ctx.db.patch(myOpen._id, { items: [...(myOpen.items ?? []), ...(wo.items ?? [])] });
-      } else {
-        await ctx.db.insert("workorders", {
-          kind: "delivery",
-          status: "open",
-          location: base ? base.name : wo.location,
-          system: base ? base.system : wo.system,
-          items: wo.items,
-          note: `Inbound to base — picked up by ${user.username}`,
-          sourcePickupId: wo._id,
-          createdBy: user._id,
-          createdByName: user.username,
-        });
-      }
     } else if (wo.kind === "delivery") {
       assertRole(user, ["crafter", "admin"]);
       await ctx.db.patch(id, { status: "claimed", claimedById: user._id, claimedByName: user.username });
@@ -59,9 +37,7 @@ export const claim = mutation({
 });
 
 // Abandon an accepted workorder (the accepter or an admin) → back to open.
-//  • pickup: stock back to reported, and the (still-open) auto Delivery is removed.
-//    Blocked once a crafter has already accepted the delivery.
-//  • delivery: just reopens.
+// Accepting no longer moves anything, so this just reopens the workorder.
 export const unclaim = mutation({
   args: { sessionToken: v.string(), id: v.id("workorders") },
   handler: async (ctx, { sessionToken, id }) => {
@@ -70,32 +46,15 @@ export const unclaim = mutation({
     if (!wo) throw new ConvexError("Workorder not found");
     const isAdmin = user.roles.includes("admin");
     if (!isAdmin && wo.claimedById !== user._id) throw new ConvexError("Not authorized");
-
-    if (wo.kind === "pickup") {
-      const myStockIds = new Set((wo.items ?? []).map(it => it.stockId));
-      // Deliveries that carry any of this pickup's stock (may be stacked from several pickups).
-      const deliveries = (await ctx.db.query("workorders").withIndex("by_kind", q => q.eq("kind", "delivery")).collect())
-        .filter(d => (d.items ?? []).some(it => myStockIds.has(it.stockId)) && d.status !== "cancelled");
-      if (deliveries.some(d => d.status !== "open")) {
-        throw new ConvexError("A crafter is already receiving this — can't abandon");
-      }
-      for (const d of deliveries) {
-        const remaining = (d.items ?? []).filter(it => !myStockIds.has(it.stockId));
-        if (remaining.length === 0) await ctx.db.delete(d._id);
-        else await ctx.db.patch(d._id, { items: remaining });
-      }
-      for (const it of wo.items ?? []) {
-        const s = await ctx.db.get(it.stockId);
-        if (s && s.status === "in_transit") await ctx.db.patch(it.stockId, { status: "reported" });
-      }
-    }
     await ctx.db.patch(id, { status: "open", claimedById: undefined, claimedByName: undefined });
   },
 });
 
-// Complete a workorder (the accepter or an admin).
-//  • delivery: the crafter has the materials → stock moves to at_base, held by them.
-//  • pickup: just marks the logistics task done (the delivery handles the stock).
+// The receiver confirms they met the holder and got the goods (the taker confirms
+// receipt — that's when custody actually moves).
+//  • pickup (logistics): materials reported → in_transit, now held by logistics,
+//    and the Delivery task for crafters is created/stacked.
+//  • delivery (crafter): materials → at_base, held by the crafter.
 export const complete = mutation({
   args: { sessionToken: v.string(), id: v.id("workorders") },
   handler: async (ctx, { sessionToken, id }) => {
@@ -110,6 +69,29 @@ export const complete = mutation({
         if (s && (s.status === "in_transit" || s.status === "reported")) {
           await ctx.db.patch(it.stockId, { status: "at_base", heldBy: user.username });
         }
+      }
+    } else if (wo.kind === "pickup") {
+      // Logi met the gatherer and received the materials.
+      for (const it of wo.items ?? []) {
+        const s = await ctx.db.get(it.stockId);
+        if (s && s.status === "reported") await ctx.db.patch(it.stockId, { status: "in_transit", heldBy: user.username });
+      }
+      // Now the materials are inbound — create/stack the crafters' Delivery task.
+      const base = (await ctx.db.query("locationCatalog").collect()).find(l => l.isBase);
+      const myOpen = (await ctx.db.query("workorders").withIndex("by_kind", q => q.eq("kind", "delivery")).collect())
+        .find(d => d.status === "open" && d.createdBy === user._id);
+      if (myOpen) {
+        await ctx.db.patch(myOpen._id, { items: [...(myOpen.items ?? []), ...(wo.items ?? [])] });
+      } else {
+        await ctx.db.insert("workorders", {
+          kind: "delivery", status: "open",
+          location: base ? base.name : wo.location,
+          system: base ? base.system : wo.system,
+          items: wo.items,
+          note: `Inbound to base — picked up by ${user.username}`,
+          sourcePickupId: wo._id,
+          createdBy: user._id, createdByName: user.username,
+        });
       }
     }
     await ctx.db.patch(id, { status: "done" });

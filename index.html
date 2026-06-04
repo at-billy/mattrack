@@ -3202,7 +3202,7 @@ function woRows(){
   return [...rows].sort((a,b)=>(order[a.status]-order[b.status])||(b._creationTime-a._creationTime));
 }
 async function woAccept(id){ try{ await convexMutation('workorders:claim',{sessionToken:state.sessionToken,id}); toast('Accepted — you have it'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
-async function woComplete(id){ const wo=state.workorders.find(w=>w._id===id); const msg=wo&&wo.kind==='delivery'?'Confirm you received these materials? They move to At Base, held by you.':'Mark this pickup complete?'; if(!await confirmModal(msg)) return; try{ await convexMutation('workorders:complete',{sessionToken:state.sessionToken,id}); toast(wo&&wo.kind==='delivery'?'Received at base':'Pickup done'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
+async function woComplete(id){ const wo=state.workorders.find(w=>w._id===id); const msg=wo&&wo.kind==='delivery'?'Confirm you received these materials? They move to At Base, held by you.':'Confirm you met the gatherer and collected these materials? They move into your hold and a delivery is created for crafters.'; if(!await confirmModal(msg)) return; try{ await convexMutation('workorders:complete',{sessionToken:state.sessionToken,id}); toast(wo&&wo.kind==='delivery'?'Received at base':'Collected — delivery created'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 async function woAbandon(id){ if(!await confirmModal('Abandon this pickup? It goes back to open for someone else.')) return; try{ await convexMutation('workorders:unclaim',{sessionToken:state.sessionToken,id}); toast('Released'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 async function woDelete(id){ if(!await confirmModal('Delete this workorder permanently?')) return; try{ await convexMutation('workorders:remove',{sessionToken:state.sessionToken,id}); toast('Deleted'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 
@@ -3245,7 +3245,7 @@ function renderWoControls(){
 function renderWoList(){
   if(woView==='distribution') return `<div class="empty">Distribution work orders arrive in the distribution step.</div>`;
   const rows=woRows();
-  if(!rows.length) return `<div class="empty">${woView==='pickup'?'No pickups yet. Add materials to stock and they appear here.':'No deliveries yet. When logistics accepts a pickup, a delivery shows up here for a crafter to receive.'}</div>`;
+  if(!rows.length) return `<div class="empty">${woView==='pickup'?'No pickups yet. Add materials to stock and they appear here.':'No deliveries yet. When logistics collects a pickup, a delivery shows up here for a crafter to receive.'}</div>`;
   const u=state.user;
   return `<table class="cards">
     <thead><tr><th>Location</th><th>Items</th><th>Status</th><th>Accepted by</th><th>By</th><th></th></tr></thead>
@@ -3316,11 +3316,11 @@ function renderDistribution(){
     const iAmTaker = h.takerId===u._id||h.takerName===u.username;
     const dirBadge = `<span style="font-size:var(--text-xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--border);padding:1px 6px;">${h.direction==='offer'?'Offer':'Request'}</span>`;
     const who = `${esc(h.giverName||'?')} <span style="color:var(--mid);">→</span> ${esc(h.takerName||'any distributor')}`;
-    const stat = h.status==='agreed' ? 'Agreed — meet in-game, then the crafter confirms' : (h.direction==='offer'?'Offered to distributors':'Requested — awaiting crafter');
+    const stat = h.status==='agreed' ? 'Agreed — meet in-game, then the distributor confirms receipt' : (h.direction==='offer'?'Offered to distributors':'Requested — awaiting crafter');
     let acts='';
     if(h.status==='open'&&h.direction==='offer'&&isDist&&!iAmGiver) acts+=`<button class="btn btn-black btn-sm" onclick="openAcceptOfferModal('${esc(h._id)}')">Accept</button>`;
     if(h.status==='open'&&h.direction==='request'&&iAmGiver&&isCraft) acts+=`<button class="btn btn-black btn-sm" onclick="doAcceptRequest('${esc(h._id)}')">Accept</button>`;
-    if(h.status==='agreed'&&(iAmGiver||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" onclick="doConfirmHandover('${esc(h._id)}')">Confirm handover</button>`;
+    if(h.status==='agreed'&&(iAmTaker||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" onclick="doConfirmHandover('${esc(h._id)}')">Confirm receipt</button>`;
     if(iAmGiver||iAmTaker||isAdmin(u)) acts+=`<button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="doCancelHandover('${esc(h._id)}')">Cancel</button>`;
     return `<div style="padding:16px 0;border-bottom:1px solid var(--border-m);display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
       <div style="flex:1;min-width:240px;">
@@ -3388,7 +3388,7 @@ async function doAcceptRequest(id){
   try{ await convexMutation('distribution:acceptHandover',{sessionToken:state.sessionToken,id}); toast('Agreed — meet to hand over'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
 }
 async function doConfirmHandover(id){
-  if(!confirm('Confirm you met and handed these items over? They move to the distributor\'s stockpile.')) return;
+  if(!confirm('Confirm you met the crafter and received these items? They move into your stockpile.')) return;
   try{ const out=await convexMutation('distribution:confirmHandover',{sessionToken:state.sessionToken,id}); toast(`Handed over (${out.moved})`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
 }
 async function doCancelHandover(id){

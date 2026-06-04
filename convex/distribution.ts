@@ -107,8 +107,8 @@ export const acceptHandover = mutation({
   },
 });
 
-// After meeting in-game, the giver (the holder) confirms the handover happened:
-// the items move into the distributor's stockpile and it's logged.
+// After meeting in-game, the receiving distributor (the taker) confirms they got
+// the items: they move into the distributor's stockpile and it's logged.
 export const confirmHandover = mutation({
   args: { sessionToken: v.string(), id: v.id("workorders") },
   handler: async (ctx, { sessionToken, id }) => {
@@ -117,7 +117,7 @@ export const confirmHandover = mutation({
     if (!h || h.kind !== "handover") throw new ConvexError("Handover not found");
     if (h.status !== "agreed") throw new ConvexError("Both sides must agree first");
     const isAdmin = user.roles.includes("admin");
-    if (!isAdmin && h.giverName !== user.username && h.giverId !== user._id) throw new ConvexError("Only the holder hands the items over");
+    if (!isAdmin && h.takerName !== user.username && h.takerId !== user._id) throw new ConvexError("Only the receiving distributor confirms receipt");
     if (!h.takerName) throw new ConvexError("No receiving distributor");
     let moved = 0;
     for (const it of h.items ?? []) {
