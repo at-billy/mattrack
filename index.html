@@ -1249,6 +1249,7 @@ function updateLiveView(silent=false) {
     const active = document.activeElement;
     const typing = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT') && document.getElementById('page-wrap')?.contains(active);
     if(!typing){
+      const rc=document.getElementById('report-controls'); if(rc) rc.innerHTML=renderReportControls();
       const rl=document.getElementById('report-list'); if(rl) rl.innerHTML=renderReportBody();
       const c=document.getElementById('stock-controls'); if(c) c.innerHTML=renderStockControls();
       const l=document.getElementById('stock-list'); if(l) l.innerHTML=renderStockList();
@@ -3147,13 +3148,33 @@ const sortArrow=(active,dir)=> active?(dir==='asc'?' &uarr;':' &darr;'):'';
 const sortTh=(setter,cur,dir,col,label)=>`<th onclick="${setter}('${col}')" style="cursor:pointer;user-select:none;white-space:nowrap;">${label}${sortArrow(cur===col,dir)}</th>`;
 function cmpVals(av,bv,dir){ const c=(typeof av==='number'&&typeof bv==='number')?av-bv:String(av).localeCompare(String(bv)); return dir==='asc'?c:-c; }
 
+// ── Standard table search (one template for every table) ───────────────────────
+const SEARCH={}; // scope -> {active,text}
+function searchGet(scope){ return SEARCH[scope] || (SEARCH[scope]={active:false,text:''}); }
+function searchReset(scope){ SEARCH[scope]={active:false,text:''}; }
+function searchMatch(scope,...fields){ const q=(searchGet(scope).text||'').trim().toLowerCase(); if(!q) return true; return fields.some(f=>String(f==null?'':f).toLowerCase().includes(q)); }
+function searchToggle(scope,rerender){ const st=searchGet(scope); st.active=!st.active; if(!st.active) st.text=''; rerender(); const i=document.getElementById('search-'+scope); if(i) i.focus(); }
+function searchType(scope,val,rerenderList){ searchGet(scope).text=val; rerenderList(); const i=document.getElementById('search-'+scope); if(i){ i.focus(); try{i.setSelectionRange(val.length,val.length);}catch(e){} } }
+// Renders the controls row (filter buttons + Search toggle) and, when open, the input.
+function searchBar(scope, filtersHtml, placeholder, onToggle, onInput){
+  const st=searchGet(scope);
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+      ${filtersHtml||''}
+      <div style="flex:1;"></div>
+      <button class="btn-ghost btn-sm${st.active?' active':''}" onclick="${onToggle}">${st.active?'Close Search':'Search'}</button>
+    </div>${st.active?`<div style="margin-bottom:20px;"><input id="search-${scope}" type="text" placeholder="${esc(placeholder||'Search…')}" value="${esc(st.text)}" style="width:100%;max-width:400px;" oninput="${onInput}"></div>`:''}`;
+}
+
 // ── per-page filter + sort state ──
 let pkF='open', pkSortCol='location', pkSortDir='asc';   // Pickup
 let trF='open', trSortCol='stage', trSortDir='asc';      // Transfers
 let cfF='open';                                          // Crafting — admin order filter
 let cfInvF='available', cfInvSortCol='name', cfInvSortDir='asc'; // Crafting — crafter inventory
 let dsF='instock', dsSortCol='name', dsSortDir='asc';    // Distribution
-function setWoView(v){ woView=v; pkF='open'; trF='open'; cfF='open'; cfInvF='available'; dsF='instock'; renderNav(); renderPage(); }
+function setWoView(v){ woView=v; pkF='open'; trF='open'; cfF='open'; cfInvF='available'; dsF='instock'; searchReset('wo'); renderNav(); renderPage(); }
+function reWoBody(){ const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoListActive(); const d=document.getElementById('wo-dist'); if(d) d.innerHTML=renderDistribution(); }
+function toggleWoSearch(){ searchToggle('wo', rerenderWo); }
+function woSearchInput(v){ searchType('wo', v, reWoBody); }
 function setPkF(f){ pkF=f; rerenderWo(); }
 function setTrF(f){ trF=f; rerenderWo(); }
 function setCfF(f){ cfF=f; rerenderWo(); }
@@ -3187,9 +3208,9 @@ function craftAvail(item){
 // via the Craft modal off their own inventory page.
 function renderCraftOrders(){
   const u=state.user;
-  let orders=state.workorders.filter(w=>w.kind==='craft'&&w.status===cfF);
+  let orders=state.workorders.filter(w=>w.kind==='craft'&&w.status===cfF&&searchMatch('wo', w.itemName, w.priority));
   orders=orders.sort((a,b)=>((CRAFT_PRIO[a.priority]??2)-(CRAFT_PRIO[b.priority]??2))||(b._creationTime-a._creationTime));
-  if(!orders.length) return `<div class="empty">No ${cfF==='open'?'open':'completed'} craft orders${cfF==='open'&&isAdmin(u)?' — add one above':''}.</div>`;
+  if(!orders.length) return `<div class="empty">No ${cfF==='open'?'open':'completed'} craft orders${searchGet('wo').text?' match your search':(cfF==='open'&&isAdmin(u)?' — add one above':'')}.</div>`;
   return `<div>${orders.map(o=>{
     const item=state.catalog.items.find(it=>it.name===o.itemName);
     const recipe=item?item.recipe:[];
@@ -3214,7 +3235,7 @@ function renderCraftOrders(){
 function renderCraftInventory(){
   const u=state.user;
   const locked=lockedStockSet();
-  let rows=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&(isAdmin(u)||s.heldBy===u.username));
+  let rows=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&(isAdmin(u)||s.heldBy===u.username)&&searchMatch('wo', s.name, s.location, s.heldBy));
   rows = cfInvF==='offered' ? rows.filter(s=>locked.has(s._id)) : rows.filter(s=>!locked.has(s._id));
   const val=(s,c)=>{ switch(c){ case 'qty':return s.qty||0; case 'quality':return s.qualityValue!=null?s.qualityValue:-1; case 'location':return s.location||''; case 'heldby':return s.heldBy||''; default:return s.name||''; } };
   rows=[...rows].sort((a,b)=>cmpVals(val(a,cfInvSortCol),val(b,cfInvSortCol),cfInvSortDir));
@@ -3338,14 +3359,14 @@ function pageWorkorders(){
 function renderWoControls(){
   const u=state.user;
   const b=(setter,cur,id,l)=>`<button class="btn-ghost btn-sm${cur===id?' active':''}" onclick="${setter}('${id}')">${l}</button>`;
-  const wrap=inner=>`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">${inner}</div>`;
-  if(woView==='pickup')     return wrap(`${b('setPkF',pkF,'open','Open')}${b('setPkF',pkF,'claimed','Accepted')}${b('setPkF',pkF,'done','Done')}`);
-  if(woView==='transfers')  return wrap(`${b('setTrF',trF,'open','Open')}${b('setTrF',trF,'inprogress','In Progress')}${b('setTrF',trF,'done','Done')}`);
-  if(woView==='crafting')   return isCrafter(u)
-    ? wrap(`${b('setCfInvF',cfInvF,'available','Finished')}${b('setCfInvF',cfInvF,'offered','Offered')}`)
-    : wrap(`${b('setCfF',cfF,'open','Open')}${b('setCfF',cfF,'done','Done')}`);
-  if(woView==='distribution') return wrap(`${b('setDsF',dsF,'available','Available')}${b('setDsF',dsF,'instock','In Stockpile')}${b('setDsF',dsF,'handedout','Handed Out')}`);
-  return '';
+  let filters='';
+  if(woView==='pickup')     filters=`${b('setPkF',pkF,'open','Open')}${b('setPkF',pkF,'claimed','Accepted')}${b('setPkF',pkF,'done','Done')}`;
+  else if(woView==='transfers')  filters=`${b('setTrF',trF,'open','Open')}${b('setTrF',trF,'inprogress','In Progress')}${b('setTrF',trF,'done','Done')}`;
+  else if(woView==='crafting')   filters=isCrafter(u)
+    ? `${b('setCfInvF',cfInvF,'available','Finished')}${b('setCfInvF',cfInvF,'offered','Offered')}`
+    : `${b('setCfF',cfF,'open','Open')}${b('setCfF',cfF,'done','Done')}`;
+  else if(woView==='distribution') filters=`${b('setDsF',dsF,'available','Available')}${b('setDsF',dsF,'instock','In Stockpile')}${b('setDsF',dsF,'handedout','Handed Out')}`;
+  return searchBar('wo', filters, 'Search…', 'toggleWoSearch()', 'woSearchInput(this.value)');
 }
 function renderWoListActive(){
   if(woView==='pickup') return renderPickupTable();
@@ -3358,9 +3379,10 @@ function renderWoListActive(){
 function renderPickupTable(){
   const u=state.user;
   const val=(w,c)=>{ switch(c){ case 'status':return ({open:0,claimed:1,done:2})[w.status]??9; case 'accepted':return w.claimedByName||''; case 'by':return w.createdByName||''; case 'items':return (w.report||w.items||[]).length; default:return w.location||''; } };
-  let rows=state.workorders.filter(w=>w.kind==='pickup'&&w.status===pkF)
+  let rows=state.workorders.filter(w=>w.kind==='pickup'&&w.status===pkF
+      &&searchMatch('wo', w.location, w.createdByName, w.claimedByName, (w.report||[]).map(r=>r.what+' '+r.type).join(' ')))
     .sort((a,b)=>cmpVals(val(a,pkSortCol),val(b,pkSortCol),pkSortDir));
-  if(!rows.length) return `<div class="empty">No ${pkF==='open'?'open':pkF==='claimed'?'accepted':'completed'} pickups.</div>`;
+  if(!rows.length) return `<div class="empty">No ${pkF==='open'?'open':pkF==='claimed'?'accepted':'completed'} pickups${searchGet('wo').text?' match your search':''}.</div>`;
   const cols=[['location','Location'],['items','Reported'],['status','Status'],['accepted','Accepted by'],['by','By']];
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setPkSort',pkSortCol,pkSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(w=>{
     const canAct=isAdmin(u)||hasRole(u,'logistics');
@@ -3401,9 +3423,9 @@ function transferFields(w){
 function renderTransfers(){
   const u=state.user;
   const val=(w,c)=>{ const f=transferFields(w); return c==='stage'?f.stageOrder:(f[c]||''); };
-  let rows=state.workorders.filter(w=>(w.kind==='delivery'||w.kind==='handover')&&transferVisible(w,u)&&transferBucket(w)===trF)
+  let rows=state.workorders.filter(w=>(w.kind==='delivery'||w.kind==='handover')&&transferVisible(w,u)&&transferBucket(w)===trF&&(()=>{const f=transferFields(w);return searchMatch('wo', f.what, f.from, f.to, f.stage, f.type);})())
     .sort((a,b)=>cmpVals(val(a,trSortCol),val(b,trSortCol),trSortDir));
-  if(!rows.length) return `<div class="empty">No ${trF==='open'?'open':trF==='inprogress'?'in-progress':'completed'} transfers.</div>`;
+  if(!rows.length) return `<div class="empty">No ${trF==='open'?'open':trF==='inprogress'?'in-progress':'completed'} transfers${searchGet('wo').text?' match your search':''}.</div>`;
   const cols=[['what','What'],['from','From'],['to','To'],['stage','Stage']];
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setTrSort',trSortCol,trSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(w=>{
     const f=transferFields(w);
@@ -3459,12 +3481,19 @@ function pageReport(){
       <div class="page-head-left"><div class="page-lead">Report what you've gathered</div></div>
       ${canReport?`<button class="btn btn-black" onclick="openReportModal()">+ Report materials</button>`:''}
     </div>
-    <div id="report-list" style="margin-top:32px;">${renderReportBody()}</div>`;
+    <div id="report-controls" style="margin-top:32px;">${renderReportControls()}</div>
+    <div id="report-list">${renderReportBody()}</div>`;
 }
+function renderReportControls(){ return searchBar('report', '', 'Search location or material…', 'toggleRpSearch()', 'rpSearchInput(this.value)'); }
+function toggleRpSearch(){ searchToggle('report', rerenderReport); }
+function rpSearchInput(v){ searchType('report', v, ()=>{ const l=document.getElementById('report-list'); if(l) l.innerHTML=renderReportBody(); }); }
+function rerenderReport(){ const c=document.getElementById('report-controls'); if(c) c.innerHTML=renderReportControls(); const l=document.getElementById('report-list'); if(l) l.innerHTML=renderReportBody(); }
 function renderReportBody(){
   const u=state.user;
-  const mine=state.workorders.filter(w=>w.kind==='pickup'&&w.createdBy===u._id).sort((a,b)=>b._creationTime-a._creationTime);
-  return mine.length?renderReportList(mine):`<div class="empty">Nothing reported yet. Hit “Report materials” to log a haul — just say what you've got and where. Logistics comes to collect it.</div>`;
+  const mine=state.workorders.filter(w=>w.kind==='pickup'&&w.createdBy===u._id
+      &&searchMatch('report', w.location, (w.report||[]).map(r=>r.what+' '+r.type).join(' ')))
+    .sort((a,b)=>b._creationTime-a._creationTime);
+  return mine.length?renderReportList(mine):`<div class="empty">${searchGet('report').text?'Nothing matches your search.':'Nothing reported yet. Hit “Report materials” to log a haul — say what you have and where, and logistics comes to collect it.'}</div>`;
 }
 function renderReportList(rows){
   return `<table class="cards"><thead><tr><th>Location</th><th>What you reported</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(w=>{
@@ -3582,9 +3611,9 @@ function renderDistribution(){
 
   if(dsF==='available'){
     const locked=lockedStockSet();
-    let rows=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&s.heldBy!==u.username&&!locked.has(s._id))
+    let rows=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&s.heldBy!==u.username&&!locked.has(s._id)&&searchMatch('wo', s.name, s.location, s.heldBy))
       .sort((a,b)=>cmpVals(val(a,dsSortCol),val(b,dsSortCol),dsSortDir));
-    if(!rows.length) return `<div class="empty">No finished items available to request right now.</div>`;
+    if(!rows.length) return `<div class="empty">No finished items available to request${searchGet('wo').text?' match your search':' right now'}.</div>`;
     const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['heldby','Crafter'],['location','Location']];
     return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setDsSort',dsSortCol,dsSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(s=>`<tr>
       <td data-label="Item" style="font-weight:700;">${esc(s.name)}</td>
@@ -3597,9 +3626,9 @@ function renderDistribution(){
   }
 
   const wantStatus = dsF==='handedout' ? 'handed_out' : 'with_distributor';
-  let rows=state.stock.filter(s=>s.kind==='item'&&s.status===wantStatus&&(isAdmin(u)||s.heldBy===u.username))
+  let rows=state.stock.filter(s=>s.kind==='item'&&s.status===wantStatus&&(isAdmin(u)||s.heldBy===u.username)&&searchMatch('wo', s.name, s.location, s.heldBy))
     .sort((a,b)=>cmpVals(val(a,dsSortCol),val(b,dsSortCol),dsSortDir));
-  if(!rows.length) return `<div class="empty">${dsF==='handedout'?'Nothing handed out yet.':'Your stockpile is empty. Check Available to request finished items from crafters.'}</div>`;
+  if(!rows.length) return `<div class="empty">${searchGet('wo').text?'Nothing matches your search.':(dsF==='handedout'?'Nothing handed out yet.':'Your stockpile is empty. Check Available to request finished items from crafters.')}</div>`;
   const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['location','Location']].concat(isAdmin(u)?[['heldby','Held By']]:[]);
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setDsSort',dsSortCol,dsSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(s=>`<tr>
     <td data-label="Item" style="font-weight:700;">${esc(s.name)}${s.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(s.note)}</div>`:''}</td>
