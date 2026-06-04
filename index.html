@@ -1678,17 +1678,19 @@ function fpDate(ts){ return new Date(ts).toLocaleDateString('en-GB',{day:'numeri
 function fpActivityHeadline(e){
   const d=e.details||{};
   const dt=fpDate(e._creationTime);
+  const pl=(n,w)=>`${n} ${w}${n!==1?'s':''}`;
   switch(e.type){
-    case 'item_added':              return {kicker:dt, text:`${e.userName} added ${d.quantity}× ${d.name}`, foot:'Databank'};
-    case 'item_handed_out':         return {kicker:dt, text:`${d.handedOutQty}× ${d.name} handed to ${d.handedOutTo}`, foot:'Logistics'};
-    case 'items_used_for_project':  return {kicker:dt, text:`Materials consumed for "${d.taskTitle}"`, foot:'Project'};
-    case 'item_converted':          return {kicker:dt, text:`${d.used} ${d.from} converted into ${d.made} ${d.to}`, foot:'Wikelo'};
-    case 'item_removed':            return {kicker:dt, text:`${d.name} pulled from the databank`, foot:'Databank'};
-    case 'task_created':            return {kicker:dt, text:`New project opened: "${d.title}"`, foot:'Projects'};
-    case 'task_closed':             return {kicker:dt, text:`"${d.title}" wrapped up`, foot:'Projects'};
-    case 'user_joined':             return {kicker:'New recruit', text:`${e.userName} signed up to the wing`, foot:'Roster'};
-    case 'member_restored':         return {kicker:dt, text:`${d.targetUsername} is back on the roster`, foot:'Roster'};
-    case 'role_approved':           return {kicker:dt, text:`${d.targetUsername} is now ${d.role}`, foot:'Roster'};
+    case 'stock_added':         return {kicker:dt, text:`${e.userName} reported ${d.name} (${d.qty} ${d.unit||''})`.trim(), foot:'Stock'};
+    case 'stock_removed':       return {kicker:dt, text:`${d.name} pulled from stock`, foot:'Stock'};
+    case 'workorder_created':   return d.kind==='craft' ? {kicker:dt, text:`Craft order opened: ${d.qty}× ${d.item}`, foot:'Crafting'} : null;
+    case 'workorder_completed': return {kicker:dt, text: d.kind==='pickup' ? `${e.userName} collected a pickup` : d.kind==='delivery' ? `${e.userName} received materials at base` : `${e.userName} closed a workorder`, foot: d.kind==='pickup'?'Pickup':'Crafting'};
+    case 'item_crafted':        return {kicker:dt, text:`${e.userName} crafted ${d.count}× ${d.item}${d.quality!=null?` (Q${d.quality})`:''}`, foot:'Distribution'};
+    case 'items_taken':         return {kicker:dt, text:`${d.to||e.userName} stocked ${pl(d.count,'item')}${d.from?` from ${d.from}`:''}`, foot:'Distribution'};
+    case 'item_handed_out':     return {kicker:dt, text:`${d.qty}× ${d.item||d.name} handed to ${d.recipient||d.handedOutTo}`, foot:'Log'};
+    case 'catalog_imported':    return {kicker:dt, text:`Catalog seeded — ${d.items||0} items, ${d.materials||0} materials`, foot:'Admin'};
+    case 'user_joined':         return {kicker:'New recruit', text:`${e.userName} signed up to the wing`, foot:'Roster'};
+    case 'member_restored':     return {kicker:dt, text:`${d.targetUsername} is back on the roster`, foot:'Roster'};
+    case 'role_approved':       return {kicker:dt, text:`${d.targetUsername} is now ${d.role}`, foot:'Roster'};
     default: return null;
   }
 }
@@ -1699,81 +1701,71 @@ function fpActivityHeadline(e){
 function buildHeadlines(){
   const out=[];
   const push=(kicker,text,foot)=>out.push({kicker,text,foot});
-  const avail=state.navItems.filter(i=>i.status==='available');
-  const openTasks=state.tasks.filter(t=>t.status==='open');
-  const itemsCnt=avail.reduce((s,i)=>s+i.quantity,0);
+  const plural=(n,w)=>`${n} ${w}${n!==1?'s':''}`;
+  const stock=state.stock||[], wos=state.workorders||[];
+  const qsum=a=>Math.round(a.reduce((s,x)=>s+(x.qty||0),0)*100)/100;
+  const isum=a=>Math.round(a.reduce((s,x)=>s+(x.qty||0),0));
+  const st=s=>stock.filter(x=>x.status===s);
+  const M=a=>a.filter(x=>x.kind==='material'), I=a=>a.filter(x=>x.kind==='item');
+  const reported=st('reported'), inTransit=st('in_transit'), atBase=st('at_base'),
+        crafted=st('crafted'), withDist=st('with_distributor'), handedOut=st('handed_out');
+  const openPickups=wos.filter(w=>w.kind==='pickup'&&w.status==='open');
+  const openDeliv=wos.filter(w=>w.kind==='delivery'&&w.status==='open');
+  const craftOpen=wos.filter(w=>w.kind==='craft'&&w.status==='open');
+  const handovers=wos.filter(w=>w.kind==='handover'&&w.status!=='done');
   const members=state.allUsers.filter(x=>!x.roles.includes('removed'));
-  const urgentCnt=openTasks.filter(t=>t.priority==='urgent').length;
-  const topByQty=(arr,key)=>{const m={};arr.forEach(i=>{const k=i[key];if(k)m[k]=(m[k]||0)+i.quantity;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
+  const topBy=(arr,key)=>{const m={};arr.forEach(i=>{const k=i[key];if(k)m[k]=(m[k]||0)+(i.qty||0);});return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
 
-  // ── Lead ──
-  push('The Wing Today', `${openTasks.length} project${openTasks.length!==1?'s':''} underway, ${itemsCnt} items in the databank`, 'Overview');
-
-  // ── Projects: progress, closest-to-done, biggest shortfall ──
-  const prio={urgent:0,high:1,normal:2,whenever:3};
-  const progress=openTasks.map(t=>{
-    if(!t.requiredItems?.length) return {t,pct:null};
-    const total=t.requiredItems.reduce((s,r)=>s+r.quantityNeeded,0);
-    const got=t.requiredItems.reduce((s,r)=>{const n=avail.filter(i=>i.name===r.name&&i.category===r.category).reduce((s2,i)=>s2+i.quantity,0);return s+Math.min(n,r.quantityNeeded);},0);
-    return {t,pct:total?Math.round(got/total*100):0};
-  });
-  progress.slice().sort((a,b)=>(prio[a.t.priority]??2)-(prio[b.t.priority]??2)).forEach(p=>{
-    const k=p.t.priority==='urgent'?'Urgent':'Project';
-    const text = p.pct===null ? `"${p.t.title}" is looking for hands`
-      : p.pct>=100 ? `"${p.t.title}" is fully supplied` : `"${p.t.title}" is ${p.pct}% supplied`;
-    out.push({kicker:k, text, foot:'Project', go:`openProjectFromOverview('${escJs(p.t._id)}')`});
-  });
-  const racing=progress.filter(p=>p.pct!==null&&p.pct>0&&p.pct<100);
-  if(racing.length>1){ const top=racing.reduce((a,b)=>b.pct>a.pct?b:a); out.push({kicker:'Almost There',text:`"${top.t.title}" is closest to ready at ${top.pct}%`,foot:'Project',go:`openProjectFromOverview('${escJs(top.t._id)}')`}); }
-  const gaps={};
-  openTasks.forEach(t=>(t.requiredItems||[]).forEach(r=>{const n=avail.filter(i=>i.name===r.name&&i.category===r.category).reduce((s,i)=>s+i.quantity,0);const g=r.quantityNeeded-n;if(g>0)gaps[r.name]=(gaps[r.name]||0)+g;}));
-  const gapTop=Object.entries(gaps).sort((a,b)=>b[1]-a[1])[0];
-  if(gapTop) push('Most Wanted', `The wing still needs ${gapTop[1]}× ${gapTop[0]}`, 'Projects');
-  if(urgentCnt) push('Heads Up', `${urgentCnt} project${urgentCnt!==1?'s':''} flagged urgent`, 'Projects');
-  if(!openTasks.length) push('Projects', `No active projects. Time to start one?`, 'Projects');
-
-  // ── Inventory: depth, spread, holders, categories ──
-  const types=new Set(avail.map(i=>i.name+'|'+i.category)).size;
-  if(types) push('Databank', `${itemsCnt} items across ${types} kind${types!==1?'s':''} on the shelves`, 'Inventory');
-  if(avail.length){ const deepest=avail.reduce((a,b)=>b.quantity>a.quantity?b:a); push('Deepest Stockpile', `${deepest.quantity}× ${deepest.name} is the largest hoard`, 'Inventory'); }
-  const byLoc=topByQty(avail,'location');
-  if(byLoc.length>1) push('Main Depot', `Most stock sits at ${byLoc[0][0]}`, 'Inventory');
-  const byHolder=topByQty(avail,'heldBy');
-  if(byHolder.length) push('Quartermaster', `${byHolder[0][0]} is holding the most kit`, 'Inventory');
-  const comps=avail.filter(i=>i.category==='ship_component').reduce((s,i)=>s+i.quantity,0);
-  if(comps) push('Hangar', `${comps} ship component${comps!==1?'s':''} on the racks`, 'Inventory');
-  const wik=avail.filter(i=>i.category==='wikelo').reduce((s,i)=>s+i.quantity,0);
-  if(wik) push('Wikelo Vault', `${wik} Wikelo item${wik!==1?'s':''} stashed away`, 'Inventory');
-  const fieldQty=state.navItems.filter(i=>i.status==='handed_out').reduce((s,i)=>s+(i.handedOutQty||i.quantity),0);
-  if(fieldQty) push('In the Field', `${fieldQty} item${fieldQty!==1?'s':''} out with members right now`, 'Logistics');
-  const usedQty=state.navItems.filter(i=>i.status==='used').reduce((s,i)=>s+i.quantity,0);
-  if(usedQty) push('Spent', `${usedQty} item${usedQty!==1?'s':''} consumed on projects so far`, 'Archive');
-
-  // ── Logistics ──
-  const openLog=state.logistics.filter(l=>l.status==='open').length;
-  push('Logistics', openLog?`${openLog} move${openLog!==1?'s':''} in transit`:`Logistics is all quiet, nothing queued`, 'Logistics');
-
-  // ── Lottery (managers only see lottery data) ──
-  if(state.lotteries.length){
-    const live=state.lotteries.filter(l=>l.status==='open'||l.status==='drawn').length;
-    push('Lottery', live?`A lottery is live, get your picks in`:`No lottery running right now`, 'Lottery');
+  // ── Lead: the pipeline at a glance ──
+  const matsMoving=M(reported).length+M(inTransit).length+M(atBase).length;
+  const itemsMade=isum(I(crafted))+isum(I(withDist));
+  if(!stock.length && !wos.length){
+    push('The Pipeline', `Quiet on every front — gather something to set it running`, 'Stock');
+  } else {
+    push('The Pipeline', `${plural(matsMoving,'material lot')} in motion, ${plural(itemsMade,'item')} finished and waiting`, 'Stock');
   }
 
-  // ── Roster: size, leadership, newest, top contributor ──
-  const command=members.filter(m=>m.roles.includes('command')||m.roles.includes('admin')).length;
-  const core=members.filter(m=>m.roles.includes('core')).length;
-  push('The Roster', `${members.length} strong: ${command} command, ${core} core`, 'Members');
-  const adds={};
-  state.archive.filter(e=>e.type==='item_added').forEach(e=>{adds[e.userName]=(adds[e.userName]||0)+1;});
-  const addTop=Object.entries(adds).sort((a,b)=>b[1]-a[1])[0];
-  if(addTop && addTop[1]>=2) push('Top Contributor', `${addTop[0]} has stocked the databank ${addTop[1]} times`, 'Roster');
+  // ── Gather → Pickup ──
+  if(reported.length) out.push({kicker:'Fresh Haul', text:`${plural(M(reported).length,'material lot')} reported from the field`, foot:'Pickup'});
+  if(openPickups.length) out.push({kicker:'Pickup Needed', text:`${plural(openPickups.length,'pickup')} waiting on logistics`, foot:'Pickup'});
+
+  // ── Logistics → Crafting ──
+  if(inTransit.length) out.push({kicker:'Inbound', text:`${plural(M(inTransit).length,'material lot')} hauling to base`, foot:'Crafting'});
+  if(openDeliv.length) out.push({kicker:'At the Dock', text:`${plural(openDeliv.length,'delivery')} for a crafter to receive`, foot:'Crafting'});
+
+  // ── Craft ──
+  if(atBase.length) out.push({kicker:'Ready to Craft', text:`${plural(M(atBase).length,'material lot')} at base, ready for the bench`, foot:'Stock'});
+  if(craftOpen.length){
+    const remaining=craftOpen.reduce((s,o)=>s+Math.max(0,(o.qtyNeeded||0)-(o.qtyDone||0)),0);
+    const urgent=craftOpen.filter(o=>o.priority==='urgent').length;
+    out.push({kicker:urgent?'Urgent Builds':'Order Book', text:`${plural(craftOpen.length,'craft order')} open${urgent?`, ${urgent} urgent`:''}`, foot:'Crafting'});
+    const top=[...craftOpen].sort((a,b)=>((b.qtyNeeded||0)-(b.qtyDone||0))-((a.qtyNeeded||0)-(a.qtyDone||0)))[0];
+    const topRem=(top.qtyNeeded||0)-(top.qtyDone||0);
+    if(topRem>0) out.push({kicker:'Most Wanted', text:`The bench still owes ${topRem}× ${top.itemName}`, foot:'Crafting'});
+  }
+
+  // ── Distribution ──
+  if(crafted.length) out.push({kicker:'Off the Bench', text:`${plural(isum(I(crafted)),'finished item')} awaiting distribution`, foot:'Distribution'});
+  if(handovers.length) out.push({kicker:'Handover', text:`${plural(handovers.length,'handover')} in progress`, foot:'Distribution'});
+  if(withDist.length) out.push({kicker:'Stockpiled', text:`${plural(isum(I(withDist)),'item')} stockpiled with distributors`, foot:'Distribution'});
+  if(handedOut.length) out.push({kicker:'Delivered', text:`${plural(isum(I(handedOut)),'item')} handed out to the org`, foot:'Log'});
+
+  // ── Who holds what ──
+  const matHolders=topBy(M([...atBase,...inTransit]),'heldBy');
+  if(matHolders.length) push('Quartermaster', `${matHolders[0][0]} holds the most materials right now`, 'Stock');
+  const byLoc=topBy(stock.filter(s=>s.status!=='handed_out'),'location');
+  if(byLoc.length>1) push('Main Depot', `Most of the pipeline sits at ${byLoc[0][0]}`, 'Stock');
+
+  // ── Roster ──
+  const byRole=r=>members.filter(m=>m.roles.includes(r)).length;
+  push('The Roster', `${plural(members.length,'member')} strong — ${byRole('gatherer')} gather, ${byRole('crafter')} craft, ${byRole('distributor')} distribute`, 'Roster');
   const pending=state.allUsers.filter(isRecruit).length;
-  if(pending && isAdmin(state.user)) push('Awaiting Approval', `${pending} recruit${pending!==1?'s':''} waiting to be let in`, 'Admin');
+  if(pending && isAdmin(state.user)) push('Awaiting Approval', `${plural(pending,'recruit')} waiting to be let in`, 'Admin');
 
   // ── Activity pulse + recent items ──
   const weekAgo=Date.now()-7*864e5;
   const weekActs=state.archive.filter(e=>e._creationTime>=weekAgo && !LOTTERY_LOG_TYPES.has(e.type) && !e.type.startsWith('password_reset')).length;
-  if(weekActs) push('This Week', `${weekActs} action${weekActs!==1?'s':''} logged in the last 7 days`, 'Archive');
+  if(weekActs) push('This Week', `${plural(weekActs,'action')} logged in the last 7 days`, 'Log');
   state.archive
     .filter(e=>!LOTTERY_LOG_TYPES.has(e.type) && !e.type.startsWith('password_reset') && e.type!=='member_removed')
     .slice(0,12)
@@ -1814,10 +1806,13 @@ function fpGap(i){ let s=(fpSeed ^ (i*0x9e3779b1))>>>0; s=(s*1664525+1013904223)
 // Map a headline to a navigation action (clicking the card jumps there).
 function fpGoFor(h){
   if(h.go) return h.go; // project headlines carry an explicit target
-  const map={Projects:"goTo('tasks')",Inventory:"goTo('items')",Databank:"goTo('items')",Hangar:"goTo('items')",Wikelo:"goTo('items')",Logistics:"goToLogistics()",Lottery:"goTo('lottery')",Archive:"goTo('archive')",Admin:"goTo('admin')"};
+  const map={Pickup:"goWork('pickup')",Crafting:"goWork('crafting')",Distribution:"goWork('distribution')",Materials:"goStock('materials')",Items:"goStock('items')",Stock:"goStock('materials')",Log:"goTo('archive')",Admin:"goTo('admin')",
+    Projects:"goTo('tasks')",Inventory:"goTo('items')",Databank:"goTo('items')",Lottery:"goTo('lottery')",Archive:"goTo('archive')"};
   return map[h.foot]||'';
 }
 function goToLogistics(){ itemsView='logistics'; logisticsDetailId=null; currentPage='items'; renderNav(); renderPage(); }
+function goWork(view){ woView=view; currentPage='tasks'; renderNav(); renderPage(); }
+function goStock(view){ stockView=view; currentPage='items'; renderNav(); renderPage(); }
 
 // Only render as many full-bleed images as the headlines reach: hide any image
 // that starts below the last headline (keep the one the last headline sits on,
