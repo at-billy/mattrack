@@ -1249,6 +1249,7 @@ function updateLiveView(silent=false) {
     const active = document.activeElement;
     const typing = active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA'||active.tagName==='SELECT') && document.getElementById('page-wrap')?.contains(active);
     if(!typing){
+      const rl=document.getElementById('report-list'); if(rl) rl.innerHTML=renderReportBody();
       const c=document.getElementById('stock-controls'); if(c) c.innerHTML=renderStockControls();
       const l=document.getElementById('stock-list'); if(l) l.innerHTML=renderStockList();
     }
@@ -1593,16 +1594,13 @@ function renderNav() {
 
   const inLog=['archive','admin','member','catalog',...(canManageLottery(u)?['lottery']:[])];
   let main='mat';
-  if(currentPage==='report') main='report';
-  else if(currentPage==='tasks') main='task';
+  if(currentPage==='tasks') main='task';
   else if(currentPage==='items') main='items';
   else if(inLog.includes(currentPage)) main='log';
 
   let sub='';
   if(main==='mat'){
     sub=`<div class="nav-sub-item" style="cursor:default;">Welcome back, ${esc(u.username)}</div>`;
-  } else if(main==='report'){
-    sub=`<div class="nav-sub-item" style="cursor:default;">Report what you've gathered</div>`;
   } else if(main==='task'){
     sub=`
       <div class="nav-sub-item${woView==='pickup'?' active':''}" onclick="setWoView('pickup')">Pickup</div>
@@ -1610,9 +1608,12 @@ function renderNav() {
       <div class="nav-sub-item${woView==='crafting'?' active':''}" onclick="setWoView('crafting')">Crafting</div>
       <div class="nav-sub-item${woView==='distribution'?' active':''}" onclick="setWoView('distribution')">Distribution</div>`;
   } else if(main==='items'){
+    const canReport=isGatherer(u)||isAdmin(u);
+    const canLedger=isLogistics(u)||isCrafter(u)||isDistributor(u)||isAdmin(u);
     sub=`
-      <div class="nav-sub-item${stockView==='materials'?' active':''}" onclick="setStockView('materials')">Materials</div>
-      <div class="nav-sub-item${stockView==='items'?' active':''}" onclick="setStockView('items')">Items</div>`;
+      ${canReport?`<div class="nav-sub-item${stockView==='report'?' active':''}" onclick="setStockView('report')">Report</div>`:''}
+      ${canLedger?`<div class="nav-sub-item${stockView==='materials'?' active':''}" onclick="setStockView('materials')">Materials</div>`:''}
+      ${canLedger?`<div class="nav-sub-item${stockView==='items'?' active':''}" onclick="setStockView('items')">Items</div>`:''}`;
   } else if(main==='log'){
     const openLotteries=state.lotteries.filter(l=>l.status==='open'||l.status==='drawn').length;
     sub=`
@@ -1628,9 +1629,8 @@ function renderNav() {
   el.innerHTML=`
     <div id="nav-primary">
       <div class="nav-main${main==='mat'?' active':''}" onclick="goTo('overview')">MAT</div>
-      ${(isGatherer(u)||isAdmin(u))?`<div class="nav-main${main==='report'?' active':''}" onclick="goTo('report')">REPORT</div>`:''}
       ${(isLogistics(u)||isCrafter(u)||isDistributor(u)||isAdmin(u))?`<div class="nav-main${main==='task'?' active':''}" onclick="goTo('tasks')">WORK</div>`:''}
-      ${(isLogistics(u)||isCrafter(u)||isDistributor(u)||isAdmin(u))?`<div class="nav-main${main==='items'?' active':''}" onclick="goTo('items')">STOCK</div>`:''}
+      <div class="nav-main${main==='items'?' active':''}" onclick="goTo('items')">STOCK</div>
       <div class="nav-main outline${main==='log'?' active':''}" onclick="goTo('archive')">LOG</div>
     </div>
     ${sub?`<div id="nav-sub">${sub}</div>`:''}`;
@@ -1660,7 +1660,7 @@ function renderPageContent() {
   } else {
     document.body.classList.remove('fp-on');
     pw.style.marginTop=navH+'px';
-    const pages={overview:pageOverview,report:pageReport,items:pageStock,tasks:pageWorkorders,archive:pageArchive,admin:pageAdmin,member:pageMember,lottery:pageLottery,catalog:pageCatalog};
+    const pages={overview:pageOverview,items:pageStock,tasks:pageWorkorders,archive:pageArchive,admin:pageAdmin,member:pageMember,lottery:pageLottery,catalog:pageCatalog};
     pw.innerHTML=`<div class="page">${(pages[currentPage]||pageOverview)()}</div>`;
   }
 }
@@ -3405,15 +3405,17 @@ async function doRequestSelected(){
 function pageReport(){
   const u=state.user;
   const canReport=isGatherer(u)||isAdmin(u);
-  const mine=state.workorders.filter(w=>w.kind==='pickup'&&w.createdBy===u._id).sort((a,b)=>b._creationTime-a._creationTime);
   return `
     <div class="page-head">
       <div class="page-head-left"><div class="page-lead">Report what you've gathered</div></div>
       ${canReport?`<button class="btn btn-black" onclick="openReportModal()">+ Report materials</button>`:''}
     </div>
-    <div style="margin-top:32px;">
-      ${mine.length?renderReportList(mine):`<div class="empty">Nothing reported yet. Hit “Report materials” to log a haul — just say what you've got and where. Logistics comes to collect it.</div>`}
-    </div>`;
+    <div id="report-list" style="margin-top:32px;">${renderReportBody()}</div>`;
+}
+function renderReportBody(){
+  const u=state.user;
+  const mine=state.workorders.filter(w=>w.kind==='pickup'&&w.createdBy===u._id).sort((a,b)=>b._creationTime-a._creationTime);
+  return mine.length?renderReportList(mine):`<div class="empty">Nothing reported yet. Hit “Report materials” to log a haul — just say what you've got and where. Logistics comes to collect it.</div>`;
 }
 function renderReportList(rows){
   return `<table class="cards"><thead><tr><th>Location</th><th>What you reported</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(w=>{
@@ -3656,7 +3658,16 @@ function stockRows(){
   });
 }
 
+function stockViewsAllowed(){
+  const u=state.user; const v=[];
+  if(isGatherer(u)||isAdmin(u)) v.push('report');
+  if(isLogistics(u)||isCrafter(u)||isDistributor(u)||isAdmin(u)) v.push('materials','items');
+  return v.length?v:['materials'];
+}
+function ensureStockView(){ const a=stockViewsAllowed(); if(!a.includes(stockView)) stockView=a[0]; }
 function pageStock(){
+  ensureStockView();
+  if(stockView==='report') return pageReport();
   const u=state.user;
   const canAdd = !isRecruit(u);
   const n=state.stock.filter(s=>s.kind===(stockView==='items'?'item':'material')).length;
