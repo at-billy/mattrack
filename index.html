@@ -3158,7 +3158,7 @@ function searchType(scope,val,rerenderList){ searchGet(scope).text=val; rerender
 // Renders the controls row (filter buttons + Search toggle) and, when open, the input.
 function searchBar(scope, filtersHtml, placeholder, onToggle, onInput){
   const st=searchGet(scope);
-  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--space-4);align-items:center;">
       ${filtersHtml||''}
       <div style="flex:1;"></div>
       <button class="btn-ghost btn-sm${st.active?' active':''}" onclick="${onToggle}">${st.active?'Close Search':'Search'}</button>
@@ -3215,14 +3215,14 @@ function renderCraftOrders(){
     const item=state.catalog.items.find(it=>it.name===o.itemName);
     const recipe=item?item.recipe:[];
     const recipeHtml=recipe.length?recipe.map(r=>`${esc(r.materialName)} ×${r.qty}`).join(', '):'<span style="color:var(--red);">no recipe</span>';
-    return `<div style="padding:16px 0;border-bottom:1px solid var(--border-m);display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+    return `<div style="padding:var(--space-4) 0;border-bottom:1px solid var(--border-m);display:flex;gap:var(--space-4);flex-wrap:wrap;align-items:flex-start;">
       <div style="flex:1;min-width:240px;">
         <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
           ${priorityTag(o.priority)}
           <span style="font-weight:900;font-size:var(--text-md);">${esc(o.itemName||'—')}</span>
           <span style="font-size:var(--text-sm);color:var(--fg);">${o.qtyDone||0}/${o.qtyNeeded||0} done${o.status==='done'?' · complete':''}</span>
         </div>
-        <div style="font-size:var(--text-sm);color:var(--fg);margin-top:4px;">Recipe: ${recipeHtml}</div>
+        <div style="font-size:var(--text-sm);color:var(--fg);margin-top:var(--space-1);">Recipe: ${recipeHtml}</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
         ${(isAdmin(u)||o.createdBy===u._id)?`<button class="btn-del" onclick="woDelete('${esc(o._id)}')" aria-label="Delete">&times;</button>`:''}
@@ -3270,12 +3270,12 @@ function openCraftModal(){
       const recipeHtml=recipe.length?recipe.map(r=>`${esc(r.materialName)} ×${r.qty}`).join(', '):'<span style="color:var(--red);">no recipe</span>';
       return `<div style="padding:14px 0;border-bottom:1px solid var(--border-m);">
         <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">${priorityTag(o.priority)}<span style="font-weight:900;">${esc(o.itemName)}</span><span style="font-size:var(--text-sm);color:var(--fg);">${o.qtyDone||0}/${o.qtyNeeded||0} done</span></div>
-        <div style="font-size:var(--text-sm);color:var(--fg);margin-top:4px;">Recipe: ${recipeHtml}</div>
-        <div style="font-size:var(--text-sm);color:${avail>0?'#16a34a':'var(--red)'};margin-top:4px;">You can craft ${avail} now from your materials at base</div>
-        ${avail>0?`<div style="margin-top:8px;display:flex;gap:6px;align-items:center;"><input id="cqm-${o._id}" type="number" min="1" max="${avail}" value="1" style="width:72px;"><button class="btn btn-black btn-sm" onclick="doCraftModal('${esc(o._id)}')">Craft</button></div>`:''}
+        <div style="font-size:var(--text-sm);color:var(--fg);margin-top:var(--space-1);">Recipe: ${recipeHtml}</div>
+        <div style="font-size:var(--text-sm);color:${avail>0?'#16a34a':'var(--red)'};margin-top:var(--space-1);">You can craft ${avail} now from your materials at base</div>
+        ${avail>0?`<div style="margin-top:var(--space-2);display:flex;gap:6px;align-items:center;"><input id="cqm-${o._id}" type="number" min="1" max="${avail}" value="1" style="width:72px;"><button class="btn btn-black btn-sm" onclick="doCraftModal('${esc(o._id)}')">Craft</button></div>`:''}
       </div>`;
     }).join('')}</div>
-    <div style="margin-top:12px;"><button class="btn btn-outline" onclick="closeModal()">Close</button></div>`);
+    <div style="margin-top:var(--space-3);"><button class="btn btn-outline" onclick="closeModal()">Close</button></div>`);
 }
 async function doCraftModal(orderId){
   const inp=document.getElementById('cqm-'+orderId); const count=Math.max(1, Number(inp?inp.value:1)||1);
@@ -3291,7 +3291,7 @@ function openCraftOrderModal(){
       <div class="field"><label class="lbl">Priority</label><select id="co-prio"><option value="urgent">Urgent</option><option value="high">High</option><option value="normal" selected>Normal</option><option value="whenever">Whenever</option></select></div>
     </div>
     <div class="err-msg" id="co-err"></div>
-    <div style="display:flex;gap:10px;margin-top:8px;">
+    <div style="display:flex;gap:10px;margin-top:var(--space-2);">
       <button class="btn btn-black" onclick="saveCraftOrder()">Create</button>
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     </div>`);
@@ -3315,7 +3315,7 @@ function pageWorkorders(){
     let lead, btn='';
     if(amCrafter){
       lead='Your crafted items';
-      btn=`<button class="btn btn-black" onclick="openCraftModal()">Craft</button>${isAdmin(u)?`<button class="btn btn-outline" style="margin-left:8px;" onclick="openCraftOrderModal()">+ Craft Order</button>`:''}`;
+      btn=`<button class="btn btn-black" onclick="openCraftModal()">Craft</button>${isAdmin(u)?`<button class="btn btn-outline" style="margin-left:var(--space-2);" onclick="openCraftOrderModal()">+ Craft Order</button>`:''}`;
     } else {
       const craftOpen=state.workorders.filter(w=>w.kind==='craft'&&w.status==='open').length;
       lead=`${craftOpen} open craft order${craftOpen===1?'':'s'}`;
@@ -3326,7 +3326,7 @@ function pageWorkorders(){
         <div class="page-head-left"><div class="page-lead">${lead}</div></div>
         ${btn}
       </div>
-      <div id="wo-content" style="margin-top:32px;">
+      <div id="wo-content" style="margin-top:var(--space-6);">
         <div id="wo-controls">${renderWoControls()}</div>
         <div id="wo-list">${renderWoListActive()}</div>
       </div>`;
@@ -3334,7 +3334,7 @@ function pageWorkorders(){
   if(woView==='distribution'){
     return `
       <div class="page-head"><div class="page-head-left"><div class="page-lead">Distribution</div></div></div>
-      <div id="wo-content" style="margin-top:32px;">
+      <div id="wo-content" style="margin-top:var(--space-6);">
         <div id="wo-controls">${renderWoControls()}</div>
         <div id="wo-dist">${renderDistribution()}</div>
       </div>`;
@@ -3351,7 +3351,7 @@ function pageWorkorders(){
     <div class="page-head">
       <div class="page-head-left"><div class="page-lead">${lead}</div></div>
     </div>
-    <div id="wo-content" style="margin-top:32px;">
+    <div id="wo-content" style="margin-top:var(--space-6);">
       <div id="wo-controls">${renderWoControls()}</div>
       <div id="wo-list">${renderWoListActive()}</div>
     </div>`;
@@ -3399,9 +3399,9 @@ function renderPickupTable(){
       <td data-label="Accepted by">${esc(w.claimedByName||'—')}</td>
       <td data-label="By" style="color:var(--fg);">${esc(w.createdByName)}</td>
       <td data-label="" style="white-space:nowrap;">
-        ${canAccept?`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="woAccept('${esc(w._id)}')">Accept</button>`:''}
-        ${canFinish?`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="openManifestModal('${esc(w._id)}')">Receive</button>`:''}
-        ${canFinish?`<button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`:''}
+        ${canAccept?`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="woAccept('${esc(w._id)}')">Accept</button>`:''}
+        ${canFinish?`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="openManifestModal('${esc(w._id)}')">Receive</button>`:''}
+        ${canFinish?`<button class="btn btn-outline btn-sm" style="margin-right:var(--space-1);" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`:''}
         ${canDelete?`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Delete">&times;</button>`:''}
       </td></tr>`;
   }).join('')}</tbody></table>`;
@@ -3435,13 +3435,13 @@ function renderTransfers(){
     let acts='';
     if(w.kind==='delivery'){
       const canAct=isAdmin(u)||hasRole(u,'crafter');
-      if(w.status==='open'&&canAct) acts+=`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="woAccept('${esc(w._id)}')">Accept</button>`;
-      if(w.status==='claimed'&&(isAdmin(u)||mine)){ acts+=`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="woComplete('${esc(w._id)}')">Confirm receipt</button>`; acts+=`<button class="btn btn-outline btn-sm" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`; }
+      if(w.status==='open'&&canAct) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="woAccept('${esc(w._id)}')">Accept</button>`;
+      if(w.status==='claimed'&&(isAdmin(u)||mine)){ acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="woComplete('${esc(w._id)}')">Confirm receipt</button>`; acts+=`<button class="btn btn-outline btn-sm" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`; }
       if(w.status==='done'&&(isAdmin(u)||w.createdBy===u._id)) acts+=`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Delete">&times;</button>`;
     } else {
-      if(w.status==='open'&&w.direction==='offer'&&(isDistributor(u)||isAdmin(u))&&!iAmGiver) acts+=`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="openAcceptOfferModal('${esc(w._id)}')">Accept</button>`;
-      if(w.status==='open'&&w.direction==='request'&&iAmGiver&&(isCrafter(u)||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="doAcceptRequest('${esc(w._id)}')">Accept</button>`;
-      if(w.status==='agreed'&&(iAmTaker||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" style="margin-right:4px;" onclick="doConfirmHandover('${esc(w._id)}')">Confirm receipt</button>`;
+      if(w.status==='open'&&w.direction==='offer'&&(isDistributor(u)||isAdmin(u))&&!iAmGiver) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="openAcceptOfferModal('${esc(w._id)}')">Accept</button>`;
+      if(w.status==='open'&&w.direction==='request'&&iAmGiver&&(isCrafter(u)||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="doAcceptRequest('${esc(w._id)}')">Accept</button>`;
+      if(w.status==='agreed'&&(iAmTaker||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="doConfirmHandover('${esc(w._id)}')">Confirm receipt</button>`;
       if(w.status!=='done'&&(iAmGiver||iAmTaker||isAdmin(u))) acts+=`<button class="btn btn-outline btn-sm" onclick="doCancelHandover('${esc(w._id)}')">Cancel</button>`;
     }
     return `<tr>
@@ -3464,7 +3464,7 @@ function openRequestLoc(id){
     <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">From <strong>${esc(s.heldBy)}</strong> — they'll be notified to agree and meet you. Pick where you'll stockpile it.</p>
     <div class="grid2">${locationPicker('rq', null)}</div>
     <div class="err-msg" id="rq-err"></div>
-    <div style="display:flex;gap:10px;margin-top:8px;"><button class="btn btn-black" onclick="doRequestLoc('${esc(s._id)}')">Send request</button><button class="btn btn-outline" onclick="closeModal()">Cancel</button></div>`);
+    <div style="display:flex;gap:10px;margin-top:var(--space-2);"><button class="btn btn-black" onclick="doRequestLoc('${esc(s._id)}')">Send request</button><button class="btn btn-outline" onclick="closeModal()">Cancel</button></div>`);
 }
 async function doRequestLoc(id){
   const location=pickedLocation('rq'); const system=pickedLocationSystem('rq');
@@ -3481,7 +3481,7 @@ function pageReport(){
       <div class="page-head-left"><div class="page-lead">Report what you've gathered</div></div>
       ${canReport?`<button class="btn btn-black" onclick="openReportModal()">+ Report materials</button>`:''}
     </div>
-    <div id="report-controls" style="margin-top:32px;">${renderReportControls()}</div>
+    <div id="report-controls" style="margin-top:var(--space-6);">${renderReportControls()}</div>
     <div id="report-list">${renderReportBody()}</div>`;
 }
 function renderReportControls(){ return searchBar('report', '', 'Search location or material…', 'toggleRpSearch()', 'rpSearchInput(this.value)'); }
@@ -3512,13 +3512,13 @@ function openReportModal(){
   _rpLines=0;
   showModal(`
     <div class="modal-title">Report materials</div>
-    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:12px;">Just the rough picture — what you've got and where. Logistics enters the exact amounts and quality when they collect it.</p>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:var(--space-3);">Just the rough picture — what you've got and where. Logistics enters the exact amounts and quality when they collect it.</p>
     <div class="grid2">${locationPicker('rp', null)}</div>
     <div style="margin:14px 0 6px;font-size:var(--text-xs);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--fg);">What you have</div>
     <div id="rp-lines"></div>
     <button class="btn btn-outline btn-sm" style="margin-top:6px;" onclick="addReportLine()">+ Add line</button>
     <div class="err-msg" id="rp-err" style="margin-top:10px;"></div>
-    <div style="display:flex;gap:10px;margin-top:12px;">
+    <div style="display:flex;gap:10px;margin-top:var(--space-3);">
       <button class="btn btn-black" onclick="submitReport()">Send report</button>
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     </div>`);
@@ -3529,7 +3529,7 @@ function addReportLine(){
   const mats=[...state.catalog.materials].sort((a,b)=>a.name.localeCompare(b.name));
   const row=document.createElement('div');
   row.className='rp-line';
-  row.style.cssText='display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;';
+  row.style.cssText='display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:var(--space-2);';
   row.innerHTML=`
     <select class="rp-type" style="flex:0 0 auto;width:120px;"><option>Mineable</option><option>Salvage</option><option>Loot</option></select>
     <select class="rp-what" style="flex:1;min-width:160px;"><option value="">— what is it —</option>${mats.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}</select>
@@ -3561,14 +3561,14 @@ function openManifestModal(id){
   const reportHtml=(wo.report||[]).map(r=>`<div style="font-size:var(--text-sm);color:var(--fg);">• ${esc(r.what)} — ${esc(r.type)}, ~${r.approxQty} ${esc(r.unit||'')}</div>`).join('')||'<div class="empty">No report lines.</div>';
   showModal(`
     <div class="modal-title">Receive &amp; manifest</div>
-    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:8px;">${esc(wo.createdByName)} reported at <strong>${esc(wo.location||'—')}</strong>:</p>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:var(--space-2);">${esc(wo.createdByName)} reported at <strong>${esc(wo.location||'—')}</strong>:</p>
     <div style="border-left:2px solid var(--border);padding-left:10px;margin-bottom:14px;">${reportHtml}</div>
     <div style="font-size:var(--text-xs);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--fg);margin-bottom:6px;">Confirmed manifest — exact material, quality &amp; quantity</div>
     <div id="mn-lines"></div>
     <button class="btn btn-outline btn-sm" style="margin-top:6px;" onclick="addManifestLine()">+ Add line</button>
     <div class="grid2" style="margin-top:14px;">${locationPicker('mn', wo.location)}</div>
     <div class="err-msg" id="mn-err" style="margin-top:10px;"></div>
-    <div style="display:flex;gap:10px;margin-top:12px;">
+    <div style="display:flex;gap:10px;margin-top:var(--space-3);">
       <button class="btn btn-black" onclick="submitManifest('${esc(id)}')">Confirm &amp; receive</button>
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     </div>`);
@@ -3580,7 +3580,7 @@ function addManifestLine(){
   _mnLines++;
   const row=document.createElement('div');
   row.className='mn-line';
-  row.style.cssText='display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;';
+  row.style.cssText='display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:var(--space-2);';
   row.innerHTML=`
     <select class="mn-name" style="flex:1;min-width:160px;"><option value="">— material —</option>${mats.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}</select>
     <select class="mn-q" style="width:74px;"><option value="">Q?</option>${[1,2,3,4,5,6,7,8,9,10].map(s=>`<option value="${s}">Q${s}</option>`).join('')}</select>
@@ -3645,7 +3645,7 @@ function openAcceptOfferModal(id){
     <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">You'll meet the crafter in-game to receive these. Pick where you'll stockpile them.</p>
     <div class="grid2">${locationPicker('ao', null)}</div>
     <div class="err-msg" id="ao-err"></div>
-    <div style="display:flex;gap:10px;margin-top:8px;">
+    <div style="display:flex;gap:10px;margin-top:var(--space-2);">
       <button class="btn btn-black" onclick="doAcceptOffer('${esc(id)}')">Accept</button>
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     </div>`);
@@ -3677,7 +3677,7 @@ function openHandoutModal(id){
     <div class="field"><label class="lbl">Recipient</label><input id="ho-rcpt" type="text" placeholder="who received it"></div>
     <div class="field"><label class="lbl">Note (optional)</label><input id="ho-note" type="text" placeholder="event name, details…"></div>
     <div class="err-msg" id="ho-err"></div>
-    <div style="display:flex;gap:10px;margin-top:8px;">
+    <div style="display:flex;gap:10px;margin-top:var(--space-2);">
       <button class="btn btn-black" onclick="doHandout('${esc(s._id)}')">Hand Out</button>
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     </div>`);
@@ -3773,7 +3773,7 @@ function pageStock(){
       <div class="page-head-left"><div class="page-lead">${n} ${noun}${n===1?'':'s'} in stock</div></div>
       ${canAdd?`<button class="btn btn-black" onclick="openStockModal()">+ Add Stock</button>`:''}
     </div>
-    <div id="stock-content" style="margin-top:32px;">
+    <div id="stock-content" style="margin-top:var(--space-6);">
       <div id="stock-controls">${renderStockControls()}</div>
       <div id="stock-list">${renderStockList()}</div>
     </div>`;
@@ -3781,7 +3781,7 @@ function pageStock(){
 
 function renderStockControls(){
   const defs=stockStatusesForView();
-  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--space-4);align-items:center;">
       <button class="btn-ghost btn-sm${stockStatusF==='all'?' active':''}" onclick="setStockStatusF('all')">All</button>
       ${defs.map(s=>`<button class="btn-ghost btn-sm${stockStatusF===s.id?' active':''}" onclick="setStockStatusF('${s.id}')">${esc(s.label)}</button>`).join('')}
       <div style="flex:1;"></div>
@@ -3810,7 +3810,7 @@ function renderStockList(){
         <td data-label="Held By">${esc(s.heldBy)}</td>
         <td data-label="Status" style="font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${stockStatusLabel(s.status)}</td>
         <td data-label="" style="white-space:nowrap;">
-          ${canEdit?`<button class="btn btn-outline btn-sm" style="margin-right:4px;" onclick="openStockModal('${esc(s._id)}')">Edit</button><button class="btn-del" onclick="deleteStock('${esc(s._id)}','${escJs(s.name)}')" aria-label="Delete">&times;</button>`:''}
+          ${canEdit?`<button class="btn btn-outline btn-sm" style="margin-right:var(--space-1);" onclick="openStockModal('${esc(s._id)}')">Edit</button><button class="btn-del" onclick="deleteStock('${esc(s._id)}','${escJs(s.name)}')" aria-label="Delete">&times;</button>`:''}
         </td>
       </tr>`;
     }).join('')}</tbody></table>`;
@@ -3865,7 +3865,7 @@ function openStockModal(id){
     ${row?`<div class="field"><label class="lbl">Status</label><select id="st-status">${STOCK_STATUS_DEFS.map(s=>`<option value="${s.id}"${row.status===s.id?' selected':''}>${s.label}</option>`).join('')}</select></div>`:''}
     <div class="field"><label class="lbl">Note (optional)</label><input id="st-note" type="text" value="${row?esc(row.note||''):''}"></div>
     <div class="err-msg" id="st-err"></div>
-    <div style="display:flex;gap:10px;margin-top:8px;">
+    <div style="display:flex;gap:10px;margin-top:var(--space-2);">
       <button class="btn btn-black" onclick="saveStock(${row?`'${esc(row._id)}'`:'null'})">Save</button>
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     </div>`);
