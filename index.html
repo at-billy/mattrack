@@ -3207,11 +3207,24 @@ async function woAbandon(id){ if(!await confirmModal('Abandon this? It goes back
 async function woDelete(id){ if(!await confirmModal('Delete this workorder permanently?')) return; try{ await convexMutation('workorders:remove',{sessionToken:state.sessionToken,id}); toast('Deleted'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 
 // ── Craft orders (the crafter's task) ──
-function craftAvail(item){
+function craftMatQ(s){ return s.qualityStep!=null?s.qualityStep:(s.qualityValue!=null?s.qualityValue:0); }
+function craftAvail(item, order){
   if(!item||!item.recipe||!item.recipe.length) return 0;
   const u=state.user;
-  const myMats=state.stock.filter(s=>s.kind==='material'&&s.status==='at_base'&&s.heldBy===u.username);
+  const minQ=(order&&order.minQuality!=null)?order.minQuality:1, maxQ=(order&&order.maxQuality!=null)?order.maxQuality:10;
+  const myMats=state.stock.filter(s=>s.kind==='material'&&s.status==='at_base'&&s.heldBy===u.username&&craftMatQ(s)>=minQ&&craftMatQ(s)<=maxQ);
   return Math.floor(Math.min(...item.recipe.map(r=>{ const have=myMats.filter(s=>s.name===r.materialName).reduce((a,s)=>a+s.qty,0); return r.qty>0?(have+1e-9)/r.qty:Infinity; })));
+}
+function qualityRangeLabel(o){
+  if(o.minQuality!=null&&o.maxQuality!=null) return `Q${o.minQuality}–${o.maxQuality}`;
+  if(o.minQuality!=null) return `Q${o.minQuality}+`;
+  if(o.maxQuality!=null) return `≤Q${o.maxQuality}`;
+  return 'any quality';
+}
+function craftersLabel(o){
+  const names=(o.crafters||[]).map(c=>c.userName).join(', '); const n=(o.crafters||[]).length;
+  if(o.maxCrafters!=null) return `${n}/${o.maxCrafters} crafter${o.maxCrafters===1?'':'s'}${names?' — '+esc(names):''}`;
+  return names?`${n} on it — ${esc(names)}`:'no crafters yet';
 }
 // Admin's demand list (the craft orders). Crafters don't see this — they craft
 // via the Craft modal off their own inventory page.
@@ -3232,6 +3245,7 @@ function renderCraftOrders(){
           <span style="font-size:var(--text-sm);color:var(--fg);">${o.qtyDone||0}/${o.qtyNeeded||0} done${o.status==='done'?' · complete':''}</span>
         </div>
         <div style="font-size:var(--text-sm);color:var(--fg);margin-top:var(--space-1);">Recipe: ${recipeHtml}</div>
+        <div style="font-size:var(--text-sm);color:var(--mid);margin-top:var(--space-1);">Materials ${qualityRangeLabel(o)} &middot; ${craftersLabel(o)}</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
         ${(isAdmin(u)||o.createdBy===u._id)?`<button class="btn-del" onclick="woDelete('${esc(o._id)}')" aria-label="Delete">&times;</button>`:''}
@@ -3270,19 +3284,25 @@ function openCraftModal(){
   const orders=state.workorders.filter(w=>w.kind==='craft'&&w.status==='open')
     .sort((a,b)=>((CRAFT_PRIO[a.priority]??2)-(CRAFT_PRIO[b.priority]??2))||(b._creationTime-a._creationTime));
   if(!orders.length){ showModal(`<div class="modal-title">Craft</div><div class="empty">Nothing is being asked for right now.</div><div style="margin-top:14px;"><button class="btn btn-outline" onclick="closeModal()">Close</button></div>`); return; }
+  const u=state.user;
   showModal(`
     <div class="modal-title">What's being asked for</div>
     <div style="max-height:60vh;overflow:auto;">${orders.map(o=>{
       const item=state.catalog.items.find(it=>it.name===o.itemName);
       const recipe=item?item.recipe:[];
       const remaining=(o.qtyNeeded||0)-(o.qtyDone||0);
-      const avail=Math.min(craftAvail(item),remaining);
+      const avail=Math.min(craftAvail(item,o),remaining);
+      const joined=(o.crafters||[]); const isMember=joined.some(c=>c.userId===u._id||c.userName===u.username);
+      const full = o.maxCrafters!=null && !isMember && joined.length>=o.maxCrafters;
       const recipeHtml=recipe.length?recipe.map(r=>`${esc(r.materialName)} ×${r.qty}`).join(', '):'<span style="color:var(--red);">no recipe</span>';
       return `<div style="padding:14px 0;border-bottom:1px solid var(--border-m);">
         <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">${priorityTag(o.priority)}<span style="font-weight:900;">${esc(o.itemName)}</span><span style="font-size:var(--text-sm);color:var(--fg);">${o.qtyDone||0}/${o.qtyNeeded||0} done</span></div>
         <div style="font-size:var(--text-sm);color:var(--fg);margin-top:var(--space-1);">Recipe: ${recipeHtml}</div>
-        <div style="font-size:var(--text-sm);color:${avail>0?'#16a34a':'var(--red)'};margin-top:var(--space-1);">You can craft ${avail} now from your materials at base</div>
-        ${avail>0?`<div style="margin-top:var(--space-2);display:flex;gap:6px;align-items:center;"><input id="cqm-${o._id}" type="number" min="1" max="${avail}" value="1" style="width:72px;"><button class="btn btn-black btn-sm" onclick="doCraftModal('${esc(o._id)}')">Craft</button></div>`:''}
+        <div style="font-size:var(--text-sm);color:var(--mid);margin-top:var(--space-1);">Materials ${qualityRangeLabel(o)} &middot; ${craftersLabel(o)}</div>
+        ${full
+          ? `<div style="font-size:var(--text-sm);color:var(--red);margin-top:var(--space-1);">This order is full — no more crafters can join.</div>`
+          : `<div style="font-size:var(--text-sm);color:var(--fg);margin-top:var(--space-1);">You can craft ${avail} now from your materials${o.minQuality!=null||o.maxQuality!=null?` at ${qualityRangeLabel(o)}`:' at base'}</div>
+        ${avail>0?`<div style="margin-top:var(--space-2);display:flex;gap:6px;align-items:center;"><input id="cqm-${o._id}" type="number" min="1" max="${avail}" value="1" style="width:72px;"><button class="btn btn-black btn-sm" onclick="doCraftModal('${esc(o._id)}')">Craft</button></div>`:''}`}
       </div>`;
     }).join('')}</div>
     <div style="margin-top:var(--space-3);"><button class="btn btn-outline" onclick="closeModal()">Close</button></div>`);
@@ -3293,25 +3313,48 @@ async function doCraftModal(orderId){
 }
 function openCraftOrderModal(){
   const items=[...state.catalog.items].sort((a,b)=>a.name.localeCompare(b.name));
+  const qOpts=label=>`<option value="">${label}</option>`+[1,2,3,4,5,6,7,8,9,10].map(q=>`<option value="${q}">Q${q}</option>`).join('');
   showModal(`
     <div class="modal-title">New craft order</div>
-    <div class="field"><label class="lbl">Item</label><select id="co-item">${items.map(it=>`<option value="${esc(it.name)}">${esc(it.name)}</option>`).join('')}</select></div>
+    <div class="field"><label class="lbl">Item</label><select id="co-item" onchange="coRecipe()">${items.map(it=>`<option value="${esc(it.name)}">${esc(it.name)}</option>`).join('')}</select></div>
+    <div id="co-recipe" style="font-size:var(--text-sm);color:var(--mid);margin:-18px 0 var(--space-5);"></div>
     <div class="grid2">
       <div class="field"><label class="lbl">Quantity</label><input id="co-qty" type="number" min="1" value="1"></div>
       <div class="field"><label class="lbl">Priority</label><select id="co-prio"><option value="urgent">Urgent</option><option value="high">High</option><option value="normal" selected>Normal</option><option value="whenever">Whenever</option></select></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label class="lbl">Max crafters</label><input id="co-max" type="number" min="1" placeholder="no limit"></div>
+      <div class="field"><label class="lbl">Material quality</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <select id="co-minq">${qOpts('min')}</select><span style="color:var(--mid);">–</span><select id="co-maxq">${qOpts('max')}</select>
+        </div>
+      </div>
     </div>
     <div class="err-msg" id="co-err"></div>
     <div style="display:flex;gap:10px;margin-top:var(--space-2);">
       <button class="btn btn-black" onclick="saveCraftOrder()">Create</button>
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     </div>`);
+  coRecipe();
+}
+function coRecipe(){
+  const el=document.getElementById('co-recipe'); if(!el) return;
+  const name=(document.getElementById('co-item')||{value:''}).value;
+  const item=state.catalog.items.find(it=>it.name===name);
+  const recipe=item?item.recipe:[];
+  el.innerHTML = recipe.length ? `Needs: ${recipe.map(r=>`${esc(r.materialName)} ×${r.qty}`).join(', ')}` : `<span style="color:var(--red);">No recipe on file for this item.</span>`;
 }
 async function saveCraftOrder(){
   const V=x=>(document.getElementById(x)||{value:''}).value;
   const itemName=V('co-item'); const qtyNeeded=Number(V('co-qty')); const priority=V('co-prio');
   if(!itemName){ showErr('co-err','Pick an item'); return; }
   if(!(qtyNeeded>0)){ showErr('co-err','Quantity must be greater than 0'); return; }
-  try{ await convexMutation('workorders:createCraftOrder',{sessionToken:state.sessionToken,itemName,qtyNeeded,priority}); toast('Craft order created'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('co-err',e.message); }
+  const args={sessionToken:state.sessionToken,itemName,qtyNeeded,priority};
+  if(V('co-max')) args.maxCrafters=Number(V('co-max'));
+  if(V('co-minq')) args.minQuality=Number(V('co-minq'));
+  if(V('co-maxq')) args.maxQuality=Number(V('co-maxq'));
+  if(args.minQuality!=null&&args.maxQuality!=null&&args.minQuality>args.maxQuality){ showErr('co-err','Min quality can’t exceed max quality'); return; }
+  try{ await convexMutation('workorders:createCraftOrder',args); toast('Craft order created'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('co-err',e.message); }
 }
 
 // ── Page + controls ──

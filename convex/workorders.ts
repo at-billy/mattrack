@@ -262,9 +262,14 @@ export const remove = mutation({
 const PRIORITIES = ["urgent", "high", "normal", "whenever"];
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
 
-// Admin authors a craft order (demand): make N of an item, at a priority.
+// Admin authors a craft order (demand): make N of an item, at a priority, with
+// an optional cap on how many crafters work it and an optional quality window
+// (min/max, 1..10) for the materials that may be used.
 export const createCraftOrder = mutation({
-  args: { sessionToken: v.string(), itemName: v.string(), qtyNeeded: v.number(), priority: v.string() },
+  args: {
+    sessionToken: v.string(), itemName: v.string(), qtyNeeded: v.number(), priority: v.string(),
+    maxCrafters: v.optional(v.number()), minQuality: v.optional(v.number()), maxQuality: v.optional(v.number()),
+  },
   handler: async (ctx, a) => {
     const user = await requireSession(ctx.db, a.sessionToken);
     assertRole(user, ["admin"]);
@@ -272,9 +277,15 @@ export const createCraftOrder = mutation({
     if (!item) throw new ConvexError("Unknown item");
     if (!(a.qtyNeeded > 0)) throw new ConvexError("Quantity must be greater than 0");
     if (!PRIORITIES.includes(a.priority)) throw new ConvexError("Invalid priority");
+    const qOk = (q?: number) => q == null || (Number.isInteger(q) && q >= 1 && q <= 10);
+    if (!qOk(a.minQuality) || !qOk(a.maxQuality)) throw new ConvexError("Quality must be between 1 and 10");
+    if (a.minQuality != null && a.maxQuality != null && a.minQuality > a.maxQuality) throw new ConvexError("Min quality can't exceed max quality");
+    if (a.maxCrafters != null && (!Number.isInteger(a.maxCrafters) || a.maxCrafters < 1)) throw new ConvexError("Crafters cap must be 1 or more");
     const id = await ctx.db.insert("workorders", {
       kind: "craft", status: "open",
       itemName: item.name, qtyNeeded: a.qtyNeeded, qtyDone: 0, priority: a.priority,
+      maxCrafters: a.maxCrafters ?? undefined, minQuality: a.minQuality ?? undefined, maxQuality: a.maxQuality ?? undefined,
+      crafters: [],
       createdBy: user._id, createdByName: user.username,
     });
     await ctx.db.insert("archive", { type: "workorder_created", userId: user._id, userName: user.username, details: { kind: "craft", item: item.name, qty: a.qtyNeeded } });
@@ -298,16 +309,27 @@ export const craftItem = mutation({
     if (remaining <= 0) throw new ConvexError("Order is already fulfilled");
     if (count > remaining) count = remaining;
 
+    // Crafter cap: only so many distinct crafters may work the order.
+    const crafters = order.crafters ?? [];
+    const isMember = crafters.some(c => c.userId === user._id || c.userName === user.username);
+    if (order.maxCrafters != null && !isMember && crafters.length >= order.maxCrafters) {
+      throw new ConvexError(`This order is full (${order.maxCrafters} crafter${order.maxCrafters === 1 ? "" : "s"})`);
+    }
+
     const item = await ctx.db.query("itemCatalog").withIndex("by_name", q => q.eq("name", order.itemName!)).first();
     if (!item || !item.recipe?.length) throw new ConvexError("This item has no recipe");
 
-    // The crafter's own At-Base material stock.
+    // The crafter's own At-Base material stock, within the order's quality window.
+    const minQ = order.minQuality ?? 1, maxQ = order.maxQuality ?? 10;
+    const matQ = (s: any) => s.qualityStep ?? s.qualityValue ?? 0;
     const myMats = (await ctx.db.query("stock").withIndex("by_status", q => q.eq("status", "at_base")).collect())
-      .filter(s => s.kind === "material" && s.heldBy === user.username);
+      .filter(s => s.kind === "material" && s.heldBy === user.username && matQ(s) >= minQ && matQ(s) <= maxQ);
 
+    const qWindow = (order.minQuality != null || order.maxQuality != null)
+      ? ` at Q${order.minQuality ?? 1}–${order.maxQuality ?? 10}` : "";
     for (const r of item.recipe) {
       const have = myMats.filter(s => s.name === r.materialName).reduce((sum, s) => sum + s.qty, 0);
-      if (have + 1e-9 < r.qty * count) throw new ConvexError(`Not enough ${r.materialName}: need ${r3(r.qty * count)}, you hold ${r3(have)}`);
+      if (have + 1e-9 < r.qty * count) throw new ConvexError(`Not enough ${r.materialName}${qWindow}: need ${r3(r.qty * count)}, you hold ${r3(have)}`);
     }
 
     // Consume lowest-quality first; accumulate qty-weighted quality.
@@ -339,7 +361,8 @@ export const craftItem = mutation({
     });
 
     const newDone = (order.qtyDone ?? 0) + count;
-    await ctx.db.patch(orderId, { qtyDone: newDone, status: newDone >= (order.qtyNeeded ?? 0) ? "done" : "open" });
+    const newCrafters = isMember ? crafters : [...crafters, { userId: user._id, userName: user.username }];
+    await ctx.db.patch(orderId, { qtyDone: newDone, status: newDone >= (order.qtyNeeded ?? 0) ? "done" : "open", crafters: newCrafters });
     await ctx.db.insert("archive", { type: "item_crafted", userId: user._id, userName: user.username, details: { item: item.name, count, quality: outQuality } });
     return { crafted: count, quality: outQuality };
   },

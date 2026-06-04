@@ -205,6 +205,10 @@ export default defineSchema({
     qtyNeeded: v.optional(v.number()),
     qtyDone: v.optional(v.number()),
     priority: v.optional(v.string()),               // urgent | high | normal | whenever
+    maxCrafters: v.optional(v.number()),            // cap on how many crafters work it (blank = no cap)
+    minQuality: v.optional(v.number()),             // material quality floor (1..10), optional
+    maxQuality: v.optional(v.number()),             // material quality ceiling (1..10), optional
+    crafters: v.optional(v.array(v.object({ userId: v.id("users"), userName: v.string() }))), // who's on the job
     // handover (crafter ⇄ distributor; two real players must agree + meet)
     direction: v.optional(v.string()),              // "offer" (crafter→distributors) | "request" (distributor→crafter)
     giverId: v.optional(v.id("users")),
