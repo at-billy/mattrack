@@ -367,3 +367,79 @@ export const craftItem = mutation({
     return { crafted: count, quality: outQuality };
   },
 });
+
+// ── Borrow between crafters (a crafter→crafter material transfer) ──────────────
+// Same two-party meet as every transfer: the borrower requests a holder's
+// At-Base material; the holder (lender) accepts; the borrower confirms receipt
+// and it becomes the borrower's stock.
+export const requestBorrow = mutation({
+  args: { sessionToken: v.string(), stockId: v.id("stock"), qty: v.number() },
+  handler: async (ctx, { sessionToken, stockId, qty }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    assertRole(user, ["crafter", "admin"]);
+    const s = await ctx.db.get(stockId);
+    if (!s || s.kind !== "material" || s.status !== "at_base") throw new ConvexError("You can only borrow At-Base materials");
+    if (s.heldBy === user.username) throw new ConvexError("That material is already yours");
+    if (!(qty > 0) || qty > s.qty + 1e-9) throw new ConvexError("Invalid quantity");
+    const lender = await ctx.db.query("users").withIndex("by_username", q => q.eq("username", s.heldBy)).first();
+    await ctx.db.insert("workorders", {
+      kind: "borrow", status: "open",
+      location: s.location, system: s.system,
+      items: [{ stockId: s._id, name: s.name, kind: "material", qty: r3(qty), unit: s.unit, qualityStep: s.qualityStep }],
+      giverName: s.heldBy, giverId: lender?._id,
+      note: `Borrow ${r3(qty)} ${s.unit} ${s.name} from ${s.heldBy}`,
+      createdBy: user._id, createdByName: user.username,
+    });
+    await ctx.db.insert("archive", { type: "borrow_requested", userId: user._id, userName: user.username, details: { item: s.name, qty: r3(qty), from: s.heldBy } });
+    return { ok: true };
+  },
+});
+
+// The holder (lender) agrees to lend.
+export const acceptBorrow = mutation({
+  args: { sessionToken: v.string(), id: v.id("workorders") },
+  handler: async (ctx, { sessionToken, id }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    const wo = await ctx.db.get(id);
+    if (!wo || wo.kind !== "borrow") throw new ConvexError("Borrow not found");
+    if (wo.status !== "open") throw new ConvexError("This borrow is no longer open");
+    const isAdmin = user.roles.includes("admin");
+    if (!isAdmin && wo.giverName !== user.username && wo.giverId !== user._id) throw new ConvexError("Only the holder can lend this");
+    await ctx.db.patch(id, { status: "claimed", claimedById: user._id, claimedByName: user.username });
+  },
+});
+
+// The borrower confirms they met the lender and got it → material moves to them.
+export const confirmBorrow = mutation({
+  args: { sessionToken: v.string(), id: v.id("workorders") },
+  handler: async (ctx, { sessionToken, id }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    const wo = await ctx.db.get(id);
+    if (!wo || wo.kind !== "borrow") throw new ConvexError("Borrow not found");
+    if (wo.status !== "claimed") throw new ConvexError("The holder must agree first");
+    const isAdmin = user.roles.includes("admin");
+    if (!isAdmin && wo.createdBy !== user._id) throw new ConvexError("Only the borrower confirms receipt");
+    let moved = 0;
+    for (const it of wo.items ?? []) {
+      const s = await ctx.db.get(it.stockId);
+      if (!s || s.kind !== "material" || s.heldBy !== wo.giverName) continue;
+      const take = Math.min(it.qty, s.qty);
+      if (take <= 1e-9) continue;
+      const left = r3(s.qty - take);
+      if (left <= 1e-9) await ctx.db.delete(s._id);
+      else await ctx.db.patch(s._id, { qty: left });
+      await ctx.db.insert("stock", {
+        kind: "material", name: s.name, category: s.category,
+        qualityStep: s.qualityStep, qualityValue: s.qualityValue,
+        qty: r3(take), unit: s.unit, location: s.location, system: s.system,
+        heldBy: wo.createdByName, status: "at_base",
+        addedBy: wo.createdBy, addedByName: wo.createdByName,
+      });
+      moved += take;
+    }
+    if (!moved) throw new ConvexError("That material is no longer available to borrow");
+    await ctx.db.patch(id, { status: "done" });
+    await ctx.db.insert("archive", { type: "borrow_completed", userId: user._id, userName: user.username, details: { item: (wo.items?.[0]?.name) || "", qty: r3(moved), from: wo.giverName } });
+    return { moved: r3(moved) };
+  },
+});

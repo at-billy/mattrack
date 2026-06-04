@@ -1708,6 +1708,7 @@ function fpActivityHeadline(e){
   const pl=(n,w)=>`${n} ${w}${n!==1?'s':''}`;
   switch(e.type){
     case 'gather_reported':     return {kicker:dt, text:`${e.userName} reported a haul${d.location?` at ${d.location}`:''}`, foot:'Pickup'};
+    case 'borrow_completed':    return {kicker:dt, text:`${e.userName} borrowed ${d.qty}× ${d.item} from ${d.from}`, foot:'Stock'};
     case 'stock_added':         return {kicker:dt, text:`${e.userName} added ${d.name} (${d.qty} ${d.unit||''})`.trim(), foot:'Stock'};
     case 'stock_removed':       return {kicker:dt, text:`${d.name} pulled from stock`, foot:'Stock'};
     case 'workorder_created':   return d.kind==='craft' ? {kicker:dt, text:`Craft order opened: ${d.qty}× ${d.item}`, foot:'Crafting'} : null;
@@ -2923,7 +2924,7 @@ function combinedArchive(){
 }
 
 // Action-type → human label (shared by the table and the search/sort).
-const ARCHIVE_LABELS={user_joined:'Joined',role_approved:'Role Approved',role_denied:'Role Denied',admin_granted:'Admin Granted',member_removed:'Member Removed',member_restored:'Member Restored',gather_reported:'Gather Reported',stock_added:'Stock Added',stock_removed:'Stock Removed',workorder_created:'Workorder Created',workorder_completed:'Workorder Done',item_crafted:'Crafted',items_taken:'Taken to Stockpile',item_handed_out:'Handed Out',catalog_imported:'Catalog Imported',task_created:'Task Created',task_closed:'Task Closed',item_added:'Item Added',item_removed:'Item Removed',item_used:'Item Used',item_converted:'Item Converted',items_used_for_project:'Items Used',password_reset_issued:'Reset Code Issued',password_reset_completed:'Password Reset',lottery_opened:'Lottery Opened',lottery_drawn:'Lottery Drawn',lottery_pick:'Lottery Pick'};
+const ARCHIVE_LABELS={user_joined:'Joined',role_approved:'Role Approved',role_denied:'Role Denied',admin_granted:'Admin Granted',member_removed:'Member Removed',member_restored:'Member Restored',gather_reported:'Gather Reported',borrow_requested:'Borrow Requested',borrow_completed:'Borrowed',stock_added:'Stock Added',stock_removed:'Stock Removed',workorder_created:'Workorder Created',workorder_completed:'Workorder Done',item_crafted:'Crafted',items_taken:'Taken to Stockpile',item_handed_out:'Handed Out',catalog_imported:'Catalog Imported',task_created:'Task Created',task_closed:'Task Closed',item_added:'Item Added',item_removed:'Item Removed',item_used:'Item Used',item_converted:'Item Converted',items_used_for_project:'Items Used',password_reset_issued:'Reset Code Issued',password_reset_completed:'Password Reset',lottery_opened:'Lottery Opened',lottery_drawn:'Lottery Drawn',lottery_pick:'Lottery Pick'};
 function archiveActionLabel(e){ return ARCHIVE_LABELS[e.type]||e.type; }
 function stripTags(html){ return String(html).replace(/<[^>]*>/g,''); }
 
@@ -3035,6 +3036,8 @@ function fmtArchiveDetails(e){
     case 'item_removed':     return `<strong>${esc(d.name)}</strong>`;
     case 'item_handed_out':  return `<strong>${esc(d.item||d.name||'')}</strong> &times;${d.qty??d.handedOutQty} &middot; to <strong>${esc(d.recipient||d.handedOutTo||'')}</strong>${d.context?` (${esc(d.context)})`:''}`;
     case 'gather_reported':  return `${d.count||0} line${d.count===1?'':'s'} reported${d.location?` at <strong>${esc(d.location)}</strong>`:''}`;
+    case 'borrow_requested': return `Asked to borrow ${d.qty}× ${esc(d.item)} from <strong>${esc(d.from)}</strong>`;
+    case 'borrow_completed': return `Borrowed ${d.qty}× ${esc(d.item)} from <strong>${esc(d.from)}</strong>`;
     case 'stock_added':      return `<strong>${esc(d.name)}</strong> &times;${d.qty} ${esc(d.unit||'')} &middot; ${esc(d.kind||'')}`;
     case 'stock_removed':    return `<strong>${esc(d.name)}</strong> &times;${d.qty} ${esc(d.unit||'')}`;
     case 'workorder_created':return d.kind==='craft' ? `Craft order: <strong>${esc(d.item)}</strong> &times;${d.qty}` : `${esc(d.kind||'')} workorder${d.count?` &middot; ${d.count}`:''}${d.matType?` &middot; ${esc(d.matType)}`:''}`;
@@ -3460,20 +3463,22 @@ function renderPickupTable(){
   }).join('')}</tbody></table>`;
 }
 
-// ── Transfers table (deliveries + crafter↔distributor handovers) ──
-const TRANSFER_KINDS=['delivery','move','distribution'];
-// who may accept an OPEN transfer of each kind
-function transferAcceptRole(kind){ return kind==='delivery'?'crafter':kind==='move'?'logistics':'distributor'; }
+// ── Transfers table (every custody hand-off: deliveries, moves, distributions, borrows) ──
+const TRANSFER_KINDS=['delivery','move','distribution','borrow'];
+// who may accept an OPEN transfer of each kind (borrow is accepted by the specific holder)
+function transferAcceptRole(kind){ return kind==='delivery'?'crafter':kind==='move'?'logistics':kind==='distribution'?'distributor':''; }
 function transferBucket(w){ if(w.status==='done') return 'done'; if(w.status==='claimed') return 'inprogress'; return 'open'; }
 function transferVisible(w,u){
   if(isAdmin(u)) return true;
   if(w.createdBy===u._id||w.claimedById===u._id) return true;
+  if(w.kind==='borrow') return w.giverName===u.username||w.giverId===u._id; // the lender
   if(w.status==='open' && hasRole(u, transferAcceptRole(w.kind))) return true;
   return false;
 }
 function transferActiveCount(){ const u=state.user; return state.workorders.filter(w=>TRANSFER_KINDS.includes(w.kind)&&w.status!=='done'&&transferVisible(w,u)).length; }
 function transferFields(w){
   const what=(w.items||[]).map(it=>`${esc(it.name)}${it.qualityStep!=null?` Q${it.qualityStep}`:''} ×${it.qty}`).join(', ')||'—';
+  if(w.kind==='borrow') return { what, from:w.giverName||'—', to:w.createdByName||'—', stage:woStatusLabel(w.status), stageOrder:({open:0,claimed:1,done:2})[w.status]??9, type:'Borrow' };
   const to = w.claimedByName || (w.kind==='delivery'?'any crafter':w.kind==='move'?'any logistics':'any distributor');
   const type = w.kind==='delivery'?'Delivery':w.kind==='move'?'Move':'Distribution';
   return { what, from:w.createdByName||'—', to, stage:woStatusLabel(w.status), stageOrder:({open:0,claimed:1,done:2})[w.status]??9, type, destLocation:w.destLocation };
@@ -3487,15 +3492,24 @@ function renderTransfers(){
   const cols=[['what','What'],['from','From'],['to','To'],['stage','Stage']];
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setTrSort',trSortCol,trSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(w=>{
     const f=transferFields(w);
-    const mine=w.claimedById===u._id;
-    const canAccept = w.status==='open' && (isAdmin(u)||hasRole(u, transferAcceptRole(w.kind)));
-    const canFinish = w.status==='claimed' && (isAdmin(u)||mine);
-    const canDelete = w.status==='done' && (isAdmin(u)||w.createdBy===u._id);
-    const acceptCall = w.kind==='distribution' ? `openDistAccept('${esc(w._id)}')` : `woAccept('${esc(w._id)}')`;
     let acts='';
-    if(canAccept) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="${acceptCall}">Accept</button>`;
-    if(canFinish){ acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="woComplete('${esc(w._id)}')">Confirm ${w.kind==='move'?'collected':'receipt'}</button>`; acts+=`<button class="btn btn-outline btn-sm" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`; }
-    if(canDelete) acts+=`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Delete">&times;</button>`;
+    if(w.kind==='borrow'){
+      const iAmLender=w.giverName===u.username||w.giverId===u._id;
+      const iAmBorrower=w.createdBy===u._id;
+      if(w.status==='open'&&(iAmLender||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="doAcceptBorrow('${esc(w._id)}')">Accept</button>`;
+      if(w.status==='claimed'&&(iAmBorrower||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="doConfirmBorrow('${esc(w._id)}')">Confirm receipt</button>`;
+      if(w.status==='claimed'&&(iAmLender||isAdmin(u))) acts+=`<button class="btn btn-outline btn-sm" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`;
+      if(w.status!=='done'&&(iAmBorrower||isAdmin(u))) acts+=`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Cancel">&times;</button>`;
+    } else {
+      const mine=w.claimedById===u._id;
+      const canAccept = w.status==='open' && (isAdmin(u)||hasRole(u, transferAcceptRole(w.kind)));
+      const canFinish = w.status==='claimed' && (isAdmin(u)||mine);
+      const canDelete = w.status==='done' && (isAdmin(u)||w.createdBy===u._id);
+      const acceptCall = w.kind==='distribution' ? `openDistAccept('${esc(w._id)}')` : `woAccept('${esc(w._id)}')`;
+      if(canAccept) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="${acceptCall}">Accept</button>`;
+      if(canFinish){ acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="woComplete('${esc(w._id)}')">Confirm ${w.kind==='move'?'collected':'receipt'}</button>`; acts+=`<button class="btn btn-outline btn-sm" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`; }
+      if(canDelete) acts+=`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Delete">&times;</button>`;
+    }
     return `<tr>
       <td data-label="What" style="font-weight:700;">${f.what}<div style="font-size:var(--text-xs);font-weight:400;color:var(--mid);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;">${f.type}${f.destLocation?` → ${esc(f.destLocation)}`:''}</div></td>
       <td data-label="From">${esc(f.from)}</td>
@@ -3525,6 +3539,24 @@ async function doDistAccept(id){
   if(!location){ showErr('da-err','Pick a stockpile location'); return; }
   try{ await convexMutation('workorders:claim',{sessionToken:state.sessionToken,id,location,system}); toast('Accepted — meet logistics to receive'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('da-err',e.message); }
 }
+
+// ── Borrow materials from another crafter (browse who-holds-what → request) ──
+function openBorrowModal(id){
+  const s=state.stock.find(x=>x._id===id); if(!s) return;
+  showModal(`
+    <div class="modal-title">Borrow ${esc(s.name)}</div>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">From <strong>${esc(s.heldBy)}</strong>${s.qualityStep!=null?` · Q${s.qualityStep}`:''} · ${s.qty} ${esc(s.unit)} on hand. They'll be asked to agree and meet you; you confirm receipt once you've got it.</p>
+    <div class="field"><label class="lbl">Quantity</label><input id="bw-qty" type="number" min="0" step="any" max="${s.qty}" value="${s.qty}"></div>
+    <div class="err-msg" id="bw-err"></div>
+    <div style="display:flex;gap:10px;margin-top:var(--space-2);"><button class="btn btn-black" onclick="doBorrow('${esc(s._id)}')">Request</button><button class="btn btn-outline" onclick="closeModal()">Cancel</button></div>`);
+}
+async function doBorrow(id){
+  const qty=Number((document.getElementById('bw-qty')||{value:''}).value);
+  if(!(qty>0)){ showErr('bw-err','Quantity must be greater than 0'); return; }
+  try{ await convexMutation('workorders:requestBorrow',{sessionToken:state.sessionToken,stockId:id,qty}); toast('Borrow request sent'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('bw-err',e.message); }
+}
+async function doAcceptBorrow(id){ try{ await convexMutation('workorders:acceptBorrow',{sessionToken:state.sessionToken,id}); toast('Agreed to lend — meet to hand over'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
+async function doConfirmBorrow(id){ if(!await confirmModal('Confirm you met and received the borrowed material? It becomes your At-Base stock.')) return; try{ const out=await convexMutation('workorders:confirmBorrow',{sessionToken:state.sessionToken,id}); toast(`Borrowed ${out.moved}`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); } }
 
 // ─── GATHERER REPORT (light intake) ────────────────────────────────────────────
 function pageReport(){
@@ -3812,6 +3844,7 @@ function renderStockList(){
     <thead><tr>${cols.map(([col,label])=>`<th onclick="setStockSort('${col}')" style="cursor:pointer;user-select:none;white-space:nowrap;">${label}${stockSortCol===col?(stockSortDir==='asc'?' &uarr;':' &darr;'):''}</th>`).join('')}<th></th></tr></thead>
     <tbody>${rows.map(s=>{
       const canEdit = isAdmin(u) || s.addedBy===u._id;
+      const canBorrow = (isCrafter(u)||isAdmin(u)) && s.kind==='material' && s.status==='at_base' && s.heldBy!==u.username;
       return `<tr>
         <td data-label="Name" style="font-weight:700;">${esc(s.name)}${s.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(s.note)}</div>`:''}</td>
         <td data-label="Kind">${s.kind==='material'?'Material':'Item'}</td>
@@ -3821,6 +3854,7 @@ function renderStockList(){
         <td data-label="Held By">${esc(s.heldBy)}</td>
         <td data-label="Status" style="font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${stockStatusLabel(s.status)}</td>
         <td data-label="" style="white-space:nowrap;">
+          ${canBorrow?`<button class="btn btn-outline btn-sm" style="margin-right:var(--space-1);" onclick="openBorrowModal('${esc(s._id)}')">Borrow</button>`:''}
           ${canEdit?`<button class="btn btn-outline btn-sm" style="margin-right:var(--space-1);" onclick="openStockModal('${esc(s._id)}')">Edit</button><button class="btn-del" onclick="deleteStock('${esc(s._id)}','${escJs(s.name)}')" aria-label="Delete">&times;</button>`:''}
         </td>
       </tr>`;
