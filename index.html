@@ -1545,7 +1545,9 @@ function isDistributor(u){ return hasRole(u,'distributor'); }
 function workViewsAllowed(u){
   const v=[];
   if(isLogistics(u)||isAdmin(u)) v.push('pickup');
-  if(isCrafter(u)||isDistributor(u)||isAdmin(u)) v.push('transfers');
+  // logistics included: they hold the materials and must drop them to crafters,
+  // so they need to see the deliveries in progress.
+  if(isLogistics(u)||isCrafter(u)||isDistributor(u)||isAdmin(u)) v.push('transfers');
   if(isCrafter(u)||isAdmin(u)) v.push('crafting');
   if(isDistributor(u)||isAdmin(u)) v.push('distribution');
   return v;
