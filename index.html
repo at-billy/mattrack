@@ -3449,10 +3449,16 @@ function locPickerSysChanged(prefix){
 function pickedLocation(prefix){ return (document.getElementById(prefix+'-loc')||{value:''}).value; }
 function pickedLocationSystem(prefix){ const o=state.catalog.locations.find(l=>l.name===pickedLocation(prefix)); return o?o.system:undefined; }
 let stockView='materials';  // subnav: materials | items
-let stockStatusF='all', stockLocF='all', stockSearch='', stockSearchActive=false;
-function setStockView(v){ stockView=v; stockStatusF='all'; stockLocF='all'; stockSearch=''; stockSearchActive=false; renderNav(); renderPage(); }
+let stockStatusF='all', stockSearch='', stockSearchActive=false;
+let stockSortCol='name', stockSortDir='asc';
+// Status filters that make sense per view. Materials stop at at_base — they're
+// consumed when crafted, so they never carry the later item statuses.
+const STOCK_VIEW_STATUSES={ materials:['reported','in_transit','at_base'], items:['crafted','with_distributor','handed_out'] };
+function stockStatusesForView(){ return (STOCK_VIEW_STATUSES[stockView]||[]).map(id=>STOCK_STATUS_DEFS.find(x=>x.id===id)).filter(Boolean); }
+function setStockView(v){ stockView=v; stockStatusF='all'; stockSearch=''; stockSearchActive=false; stockSortCol='name'; stockSortDir='asc'; renderNav(); renderPage(); }
 function setStockStatusF(s){ stockStatusF=s; rerenderStock(); }
-function setStockLocF(l){ stockLocF=l; rerenderStock(); }
+function setStockSort(col){ if(stockSortCol===col) stockSortDir=(stockSortDir==='asc'?'desc':'asc'); else { stockSortCol=col; stockSortDir='asc'; } const l=document.getElementById('stock-list'); if(l) l.innerHTML=renderStockList(); }
+function stockSortVal(s,col){ switch(col){ case 'kind': return s.kind||''; case 'quality': return s.qualityValue!=null?s.qualityValue:(s.qualityStep!=null?s.qualityStep:-1); case 'qty': return s.qty||0; case 'location': return s.location||''; case 'heldBy': return s.heldBy||''; case 'status': return STOCK_STATUS_DEFS.findIndex(x=>x.id===s.status); default: return s.name||''; } }
 function toggleStockSearch(){ stockSearchActive=!stockSearchActive; if(!stockSearchActive) stockSearch=''; rerenderStock(); }
 function stockSearchInput(v){ stockSearch=v; const el=document.getElementById('stock-list'); if(el) el.innerHTML=renderStockList(); }
 function rerenderStock(){
@@ -3463,10 +3469,13 @@ function rerenderStock(){
 function stockRows(){
   let rows=state.stock.filter(s=>s.kind===(stockView==='items'?'item':'material'));
   if(stockStatusF!=='all') rows=rows.filter(s=>s.status===stockStatusF);
-  if(stockLocF!=='all') rows=rows.filter(s=>s.location===stockLocF);
   const q=stockSearch.trim().toLowerCase();
   if(q) rows=rows.filter(s=>s.name.toLowerCase().includes(q)||(s.heldBy||'').toLowerCase().includes(q));
-  return [...rows].sort((a,b)=>a.name.localeCompare(b.name));
+  return [...rows].sort((a,b)=>{
+    const av=stockSortVal(a,stockSortCol), bv=stockSortVal(b,stockSortCol);
+    const cmp = (typeof av==='number'&&typeof bv==='number') ? av-bv : String(av).localeCompare(String(bv));
+    return stockSortDir==='asc'?cmp:-cmp;
+  });
 }
 
 function pageStock(){
@@ -3486,16 +3495,10 @@ function pageStock(){
 }
 
 function renderStockControls(){
-  const locs=[...new Set(state.stock.filter(s=>s.kind===(stockView==='items'?'item':'material')).map(s=>s.location).filter(Boolean))].sort();
+  const defs=stockStatusesForView();
   return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
-      <select class="btn-ghost btn-sm" style="padding-top:4px;padding-bottom:4px;" onchange="setStockStatusF(this.value)">
-        <option value="all"${stockStatusF==='all'?' selected':''}>Any status</option>
-        ${STOCK_STATUS_DEFS.map(s=>`<option value="${s.id}"${stockStatusF===s.id?' selected':''}>${s.label}</option>`).join('')}
-      </select>
-      <select class="btn-ghost btn-sm" style="padding-top:4px;padding-bottom:4px;" onchange="setStockLocF(this.value)">
-        <option value="all"${stockLocF==='all'?' selected':''}>Any location</option>
-        ${locs.map(l=>`<option value="${esc(l)}"${stockLocF===l?' selected':''}>${esc(l)}</option>`).join('')}
-      </select>
+      <button class="btn-ghost btn-sm${stockStatusF==='all'?' active':''}" onclick="setStockStatusF('all')">All</button>
+      ${defs.map(s=>`<button class="btn-ghost btn-sm${stockStatusF===s.id?' active':''}" onclick="setStockStatusF('${s.id}')">${esc(s.label)}</button>`).join('')}
       <div style="flex:1;"></div>
       <button class="btn-ghost btn-sm${stockSearchActive?' active':''}" onclick="toggleStockSearch()">${stockSearchActive?'Close Search':'Search'}</button>
     </div>
@@ -3508,8 +3511,9 @@ function renderStockList(){
   const rows=stockRows();
   if(!rows.length) return `<div class="empty">No stock matches this filter.</div>`;
   const u=state.user;
+  const cols=[['name','Name'],['kind','Kind'],['quality','Quality'],['qty','Qty'],['location','Location'],['heldBy','Held By'],['status','Status']];
   return `<table class="cards">
-    <thead><tr><th>Name</th><th>Kind</th><th>Quality</th><th>Qty</th><th>Location</th><th>Held By</th><th>Status</th><th></th></tr></thead>
+    <thead><tr>${cols.map(([col,label])=>`<th onclick="setStockSort('${col}')" style="cursor:pointer;user-select:none;white-space:nowrap;">${label}${stockSortCol===col?(stockSortDir==='asc'?' &uarr;':' &darr;'):''}</th>`).join('')}<th></th></tr></thead>
     <tbody>${rows.map(s=>{
       const canEdit = isAdmin(u) || s.addedBy===u._id;
       return `<tr>
