@@ -205,6 +205,14 @@ export default defineSchema({
     qtyNeeded: v.optional(v.number()),
     qtyDone: v.optional(v.number()),
     priority: v.optional(v.string()),               // urgent | high | normal | whenever
+    // handover (crafter ⇄ distributor; two real players must agree + meet)
+    direction: v.optional(v.string()),              // "offer" (crafter→distributors) | "request" (distributor→crafter)
+    giverId: v.optional(v.id("users")),
+    giverName: v.optional(v.string()),
+    takerId: v.optional(v.id("users")),
+    takerName: v.optional(v.string()),
+    destLocation: v.optional(v.string()),           // distributor's stockpile
+    destSystem: v.optional(v.string()),
     // pickup: the selected stock rows to collect from this location
     items: v.optional(v.array(v.object({
       stockId: v.id("stock"),

@@ -3278,50 +3278,122 @@ function renderWoList(){
 function renderDistribution(){
   const u=state.user;
   const isDist=isDistributor(u)||isAdmin(u);
-  const crafted=[...state.stock.filter(s=>s.kind==='item'&&s.status==='crafted')].sort((a,b)=>a.name.localeCompare(b.name));
-  const mine=[...state.stock.filter(s=>s.kind==='item'&&s.status==='with_distributor'&&(isAdmin(u)||s.heldBy===u.username))].sort((a,b)=>a.name.localeCompare(b.name));
+  const isCraft=isCrafter(u)||isAdmin(u);
+  const handovers=state.workorders.filter(w=>w.kind==='handover');
+  const locked=new Set();
+  handovers.filter(h=>h.status==='open'||h.status==='agreed').forEach(h=>(h.items||[]).forEach(it=>locked.add(it.stockId)));
+  const crafted=[...state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&!locked.has(s._id))].sort((a,b)=>a.name.localeCompare(b.name));
+  const mineStock=[...state.stock.filter(s=>s.kind==='item'&&s.status==='with_distributor'&&(isAdmin(u)||s.heldBy===u.username))].sort((a,b)=>a.name.localeCompare(b.name));
+  const visible=handovers.filter(h=>h.status!=='done' && (
+     h.giverId===u._id||h.takerId===u._id||h.giverName===u.username||h.takerName===u.username||
+     (h.direction==='offer'&&h.status==='open'&&isDist)
+  ));
   const sec=t=>`<div style="font-size:var(--text-md);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--border);">${t}</div>`;
   const qcell=s=>`${s.qty} <span style="font-weight:400;color:var(--fg);font-size:var(--text-sm);">${esc(s.unit)}</span>`;
   const ql=s=>s.qualityValue!=null?`Q ${s.qualityValue}`:'—';
   const loc=s=>`${esc(s.location||'—')}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}`;
-  const takeTbl = crafted.length ? `<table class="cards">
+
+  // 1 — Finished items: crafter offers their own; distributor requests another's.
+  const finTbl = crafted.length ? `<table class="cards">
     <thead><tr><th>Item</th><th>Qty</th><th>Quality</th><th>Crafter</th><th>Location</th><th></th></tr></thead>
-    <tbody>${crafted.map(s=>`<tr>
-      <td data-label="Item" style="font-weight:700;">${esc(s.name)}</td>
-      <td data-label="Qty" style="font-weight:700;">${qcell(s)}</td>
-      <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${ql(s)}</td>
-      <td data-label="Crafter">${esc(s.heldBy)}</td>
-      <td data-label="Location" style="font-size:var(--text-md);">${loc(s)}</td>
-      <td data-label="" style="white-space:nowrap;">${isDist?`<button class="btn btn-black btn-sm" onclick="openTakeModal('${esc(s._id)}')">Take</button>`:''}</td>
-    </tr>`).join('')}</tbody></table>` : `<div class="empty">No finished items waiting. Crafted items show here for distributors to take.</div>`;
-  const stockTbl = mine.length ? `<table class="cards">
+    <tbody>${crafted.map(s=>{
+      const mine=s.heldBy===u.username;
+      const act = (mine&&isCraft) ? `<button class="btn btn-black btn-sm" onclick="doOffer('${esc(s._id)}')">Offer</button>`
+                : (isDist&&!mine) ? `<button class="btn btn-outline btn-sm" onclick="openRequestModal('${esc(s._id)}')">Request</button>` : '';
+      return `<tr>
+        <td data-label="Item" style="font-weight:700;">${esc(s.name)}</td>
+        <td data-label="Qty" style="font-weight:700;">${qcell(s)}</td>
+        <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${ql(s)}</td>
+        <td data-label="Crafter">${esc(s.heldBy)}</td>
+        <td data-label="Location" style="font-size:var(--text-md);">${loc(s)}</td>
+        <td data-label="" style="white-space:nowrap;">${act}</td>
+      </tr>`;}).join('')}</tbody></table>` : `<div class="empty">No finished items available. Crafted items show here — crafters offer them, distributors request them.</div>`;
+
+  // 2 — Handovers in progress (two players must agree + meet)
+  const hoCards = visible.length ? visible.map(h=>{
+    const items=(h.items||[]).map(it=>`${esc(it.name)}${it.qualityStep!=null?` Q${it.qualityStep}`:''} ×${it.qty}`).join(', ');
+    const iAmGiver = h.giverId===u._id||h.giverName===u.username;
+    const iAmTaker = h.takerId===u._id||h.takerName===u.username;
+    const dirBadge = `<span style="font-size:var(--text-xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--border);padding:1px 6px;">${h.direction==='offer'?'Offer':'Request'}</span>`;
+    const who = `${esc(h.giverName||'?')} <span style="color:var(--mid);">→</span> ${esc(h.takerName||'any distributor')}`;
+    const stat = h.status==='agreed' ? 'Agreed — meet in-game, then the crafter confirms' : (h.direction==='offer'?'Offered to distributors':'Requested — awaiting crafter');
+    let acts='';
+    if(h.status==='open'&&h.direction==='offer'&&isDist&&!iAmGiver) acts+=`<button class="btn btn-black btn-sm" onclick="openAcceptOfferModal('${esc(h._id)}')">Accept</button>`;
+    if(h.status==='open'&&h.direction==='request'&&iAmGiver&&isCraft) acts+=`<button class="btn btn-black btn-sm" onclick="doAcceptRequest('${esc(h._id)}')">Accept</button>`;
+    if(h.status==='agreed'&&(iAmGiver||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" onclick="doConfirmHandover('${esc(h._id)}')">Confirm handover</button>`;
+    if(iAmGiver||iAmTaker||isAdmin(u)) acts+=`<button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="doCancelHandover('${esc(h._id)}')">Cancel</button>`;
+    return `<div style="padding:16px 0;border-bottom:1px solid var(--border-m);display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+      <div style="flex:1;min-width:240px;">
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">${dirBadge}<span style="font-weight:700;">${who}</span></div>
+        <div style="font-size:var(--text-sm);color:var(--fg);margin-top:4px;">${items}</div>
+        <div style="font-size:var(--text-sm);color:var(--mid);margin-top:4px;">${stat}${h.destLocation?` &middot; → ${esc(h.destLocation)}`:''}</div>
+      </div>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;">${acts}</div>
+    </div>`;
+  }).join('') : `<div class="empty">No handovers in progress.</div>`;
+
+  // 3 — My stockpile → hand out
+  const stockTbl = mineStock.length ? `<table class="cards">
     <thead><tr><th>Item</th><th>Qty</th><th>Quality</th><th>Location</th>${isAdmin(u)?'<th>Held By</th>':''}<th></th></tr></thead>
-    <tbody>${mine.map(s=>`<tr>
+    <tbody>${mineStock.map(s=>`<tr>
       <td data-label="Item" style="font-weight:700;">${esc(s.name)}</td>
       <td data-label="Qty" style="font-weight:700;">${qcell(s)}</td>
       <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${ql(s)}</td>
       <td data-label="Location" style="font-size:var(--text-md);">${loc(s)}</td>
       ${isAdmin(u)?`<td data-label="Held By">${esc(s.heldBy)}</td>`:''}
       <td data-label="" style="white-space:nowrap;">${isDist?`<button class="btn btn-black btn-sm" onclick="openHandoutModal('${esc(s._id)}')">Hand Out</button>`:''}</td>
-    </tr>`).join('')}</tbody></table>` : `<div class="empty">Your stockpile is empty. Take finished items above to stock them.</div>`;
-  return `${sec('Available to take')}<div style="margin-bottom:44px;">${takeTbl}</div>${sec('My stockpile')}${stockTbl}`;
+    </tr>`).join('')}</tbody></table>` : `<div class="empty">Your stockpile is empty. Accept an offer or request finished items to stock them.</div>`;
+
+  return `${sec('Finished items')}<div style="margin-bottom:44px;">${finTbl}</div>`+
+         `${sec('Handovers in progress')}<div style="margin-bottom:44px;">${hoCards}</div>`+
+         `${sec('My stockpile')}${stockTbl}`;
 }
-function openTakeModal(id){
+async function doOffer(id){
+  try{ const out=await convexMutation('distribution:offerItems',{sessionToken:state.sessionToken,stockIds:[id]}); toast(`Offered (${out.offered})`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
+}
+function openRequestModal(id){
   const s=state.stock.find(x=>x._id===id); if(!s) return;
   showModal(`
-    <div class="modal-title">Take to stockpile</div>
-    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">${esc(s.name)} ×${s.qty} → your stockpile. Pick where you'll keep it.</p>
-    <div class="grid2">${locationPicker('tk', null)}</div>
-    <div class="err-msg" id="tk-err"></div>
+    <div class="modal-title">Request from ${esc(s.heldBy)}</div>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">${esc(s.name)} ×${s.qty}. ${esc(s.heldBy)} will be notified to agree and meet you. Pick where you'll stockpile it.</p>
+    <div class="grid2">${locationPicker('rq', null)}</div>
+    <div class="err-msg" id="rq-err"></div>
     <div style="display:flex;gap:10px;margin-top:8px;">
-      <button class="btn btn-black" onclick="doTake('${esc(s._id)}')">Take</button>
+      <button class="btn btn-black" onclick="doRequest('${esc(s._id)}')">Send request</button>
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     </div>`);
 }
-async function doTake(id){
-  const location=pickedLocation('tk'); const system=pickedLocationSystem('tk');
-  if(!location){ showErr('tk-err','Pick a location'); return; }
-  try{ const out=await convexMutation('distribution:takeToStockpile',{sessionToken:state.sessionToken,stockIds:[id],location,system}); toast(`Taken (${out.taken})`); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('tk-err',e.message); }
+async function doRequest(id){
+  const location=pickedLocation('rq'); const system=pickedLocationSystem('rq');
+  if(!location){ showErr('rq-err','Pick a location'); return; }
+  try{ await convexMutation('distribution:requestItems',{sessionToken:state.sessionToken,stockIds:[id],location,system}); toast('Request sent'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('rq-err',e.message); }
+}
+function openAcceptOfferModal(id){
+  showModal(`
+    <div class="modal-title">Accept offer</div>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">You'll meet the crafter in-game to receive these. Pick where you'll stockpile them.</p>
+    <div class="grid2">${locationPicker('ao', null)}</div>
+    <div class="err-msg" id="ao-err"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-black" onclick="doAcceptOffer('${esc(id)}')">Accept</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+async function doAcceptOffer(id){
+  const location=pickedLocation('ao'); const system=pickedLocationSystem('ao');
+  if(!location){ showErr('ao-err','Pick a location'); return; }
+  try{ await convexMutation('distribution:acceptHandover',{sessionToken:state.sessionToken,id,location,system}); toast('Accepted — meet to hand over'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('ao-err',e.message); }
+}
+async function doAcceptRequest(id){
+  try{ await convexMutation('distribution:acceptHandover',{sessionToken:state.sessionToken,id}); toast('Agreed — meet to hand over'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
+}
+async function doConfirmHandover(id){
+  if(!confirm('Confirm you met and handed these items over? They move to the distributor\'s stockpile.')) return;
+  try{ const out=await convexMutation('distribution:confirmHandover',{sessionToken:state.sessionToken,id}); toast(`Handed over (${out.moved})`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
+}
+async function doCancelHandover(id){
+  if(!confirm('Call off this handover?')) return;
+  try{ await convexMutation('distribution:cancelHandover',{sessionToken:state.sessionToken,id}); toast('Handover cancelled'); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
 }
 function openHandoutModal(id){
   const s=state.stock.find(x=>x._id===id); if(!s) return;
