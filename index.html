@@ -2210,11 +2210,11 @@ function searchBar(scope, filtersHtml, placeholder, onToggle, onInput){
 
 // ── per-page filter + sort state ──
 let pkF='open', pkSortCol='location', pkSortDir='asc';   // Pickup
-let trF='open', trSortCol='stage', trSortDir='asc';      // Transfers
+let trF='active', trSortCol='stage', trSortDir='asc';      // Transfers
 let cfF='open';                                          // Crafting — admin order filter
 let cfInvF='available', cfInvSortCol='name', cfInvSortDir='asc'; // Crafting — crafter inventory
 let dsF='instock', dsSortCol='name', dsSortDir='asc';    // Distribution
-function setWoView(v){ woView=v; pkF='open'; trF='open'; cfF='open'; cfInvF='available'; dsF='instock'; searchReset('wo'); renderNav(); renderPage(); }
+function setWoView(v){ woView=v; pkF='open'; trF='active'; cfF='open'; cfInvF='available'; dsF='instock'; searchReset('wo'); renderNav(); renderPage(); }
 function reWoBody(){ const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoListActive(); const d=document.getElementById('wo-dist'); if(d) d.innerHTML=renderDistribution(); }
 function toggleWoSearch(){ searchToggle('wo', rerenderWo); }
 function woSearchInput(v){ searchType('wo', v, reWoBody); }
@@ -2457,7 +2457,7 @@ function renderWoControls(){
   const b=(setter,cur,id,l)=>`<button class="btn-ghost btn-sm${cur===id?' active':''}" onclick="${setter}('${id}')">${l}</button>`;
   let filters='';
   if(woView==='pickup')     filters=`${b('setPkF',pkF,'open','Open')}${b('setPkF',pkF,'claimed','Accepted')}${b('setPkF',pkF,'done','Done')}`;
-  else if(woView==='transfers')  filters=`${b('setTrF',trF,'open','Open')}${b('setTrF',trF,'inprogress','In Progress')}${b('setTrF',trF,'done','Done')}`;
+  else if(woView==='transfers')  filters=`${b('setTrF',trF,'active','Active')}${b('setTrF',trF,'done','Done')}`;
   else if(woView==='crafting')   filters=isCrafter(u)
     ? `${b('setCfInvF',cfInvF,'available','Finished')}${b('setCfInvF',cfInvF,'shipping','Shipping')}`
     : `${b('setCfF',cfF,'open','Open')}${b('setCfF',cfF,'done','Done')}`;
@@ -2507,7 +2507,7 @@ function renderPickupTable(){
 const TRANSFER_KINDS=['delivery','move','distribution','borrow'];
 // who may accept an OPEN transfer of each kind (borrow is accepted by the specific holder)
 function transferAcceptRole(kind){ return kind==='delivery'?'crafter':kind==='move'?'logistics':kind==='distribution'?'distributor':''; }
-function transferBucket(w){ if(w.status==='done') return 'done'; if(w.status==='claimed') return 'inprogress'; return 'open'; }
+function transferBucket(w){ return w.status==='done' ? 'done' : 'active'; }
 function transferVisible(w,u){
   if(isAdmin(u)) return true;
   if(w.createdBy===u._id||w.claimedById===u._id) return true;
@@ -2529,7 +2529,7 @@ function renderTransfers(){
   const val=(w,c)=>{ const f=transferFields(w); return c==='stage'?f.stageOrder:(f[c]||''); };
   let rows=state.workorders.filter(w=>TRANSFER_KINDS.includes(w.kind)&&transferVisible(w,u)&&transferBucket(w)===trF&&(()=>{const f=transferFields(w);return searchMatch('wo', f.what, f.from, f.to, f.stage, f.type);})())
     .sort((a,b)=>cmpVals(val(a,trSortCol),val(b,trSortCol),trSortDir));
-  if(!rows.length) return `<div class="empty">No ${trF==='open'?'open':trF==='inprogress'?'in-progress':'completed'} transfers${searchGet('wo').text?' match your search':''}.</div>`;
+  if(!rows.length) return `<div class="empty">No ${trF==='done'?'completed':'active'} transfers${searchGet('wo').text?' match your search':''}.</div>`;
   const cols=[['what','What'],['from','From'],['to','To'],['stage','Stage']];
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setTrSort',trSortCol,trSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(w=>{
     const f=transferFields(w);
