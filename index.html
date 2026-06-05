@@ -290,6 +290,48 @@ tbody tr:hover{background:#f9f9f9;}
 /* Over the imagery the nav simply inverts to white. */
 /* (front-page nav stays white — rules live after the theme blocks so they win) */
 
+/* ── "THE LINE" — live pipeline board (alternate landing view) ──────
+   A single conveyor: role stations (where stock sits right now) linked by
+   flow connectors (the pending meet-&-confirm handovers). Same black/white/red
+   editorial language as the front page, theme-safe via --fg/--bg tokens. */
+.pl-wrap{max-width:1240px;}
+.pl-sub{font-size:var(--text-md);color:var(--fg);line-height:1.5;max-width:680px;margin-bottom:var(--space-7);}
+.pl-sub b{color:var(--red);}
+.pl-live{display:inline-block;width:9px;height:9px;background:var(--red);border-radius:50%;margin-right:9px;vertical-align:middle;animation:plpulse 1.6s ease-in-out infinite;}
+@keyframes plpulse{0%,100%{opacity:1;}50%{opacity:.2;}}
+.pl-flow{display:flex;align-items:stretch;flex-wrap:nowrap;}
+.pl-station{flex:1 1 0;min-width:0;border:3px solid var(--fg);padding:var(--space-4) var(--space-4) var(--space-5);display:flex;flex-direction:column;background:var(--bg);}
+.pl-station[role="button"]{cursor:pointer;}
+.pl-station[role="button"]:hover{background:var(--bg2);}
+.pl-station.hot{border-color:var(--red);}
+.pl-role{font-size:var(--text-md);font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:var(--fg);line-height:1;}
+.pl-where{font-size:var(--text-sm);color:#8a8a8a;letter-spacing:.02em;margin-top:6px;margin-bottom:var(--space-5);}
+.pl-num{font-size:clamp(38px,4.4vw,62px);font-weight:900;letter-spacing:-3px;line-height:.85;color:var(--fg);font-variant-numeric:tabular-nums;}
+.pl-station.hot .pl-num{color:var(--red);}
+.pl-numlbl{font-size:var(--text-sm);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg);margin-top:8px;}
+.pl-meta{margin-top:auto;padding-top:var(--space-5);font-size:var(--text-sm);color:#8a8a8a;line-height:1.5;letter-spacing:.02em;}
+.pl-link{flex:0 0 auto;width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:0 4px;align-self:center;}
+.pl-arrow{font-size:26px;font-weight:900;color:#bdbdbd;line-height:1;}
+.pl-link.flowing .pl-arrow{color:var(--red);animation:plpulse 1.3s ease-in-out infinite;}
+.pl-badge{font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:#bdbdbd;line-height:1.2;}
+.pl-link.flowing .pl-badge{color:var(--red);}
+.pl-link[role="button"]{cursor:pointer;}
+.pl-end{display:flex;align-items:baseline;gap:14px;margin-top:var(--space-6);padding-top:var(--space-5);border-top:2px solid var(--fg);}
+.pl-end-num{font-size:var(--text-lg);font-weight:900;letter-spacing:-1px;color:var(--fg);font-variant-numeric:tabular-nums;}
+.pl-end-lbl{font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a8a8a;}
+@media(max-width:900px){
+  .pl-flow{flex-direction:column;}
+  .pl-station{flex:none;}
+  .pl-link{width:100%;flex-direction:row;height:56px;gap:14px;}
+  .pl-arrow{transform:rotate(90deg);}
+}
+/* Front Page / The Line switch */
+.mode-switch{display:inline-flex;border:2px solid currentColor;flex-shrink:0;}
+.ms-btn{font:inherit;background:none;border:none;cursor:pointer;padding:7px 15px;font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:currentColor;white-space:nowrap;}
+.ms-btn.on{background:var(--red);color:#fff;}
+.ms-fixed{position:fixed;right:24px;top:calc(var(--nav-h,120px) + 18px);z-index:450;background:#fff;color:#000;box-shadow:0 2px 12px rgba(0,0,0,.18);}
+@media(max-width:760px){ .ms-fixed{right:var(--space-4);top:calc(var(--nav-h,110px) + 10px);} }
+
 /* ── OVERVIEW / LANDING ──────────────────────────────────────────── */
 .ov-wrap{}
 .ov-header{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:28px;border-bottom:2px solid #000;}
@@ -1647,7 +1689,7 @@ function renderPage() {
 
 // The non-recruit overview is a full-bleed image front page (no .page wrapper,
 // image runs under the nav). Everything else stays inside the padded .page.
-function fpFullBleed(){ return currentPage==='overview' && !isRecruit(state.user); }
+function fpFullBleed(){ return currentPage==='overview' && !isRecruit(state.user) && fpMode!=='line'; }
 function renderPageContent() {
   const pw=document.getElementById('page-wrap'); if(!pw) return;
   const nav=document.getElementById('nav');
@@ -1669,6 +1711,17 @@ function renderPageContent() {
 // Seed picked once per page load → layout/order stays stable during the session
 // but reshuffles on reload.
 const fpSeed = Math.floor(Math.random()*1e9) >>> 0;
+// Landing view: 'news' (editorial headline grid) | 'line' (live pipeline board).
+// Persisted so the client can flip between the two and it sticks.
+let fpMode = 'news';
+try { const m = localStorage.getItem('matOverview'); if(m==='line'||m==='news') fpMode=m; } catch(e) {}
+function setMode(m){ fpMode = (m==='line'?'line':'news'); try{ localStorage.setItem('matOverview', fpMode); }catch(e){} renderPage(); }
+function fpModeToggle(active){
+  return `<div class="mode-switch">`
+    + `<button class="ms-btn ${active==='news'?'on':''}" onclick="setMode('news')">Front Page</button>`
+    + `<button class="ms-btn ${active==='line'?'on':''}" onclick="setMode('line')">The Line</button>`
+    + `</div>`;
+}
 function fpShuffle(arr, seed){
   const a=arr.slice(); let s=seed>>>0;
   for(let i=a.length-1;i>0;i--){
@@ -1857,6 +1910,7 @@ window.addEventListener('resize', ()=>{ if(document.body.classList.contains('fp-
 function pageOverview() {
   const u = state.user;
   if(isRecruit(u)) return pageRecruitOverview(u);
+  if(fpMode==='line') return pipelineBoard(u);
 
   const headlines = buildHeadlines();
   if(!headlines.length) return `<div style="padding:160px 40px;font-size:var(--text-lg);font-weight:900;">Nothing to report yet.</div>`;
@@ -1884,7 +1938,97 @@ function pageOverview() {
     </div>`;
   }).join('')}</div>`;
 
-  return `<div class="fp-stage">${bg}${grid}</div>`;
+  return `<div class="ms-fixed">${fpModeToggle('news')}</div><div class="fp-stage">${bg}${grid}</div>`;
+}
+
+// ── "THE LINE" — live pipeline board ─────────────────────────────────────────
+// An at-a-glance conveyor that replaces the spreadsheet's status column: four
+// role stations showing what each role is holding right now, linked by flow
+// connectors that count the pending meet-&-confirm handovers between them.
+function pipelineBoard(u){
+  const stock = state.stock||[], wos = state.workorders||[];
+  const M = a=>a.filter(x=>x.kind==='material'), I = a=>a.filter(x=>x.kind==='item');
+  const st = s=>stock.filter(x=>x.status===s);
+  const isum = a=>Math.round(a.reduce((s,x)=>s+(x.qty||0),0));
+  const qsum = a=>Math.round(a.reduce((s,x)=>s+(x.qty||0),0)*10)/10;
+  const pl = (n,w)=>`${n} ${w}${n!==1?'s':''}`;
+
+  const reported = M(st('reported')), inTransit = M(st('in_transit')), atBase = M(st('at_base'));
+  const crafted = I(st('crafted')), withDist = I(st('with_distributor')), handedOut = I(st('handed_out'));
+  const openPickups = wos.filter(w=>w.kind==='pickup'   && w.status==='open');
+  const openDeliv   = wos.filter(w=>w.kind==='delivery' && w.status==='open');
+  const craftOpen   = wos.filter(w=>w.kind==='craft'    && w.status==='open');
+  const owed        = craftOpen.reduce((s,o)=>s+Math.max(0,(o.qtyNeeded||0)-(o.qtyDone||0)),0);
+  const urgent      = craftOpen.some(o=>o.priority==='urgent');
+  const moveFlow    = wos.filter(w=>(w.kind==='move'||w.kind==='distribution') && w.status!=='done');
+
+  const wa = workViewsAllowed(u);
+  const stations = [
+    { role:'Gather', where:'In the field', num:reported.length, lbl:(reported.length===1?'lot':'lots')+' reported',
+      meta:`${qsum(reported)} units on the ground, awaiting pickup`, hot:reported.length>0,
+      go:"goStock('materials')" },
+    { role:'Logistics', where:'On the haul', num:inTransit.length, lbl:'lots in transit',
+      meta:`${qsum(inTransit)} units moving to base`, hot:false,
+      go: wa.includes('pickup') ? "goWork('pickup')" : "goStock('materials')" },
+    { role:'Craft', where:'At the bench', num:owed, lbl:'items owed',
+      meta:`${pl(craftOpen.length,'order')} open · ${pl(atBase.length,'lot')} ready to craft`, hot:urgent,
+      go: wa.includes('crafting') ? "goWork('crafting')" : '' },
+    { role:'Distribute', where:'In stockpiles', num:isum(withDist), lbl:'items to hand out',
+      meta:`${pl(isum(crafted),'item')} just off the bench`, hot:crafted.length>0,
+      go: wa.includes('distribution') ? "goWork('distribution')" : '' },
+  ];
+  const links = [
+    { n:openPickups.length, lbl:'to collect', go: wa.includes('pickup')    ? "goWork('pickup')"    : '' },
+    { n:openDeliv.length,   lbl:'to deliver', go: wa.includes('transfers') ? "goWork('transfers')" : '' },
+    { n:moveFlow.length,    lbl:'to move',    go: wa.includes('transfers') ? "goWork('transfers')" : '' },
+  ];
+
+  const stationHtml = s=>{
+    const click = s.go ? ` role="button" tabindex="0" onclick="${s.go}"` : '';
+    return `<div class="pl-station ${s.hot?'hot':''}"${click}>`
+      + `<div class="pl-role">${s.role}</div>`
+      + `<div class="pl-where">${esc(s.where)}</div>`
+      + `<div class="pl-num">${s.num}</div>`
+      + `<div class="pl-numlbl">${esc(s.lbl)}</div>`
+      + `<div class="pl-meta">${esc(s.meta)}</div>`
+      + `</div>`;
+  };
+  const linkHtml = l=>{
+    const flowing = l.n>0;
+    const click = (flowing && l.go) ? ` role="button" tabindex="0" onclick="${l.go}"` : '';
+    return `<div class="pl-link ${flowing?'flowing':''}"${click}>`
+      + `<div class="pl-arrow">&rarr;</div>`
+      + `<div class="pl-badge">${flowing ? esc(l.n+' '+l.lbl) : 'clear'}</div>`
+      + `</div>`;
+  };
+
+  let flow = '';
+  stations.forEach((s,i)=>{ flow += stationHtml(s); if(i<links.length) flow += linkHtml(links[i]); });
+
+  const movingLots = reported.length + inTransit.length + atBase.length;
+  const finished = isum(withDist) + isum(crafted);
+  const pending = openPickups.length + openDeliv.length + moveFlow.length;
+  const quiet = !stock.length && !wos.length;
+  const sub = quiet
+    ? `The line is quiet — nothing in motion yet. Report a haul to set it running.`
+    : `<b>${pl(movingLots,'material lot')}</b> moving down the line, <b>${pl(finished,'finished item')}</b> waiting to reach the wing`
+      + (pending ? `, and <b>${pl(pending,'handover')}</b> waiting on someone to meet and confirm.` : `.`);
+
+  return `
+    <div class="page-head">
+      <div class="page-head-left">
+        <div class="page-title"><span class="pl-live"></span>The Line</div>
+      </div>
+      ${fpModeToggle('line')}
+    </div>
+    <div class="pl-wrap">
+      <div class="pl-sub">${sub}</div>
+      <div class="pl-flow">${flow}</div>
+      <div class="pl-end">
+        <div class="pl-end-num">${isum(handedOut)}</div>
+        <div class="pl-end-lbl">items delivered to the wing so far</div>
+      </div>
+    </div>`;
 }
 
 function pageRecruitOverview(u) {
