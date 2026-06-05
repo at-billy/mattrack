@@ -33,6 +33,8 @@ body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background
   flex-shrink:0; /* never compress the words */
 }
 .nav-main.outline{-webkit-text-stroke:2px #000;color:transparent;}
+/* Role doesn't have access to this section — word shows but is non-interactive */
+.nav-main-disabled{cursor:default;opacity:.25;pointer-events:none;}
 
 /* ── SUB NAV ─────────────────────────────────────────────────────── */
 #nav-sub{display:flex;align-items:baseline;padding:4px 40px 0;gap:0;}
@@ -1639,7 +1641,9 @@ function renderNav() {
   el.innerHTML=`
     <div id="nav-primary">
       <div class="nav-main${main==='mat'?' active':''}" onclick="goTo('overview')">MAT</div>
-      ${workViewsAllowed(u).length?`<div class="nav-main${main==='task'?' active':''}" onclick="goWorkSection()">WORK</div>`:''}
+      ${(()=>{ const wa=workViewsAllowed(u); const canWork=wa.length>0;
+        return `<div class="nav-main${main==='task'?' active':''}${canWork?'':' nav-main-disabled'}" ${canWork?`onclick="goWorkSection()"`:''}>WORK</div>`;
+      })()}
       <div class="nav-main${main==='items'?' active':''}" onclick="goStockSection()">STOCK</div>
       <div class="nav-main outline${main==='log'?' active':''}" onclick="goTo('archive')">LOG</div>
     </div>
@@ -2887,7 +2891,9 @@ function pageStock(){
   ensureStockView();
   if(stockView==='report') return pageReport();
   const u=state.user;
-  const canAdd = !isRecruit(u);
+  // Gatherers report via the Report sub-page, not via Add Stock.
+  // Add Stock is for roles that manage the ledger: logistics, crafter, distributor, admin.
+  const canAdd = isLogistics(u) || isCrafter(u) || isDistributor(u) || isAdmin(u);
   const n=state.stock.filter(s=>s.kind===(stockView==='items'?'item':'material')).length;
   const noun=stockView==='items'?'item':'material';
   return `
