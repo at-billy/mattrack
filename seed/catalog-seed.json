@@ -1547,20 +1547,6 @@
           "value": 1000
         }
       ]
-    },
-    {
-      "name": "Pressurized_Ice",
-      "type": "Mineable",
-      "category": "",
-      "unit": "SCU",
-      "qualities": []
-    },
-    {
-      "name": "Quantanium",
-      "type": "Mineable",
-      "category": "",
-      "unit": "SCU",
-      "qualities": []
     }
   ],
   "items": [
