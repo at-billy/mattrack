@@ -2928,7 +2928,7 @@ function renderStockList(){
   return `<table class="cards">
     <thead><tr>${cols.map(([col,label])=>`<th onclick="setStockSort('${col}')" style="cursor:pointer;user-select:none;white-space:nowrap;">${label}${stockSortCol===col?(stockSortDir==='asc'?' &uarr;':' &darr;'):''}</th>`).join('')}<th></th></tr></thead>
     <tbody>${rows.map(s=>{
-      const canEdit = isAdmin(u) || s.addedBy===u._id;
+      const canEdit = isAdmin(u);
       const canBorrow = (isCrafter(u)||isAdmin(u)) && s.kind==='material' && s.status==='at_base' && s.heldBy!==u.username;
       return `<tr>
         <td data-label="Name" style="font-weight:700;">${esc(s.name)}${s.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(s.note)}</div>`:''}</td>

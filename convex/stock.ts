@@ -88,8 +88,7 @@ export const update = mutation({
     const user = await requireSession(ctx.db, sessionToken);
     const row = await ctx.db.get(id);
     if (!row) throw new ConvexError("Stock not found");
-    const isAdmin = user.roles.includes("admin");
-    if (!isAdmin && row.addedBy !== user._id) throw new ConvexError("Not authorized — you can only edit stock you added");
+    if (!user.roles.includes("admin")) throw new ConvexError("Only admins can edit stock");
     if (patch.qty !== undefined && !(patch.qty > 0)) throw new ConvexError("Quantity must be greater than 0");
     if (patch.status !== undefined && !STOCK_STATUSES.includes(patch.status)) throw new ConvexError("Invalid status");
     if (patch.location !== undefined && !patch.location.trim()) throw new ConvexError("Location is required");
@@ -110,8 +109,7 @@ export const remove = mutation({
     const user = await requireSession(ctx.db, sessionToken);
     const row = await ctx.db.get(id);
     if (!row) throw new ConvexError("Stock not found");
-    const isAdmin = user.roles.includes("admin");
-    if (!isAdmin && row.addedBy !== user._id) throw new ConvexError("Not authorized — you can only remove stock you added");
+    if (!user.roles.includes("admin")) throw new ConvexError("Only admins can remove stock");
     // Clean up any active workorder (pickup or delivery) that references this
     // stock — drop the line, and delete the WO if nothing's left.
     const wos = await ctx.db.query("workorders").collect();
