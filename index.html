@@ -254,8 +254,11 @@ tbody tr:hover{background:#f9f9f9;}
    Lives inside the padded .page on plain --bg — no background media. The
    pipeline frames lead, the editorial headline grid follows; both share one
    dotted/bordered, red/black card language. */
-.fp-pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-5);margin-bottom:var(--space-7);}
-.fp{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--space-7) 36px;align-items:start;}
+/* Pipeline leads: 4 equal framed cards, then 230px breathing room before the
+   editorial headlines (matching the headline-to-headline vertical gap). */
+.fp-pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-5);margin-bottom:230px;}
+/* Editorial headline grid: 230px vertical gap between cards, exactly as before. */
+.fp{display:grid;grid-template-columns:repeat(12,1fr);gap:230px 36px;align-items:start;}
 .fp-item{min-width:0;justify-self:start;max-width:100%;}
 .fp-item[role="button"]{cursor:pointer;}
 .fp-kicker{font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red);margin-bottom:8px;}
@@ -265,28 +268,30 @@ tbody tr:hover{background:#f9f9f9;}
 .fp-red .fp-head{color:var(--red);}
 .fp-box{padding:22px 24px;background-color:var(--bg);}
 .fp-dots{background-color:var(--bg);background-image:radial-gradient(var(--fg) 0.8px, transparent 0.8px),radial-gradient(var(--fg) 0.8px, transparent 0.8px);background-size:8px 8px;background-position:0 0,4px 4px;}
-/* On dotted boxes, give each glyph a soft background-colour halo so the dots
-   don't cut into the letters (reads cleaner than a box behind the text). */
+/* On dotted boxes, give each glyph a soft background-colour halo. */
 .fp-dots .fp-head,.fp-dots .fp-kicker,.fp-dots .fp-foot{text-shadow:.5px 0 0 var(--bg),-.5px 0 0 var(--bg),0 .5px 0 var(--bg),0 -.5px 0 var(--bg),.5px .5px 0 var(--bg),-.5px -.5px 0 var(--bg),.5px -.5px 0 var(--bg),-.5px .5px 0 var(--bg),1px 0 0 var(--bg),-1px 0 0 var(--bg),0 1px 0 var(--bg),0 -1px 0 var(--bg),1px .5px 0 var(--bg),1px -.5px 0 var(--bg),-1px .5px 0 var(--bg),-1px -.5px 0 var(--bg),.5px 1px 0 var(--bg),-.5px 1px 0 var(--bg),.5px -1px 0 var(--bg),-.5px -1px 0 var(--bg),1px 1px 0 var(--bg),-1px -1px 0 var(--bg),1px -1px 0 var(--bg),-1px 1px 0 var(--bg);}
-/* Border always matches the card colour (currentColor follows tone) */
 .fp-bd,.fp-bd-red{border:3px solid currentColor;}
 
-/* ── PIPELINE FRAMES ──────────────────────────────────────────────
-   Same framed card as a red headline, but laid out image-top / caption-below:
-   a big live number where the reference puts its photo, then role + status. */
+/* ── PIPELINE FRAMES ─────────────────────────────────────────────
+   Mockup: dotted background fills the top zone with a huge centred number
+   (where the reference puts its image); a ruled line separates it from a
+   plain-white caption area that uses .fp-head + .fp-foot — no hover tint. */
 .fp-pipe .fp-item{justify-self:stretch;}
-.fp-pl{display:flex;flex-direction:column;}
-.fp-pl-top{padding-bottom:var(--space-4);margin-bottom:var(--space-4);border-bottom:2px solid currentColor;}
-.fp-pl-num{font-size:clamp(44px,5vw,78px);font-weight:900;letter-spacing:-3px;line-height:.82;color:var(--red);font-variant-numeric:tabular-nums;}
-.fp-pl-lbl{font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red);margin-top:10px;}
-.fp-pl-role{font-size:clamp(22px,2.4vw,32px);font-weight:900;letter-spacing:-.5px;line-height:1.04;color:var(--red);margin-top:auto;}
-.fp-pl-meta{font-size:var(--text-sm);color:var(--red);margin-top:8px;line-height:1.4;}
-.fp-pl[role="button"]:hover{background:var(--bg2);}
+.fp-pl{display:flex;flex-direction:column;overflow:hidden;}
+.fp-pl-top{flex:1 1 0;min-height:180px;display:flex;align-items:center;justify-content:center;
+  background-color:var(--bg);
+  background-image:radial-gradient(var(--fg) 0.8px,transparent 0.8px),radial-gradient(var(--fg) 0.8px,transparent 0.8px);
+  background-size:8px 8px;background-position:0 0,4px 4px;
+  border-bottom:3px solid currentColor;}
+.fp-pl-num{font-size:clamp(90px,11vw,160px);font-weight:900;letter-spacing:-5px;line-height:1;color:var(--red);font-variant-numeric:tabular-nums;}
+.fp-pl-body{padding:22px 24px;background:var(--bg);}
 
 @media(max-width:1100px){ .fp-pipe{grid-template-columns:repeat(2,1fr);} }
 @media(max-width:760px){
-  .fp-pipe{grid-template-columns:1fr;gap:var(--space-4);}
-  .fp{grid-template-columns:1fr;gap:28px 0;}
+  .fp-pipe{grid-template-columns:1fr;gap:var(--space-4);margin-bottom:60px;}
+  .fp-pl-top{min-height:140px;}
+  .fp-pl-num{font-size:clamp(70px,18vw,110px);}
+  .fp{grid-template-columns:1fr;gap:44px 0;}
   .fp-item{grid-column:1 / -1 !important;}
 }
 
@@ -1763,7 +1768,7 @@ function buildHeadlines(){
     .forEach(e=>{ const h=fpActivityHeadline(e); if(h) out.push(h); });
 
   // Shuffle (seeded once per page load) and pick ~22 for the front page.
-  const list = fpShuffle(out, fpSeed).slice(0, 22);
+  const list = fpShuffle(out, fpSeed).slice(0, 12);
   // Colophon — always the very last headline, always solo (see pageOverview).
   list.push({ kicker:'The Fine Print', text:'billy made this with ai and no clue what he was doing.', foot:'it works. mostly. handle with care.', credits:true });
   return list;
@@ -1850,29 +1855,28 @@ function pipelineCards(u){
 
   const wa = workViewsAllowed(u);
   const cards = [
-    { role:'Gather', num:reported.length, lbl:(reported.length===1?'lot':'lots')+' reported',
-      meta:`${qsum(reported)} units in the field${openPickups?` · ${pl(openPickups,'pickup')} waiting`:''}`,
+    { num:reported.length, foot:'Stock',
+      text:`Gatherers have ${pl(reported.length,'lot')} reported: ${qsum(reported)} units in the field${openPickups?` and ${pl(openPickups,'pickup')} waiting`:''}`,
       go:"goStock('materials')" },
-    { role:'Logistics', num:inTransit.length, lbl:'lots in transit',
-      meta:`${qsum(inTransit)} units inbound to base${openDeliv?` · ${pl(openDeliv,'delivery')} to drop`:''}`,
+    { num:inTransit.length, foot:'Pickup',
+      text:`Logistics has ${pl(inTransit.length,'lot')} in transit: ${qsum(inTransit)} units inbound to base${openDeliv?`, ${pl(openDeliv,'delivery')} to drop off`:''}`,
       go: wa.includes('pickup') ? "goWork('pickup')" : "goStock('materials')" },
-    { role:'Craft', num:owed, lbl:'items owed',
-      meta:`${pl(craftOpen.length,'order')} open · ${pl(atBase.length,'lot')} at the bench`,
+    { num:owed, foot:'Crafting',
+      text:`Crafters owe ${pl(owed,'item')}: ${pl(craftOpen.length,'order')} open${atBase.length?` with ${pl(atBase.length,'lot')} ready at the bench`:''}`,
       go: wa.includes('crafting') ? "goWork('crafting')" : '' },
-    { role:'Distribute', num:isum(withDist), lbl:'items to hand out',
-      meta:`${pl(isum(crafted),'item')} just off the bench${moveFlow?` · ${pl(moveFlow,'move')} in motion`:''}`,
+    { num:isum(withDist), foot:'Distribution',
+      text:`Distributors hold ${pl(isum(withDist),'item')} to hand out${isum(crafted)?`: ${pl(isum(crafted),'item')} just off the bench`:''}${moveFlow?` and ${pl(moveFlow,'move')} in motion`:''}`,
       go: wa.includes('distribution') ? "goWork('distribution')" : '' },
   ];
 
   return cards.map(c=>{
-    const click = c.go ? ` role="button" tabindex="0" aria-label="${esc(c.role)}" onclick="${c.go}"` : '';
-    return `<div class="fp-item fp-red fp-box fp-bd-red fp-pl"${click}>
-      <div class="fp-pl-top">
-        <div class="fp-pl-num">${c.num}</div>
-        <div class="fp-pl-lbl">${esc(c.lbl)}</div>
+    const click = c.go ? ` role="button" tabindex="0" aria-label="${esc(c.foot)}" onclick="${c.go}"` : '';
+    return `<div class="fp-item fp-red fp-bd-red fp-pl"${click}>
+      <div class="fp-pl-top"><div class="fp-pl-num">${c.num}</div></div>
+      <div class="fp-pl-body">
+        <div class="fp-head">${esc(c.text)}</div>
+        ${c.go?`<div class="fp-foot" style="color:var(--red);">→ ${esc(c.foot)}</div>`:''}
       </div>
-      <div class="fp-pl-role">${esc(c.role)}</div>
-      <div class="fp-pl-meta">${esc(c.meta)}</div>
     </div>`;
   }).join('');
 }
