@@ -150,6 +150,16 @@ thead th{font-size:var(--text-md);font-weight:700;letter-spacing:.12em;text-tran
 tbody td{padding:20px 14px;vertical-align:middle;font-size:var(--text-md);}
 tbody tr:hover{background:#f9f9f9;}
 .empty{padding:120px 0;text-align:center;color:#000;font-size:var(--text-md);letter-spacing:.04em;}
+/* Action column stability: reserve a fixed minimum width for the last column
+   so the table never resizes when buttons appear or disappear. 260px covers
+   the widest button combination ("Confirm receipt + Abandon"). white-space:nowrap
+   is enforced globally here rather than scattered inline. */
+table.cards th:last-child,
+table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:middle;}
+@media(max-width:760px){
+  /* Mobile: cells become full-width blocks — column min-width is irrelevant. */
+  table.cards td[data-label=""]{min-width:0;}
+}
 
 /* ── TAGS ────────────────────────────────────────────────────────── */
 .q{display:inline-block;padding:2px 7px;font-size:var(--text-md);font-weight:700;background:#000;color:#fff;}
@@ -2210,11 +2220,11 @@ function searchBar(scope, filtersHtml, placeholder, onToggle, onInput){
 
 // ── per-page filter + sort state ──
 let pkF='open', pkSortCol='location', pkSortDir='asc';   // Pickup
-let trF='active', trSortCol='stage', trSortDir='asc';      // Transfers
+let trF='active', trSortCol='from', trSortDir='asc';       // Transfers — 'from' is stable; 'stage' causes rows to jump on Accept/Confirm
 let cfF='open';                                          // Crafting — admin order filter
 let cfInvF='available', cfInvSortCol='name', cfInvSortDir='asc'; // Crafting — crafter inventory
 let dsF='instock', dsSortCol='name', dsSortDir='asc';    // Distribution
-function setWoView(v){ woView=v; pkF='open'; trF='active'; cfF='open'; cfInvF='available'; dsF='instock'; searchReset('wo'); renderNav(); renderPage(); }
+function setWoView(v){ woView=v; pkF='open'; trF='active'; trSortCol='from'; cfF='open'; cfInvF='available'; dsF='instock'; searchReset('wo'); renderNav(); renderPage(); }
 function reWoBody(){ const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoListActive(); const d=document.getElementById('wo-dist'); if(d) d.innerHTML=renderDistribution(); }
 function toggleWoSearch(){ searchToggle('wo', rerenderWo); }
 function woSearchInput(v){ searchType('wo', v, reWoBody); }
