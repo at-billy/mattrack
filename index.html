@@ -2481,10 +2481,10 @@ function renderPickupTable(){
   if(!rows.length) return `<div class="empty">No ${pkF==='open'?'open':pkF==='claimed'?'accepted':'completed'} pickups${searchGet('wo').text?' match your search':''}.</div>`;
   const cols=[['location','Location'],['items','Reported'],['status','Status'],['accepted','Accepted by'],['by','By']];
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setPkSort',pkSortCol,pkSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(w=>{
-    const canAct=isAdmin(u)||hasRole(u,'logistics');
+    const canAct=hasRole(u,'logistics'); // admin sees pickups but can't act as logistics
     const mine=w.claimedById===u._id;
     const canAccept=w.status==='open'&&canAct;
-    const canFinish=w.status==='claimed'&&(isAdmin(u)||mine);
+    const canFinish=w.status==='claimed'&&mine; // only the claimer confirms receipt
     const canDelete=w.status==='done'&&(isAdmin(u)||w.createdBy===u._id);
     const reportHtml=(w.report||[]).map(r=>`${esc(r.what)} <span style="color:var(--mid);">(${esc(r.type)}, ~${r.approxQty} ${esc(r.unit||'')})</span>`).join('<br>')
       || (w.items||[]).map(it=>`${esc(it.name)}${it.qualityStep?` · ${qBandLabel(it.qualityStep)}`:''} ×${it.qty} ${esc(it.unit)}`).join('<br>') || '—';
@@ -2537,14 +2537,14 @@ function renderTransfers(){
     if(w.kind==='borrow'){
       const iAmLender=w.giverName===u.username||w.giverId===u._id;
       const iAmBorrower=w.createdBy===u._id;
-      if(w.status==='open'&&(iAmLender||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="doAcceptBorrow('${esc(w._id)}')">Accept</button>`;
-      if(w.status==='claimed'&&(iAmBorrower||isAdmin(u))) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="doConfirmBorrow('${esc(w._id)}')">Confirm receipt</button>`;
-      if(w.status==='claimed'&&(iAmLender||isAdmin(u))) acts+=`<button class="btn btn-outline btn-sm" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`;
+      if(w.status==='open'&&iAmLender) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="doAcceptBorrow('${esc(w._id)}')">Accept</button>`;
+      if(w.status==='claimed'&&iAmBorrower) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="doConfirmBorrow('${esc(w._id)}')">Confirm receipt</button>`;
+      if(w.status==='claimed'&&iAmLender) acts+=`<button class="btn btn-outline btn-sm" onclick="woAbandon('${esc(w._id)}')">Abandon</button>`;
       if(w.status!=='done'&&(iAmBorrower||isAdmin(u))) acts+=`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Cancel">&times;</button>`;
     } else {
       const mine=w.claimedById===u._id;
-      const canAccept = w.status==='open' && (isAdmin(u)||hasRole(u, transferAcceptRole(w.kind)));
-      const canFinish = w.status==='claimed' && (isAdmin(u)||mine);
+      const canAccept = w.status==='open' && hasRole(u, transferAcceptRole(w.kind)); // admin can't impersonate a party
+      const canFinish = w.status==='claimed' && mine; // only the claimer confirms receipt
       const canDelete = w.status==='done' && (isAdmin(u)||w.createdBy===u._id);
       const acceptCall = w.kind==='distribution' ? `openDistAccept('${esc(w._id)}')` : `woAccept('${esc(w._id)}')`;
       if(canAccept) acts+=`<button class="btn btn-black btn-sm" style="margin-right:var(--space-1);" onclick="${acceptCall}">Accept</button>`;

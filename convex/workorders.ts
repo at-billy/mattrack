@@ -25,17 +25,19 @@ export const claim = mutation({
     if (wo.status !== "open") throw new ConvexError("Workorder is not open");
     const base = { status: "claimed", claimedById: user._id, claimedByName: user.username } as const;
 
+    // Admin can manage workorders (edit/delete) but cannot impersonate a transfer
+    // party — claiming means you ARE the logistics/crafter/distributor receiving.
     if (wo.kind === "pickup") {
-      assertRole(user, ["logistics", "admin"]);
+      assertRole(user, ["logistics"]);
       await ctx.db.patch(id, base);
     } else if (wo.kind === "delivery") {
-      assertRole(user, ["crafter", "admin"]);
+      assertRole(user, ["crafter"]);
       await ctx.db.patch(id, base);
     } else if (wo.kind === "move") {
-      assertRole(user, ["logistics", "admin"]);
+      assertRole(user, ["logistics"]);
       await ctx.db.patch(id, base);
     } else if (wo.kind === "distribution") {
-      assertRole(user, ["distributor", "admin"]);
+      assertRole(user, ["distributor"]);
       if (!location?.trim()) throw new ConvexError("Stockpile location is required");
       await ctx.db.patch(id, { ...base, destLocation: location.trim(), destSystem: system?.trim() || undefined });
     } else {
@@ -71,8 +73,10 @@ export const complete = mutation({
     const user = await requireSession(ctx.db, sessionToken);
     const wo = await ctx.db.get(id);
     if (!wo) throw new ConvexError("Workorder not found");
-    const isAdmin = user.roles.includes("admin");
-    if (!isAdmin && wo.claimedById !== user._id) throw new ConvexError("Not authorized — only the accepter");
+    // Completing a transfer means you physically received the goods — only the
+    // claimer (the actual receiver) can confirm. Admin can unclaim/delete but
+    // cannot confirm receipt on someone else's behalf.
+    if (wo.claimedById !== user._id) throw new ConvexError("Not authorized — only the accepter can confirm receipt");
     const baseLoc = (await ctx.db.query("locationCatalog").collect()).find(l => l.isBase);
 
     if (wo.kind === "delivery") {
@@ -239,9 +243,8 @@ export const receivePickup = mutation({
     const user = await requireSession(ctx.db, sessionToken);
     const wo = await ctx.db.get(id);
     if (!wo || wo.kind !== "pickup") throw new ConvexError("Pickup not found");
-    const isAdmin = user.roles.includes("admin");
-    if (!isAdmin && !user.roles.includes("logistics")) throw new ConvexError("Logistics only");
-    if (!isAdmin && wo.claimedById !== user._id) throw new ConvexError("Accept the pickup first");
+    if (!user.roles.includes("logistics")) throw new ConvexError("Logistics only");
+    if (wo.claimedById !== user._id) throw new ConvexError("Accept the pickup first");
     if (wo.status !== "claimed") throw new ConvexError("Pickup must be accepted first");
     if (!location.trim()) throw new ConvexError("Location is required");
     if (!lines.length) throw new ConvexError("Enter at least one confirmed line");
@@ -444,8 +447,9 @@ export const acceptBorrow = mutation({
     const wo = await ctx.db.get(id);
     if (!wo || wo.kind !== "borrow") throw new ConvexError("Borrow not found");
     if (wo.status !== "open") throw new ConvexError("This borrow is no longer open");
-    const isAdmin = user.roles.includes("admin");
-    if (!isAdmin && wo.giverName !== user.username && wo.giverId !== user._id) throw new ConvexError("Only the holder can lend this");
+    // Only the actual holder (lender) can agree to lend — admin cannot accept on
+    // their behalf.
+    if (wo.giverName !== user.username && wo.giverId !== user._id) throw new ConvexError("Only the holder can agree to lend this");
     await ctx.db.patch(id, { status: "claimed", claimedById: user._id, claimedByName: user.username });
   },
 });
@@ -458,8 +462,9 @@ export const confirmBorrow = mutation({
     const wo = await ctx.db.get(id);
     if (!wo || wo.kind !== "borrow") throw new ConvexError("Borrow not found");
     if (wo.status !== "claimed") throw new ConvexError("The holder must agree first");
-    const isAdmin = user.roles.includes("admin");
-    if (!isAdmin && wo.createdBy !== user._id) throw new ConvexError("Only the borrower confirms receipt");
+    // Only the borrower (the person who made the request) confirms receipt — they
+    // are the one who physically received the materials and must confirm that.
+    if (wo.createdBy !== user._id) throw new ConvexError("Only the borrower confirms receipt");
     let moved = 0;
     for (const it of wo.items ?? []) {
       const s = await ctx.db.get(it.stockId);
@@ -469,12 +474,14 @@ export const confirmBorrow = mutation({
       const left = r3(s.qty - take);
       if (left <= 1e-9) await ctx.db.delete(s._id);
       else await ctx.db.patch(s._id, { qty: left });
+      // heldBy is set to user.username (the borrower pressing Confirm) — explicit
+      // and correct; matches wo.createdByName but avoids stale denormalized name.
       await ctx.db.insert("stock", {
         kind: "material", name: s.name, category: s.category,
         qualityStep: s.qualityStep, qualityValue: s.qualityValue,
         qty: r3(take), unit: s.unit, location: s.location, system: s.system,
-        heldBy: wo.createdByName, status: "at_base",
-        addedBy: wo.createdBy, addedByName: wo.createdByName,
+        heldBy: user.username, status: "at_base",
+        addedBy: user._id, addedByName: user.username,
       });
       moved += take;
     }
