@@ -87,8 +87,10 @@ export const complete = mutation({
         const s = await ctx.db.get(it.stockId);
         if (s && s.status === "crafted") await ctx.db.patch(it.stockId, { status: "in_transit", heldBy: user.username });
       }
-      // Now create the Distribution delivery for a distributor to receive.
-      await ctx.db.insert("workorders", {
+      // Now create the Distribution delivery. If a distributor requested this
+      // move, it's pre-assigned to them (they just confirm receipt); otherwise
+      // it's open for any distributor.
+      const dist: any = {
         kind: "distribution", status: "open",
         location: baseLoc ? baseLoc.name : wo.location,
         system: baseLoc ? baseLoc.system : wo.system,
@@ -96,7 +98,12 @@ export const complete = mutation({
         note: `Finished goods inbound — collected by ${user.username}`,
         sourcePickupId: wo._id,
         createdBy: user._id, createdByName: user.username,
-      });
+      };
+      if (wo.takerId) {
+        dist.status = "claimed"; dist.claimedById = wo.takerId; dist.claimedByName = wo.takerName;
+        dist.destLocation = wo.destLocation; dist.destSystem = wo.destSystem;
+      }
+      await ctx.db.insert("workorders", dist);
     } else if (wo.kind === "distribution") {
       for (const it of wo.items ?? []) {
         const s = await ctx.db.get(it.stockId);
@@ -143,10 +150,43 @@ export const createMove = mutation({
       location: baseLoc ? baseLoc.name : undefined,
       system: baseLoc ? baseLoc.system : undefined,
       items,
+      giverName: user.username, // who logistics collects from
       note: `Finished goods to distribute — from ${user.username}`,
       createdBy: user._id, createdByName: user.username,
     });
     return { sent: items.length };
+  },
+});
+
+// A distributor pulls: asks logistics to move a crafter's finished item to their
+// stockpile. Creates a Move pre-bound to the distributor — logistics collects
+// from the crafter, then the resulting Distribution delivery is already theirs.
+export const requestMove = mutation({
+  args: { sessionToken: v.string(), stockId: v.id("stock"), location: v.string(), system: v.optional(v.string()) },
+  handler: async (ctx, { sessionToken, stockId, location, system }) => {
+    const user = await requireSession(ctx.db, sessionToken);
+    assertRole(user, ["distributor", "admin"]);
+    if (!location.trim()) throw new ConvexError("Stockpile location is required");
+    const s = await ctx.db.get(stockId);
+    if (!s || s.kind !== "item" || s.status !== "crafted") throw new ConvexError("Can only request finished items");
+    for (const kind of ["move", "distribution"]) {
+      for (const w of (await ctx.db.query("workorders").withIndex("by_kind", q => q.eq("kind", kind)).collect())) {
+        if (w.status !== "done" && (w.items ?? []).some(it => it.stockId === stockId)) throw new ConvexError("That item is already being moved");
+      }
+    }
+    const baseLoc = (await ctx.db.query("locationCatalog").collect()).find(l => l.isBase);
+    await ctx.db.insert("workorders", {
+      kind: "move", status: "open",
+      location: baseLoc ? baseLoc.name : s.location,
+      system: baseLoc ? baseLoc.system : s.system,
+      items: [{ stockId: s._id, name: s.name, kind: s.kind, qty: s.qty, unit: s.unit, qualityStep: s.qualityValue ?? undefined }],
+      giverName: s.heldBy,                 // logistics collects from this crafter
+      takerId: user._id, takerName: user.username,
+      destLocation: location.trim(), destSystem: system?.trim() || undefined,
+      note: `${s.name} requested by ${user.username} → ${location.trim()}`,
+      createdBy: user._id, createdByName: user.username,
+    });
+    return { ok: true };
   },
 });
 

@@ -290,582 +290,6 @@
   ],
   "items": [
     {
-      "name": "FS-9 Magazine (75 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.03,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Iron",
-          "qty": 0.03,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "S-38 Magazine (20 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.01,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Torite",
-          "qty": 0.01,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "P4-AR Magazine (40 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Iron",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "P8-AR Rifle Magazine (15 Cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Tungsten",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "P8-SC SMG Magazine (45 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Torite",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "P6-LR Magazine (8 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.03,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Tungsten",
-          "qty": 0.03,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "F55 LMG Magazine (150 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.03,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Iron",
-          "qty": 0.03,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "LH86 Pistol Magazine (25 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.01,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Torite",
-          "qty": 0.01,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "S71 Rifle Magazine (30 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Tungsten",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "C54 SMG Magazine (50 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Torite",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "A03 Sniper Rifle Magazine (15 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.03,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Tungsten",
-          "qty": 0.03,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Coda Pistol Magazine (6 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.01,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Torite",
-          "qty": 0.01,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Scalpel Sniper Rifle Magazine (12 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.03,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Tungsten",
-          "qty": 0.03,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Pulverizer LMG Magazine (120 Cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.03,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Iron",
-          "qty": 0.03,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Killshot Rifle Magazine (45 Cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Tungsten",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Yubarev Pistol Battery (10 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.01,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Gold",
-          "qty": 0.01,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Atzkav Sniper Rifle Battery (8 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.03,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Gold",
-          "qty": 0.03,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Parallax Rifle Battery (80 Cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Gold",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Zenith Laser Sniper Rifle Battery (22 Cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.03,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Gold",
-          "qty": 0.03,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Demeco LMG Battery (100 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.03,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Quartz",
-          "qty": 0.03,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Arclight Pistol Battery (30 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.01,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Quartz",
-          "qty": 0.01,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Gallant Rifle Battery (45 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Quartz",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Lumin V SMG Battery (45 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Quartz",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Arrowhead Sniper Rifle Battery (16 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.03,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Quartz",
-          "qty": 0.03,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Custodian SMG Magazine (60 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Quartz",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Fresnel Energy LMG Battery (165 Cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.03,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Quartz",
-          "qty": 0.03,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Pulse Laser Pistol Battery (60 Cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.01,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Quartz",
-          "qty": 0.01,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Quartz Energy SMG Battery (45 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Quartz",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Karna Rifle Battery (35 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Copper",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Devastator Shotgun Battery (12 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Copper",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Prism Laser Shotgun Battery (20 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.02,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Copper",
-          "qty": 0.02,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "BR-2 Shotgun Magazine (12 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.01,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Taranite",
-          "qty": 0.01,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "R97 Shotgun Magazine (18 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.01,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Taranite",
-          "qty": 0.01,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Ravager-212 Twin Shotgun Magazine (16 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.01,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Taranite",
-          "qty": 0.01,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Tripledown Pistol Magazine (12 Cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.01,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Taranite",
-          "qty": 0.01,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
-      "name": "Deadrig Shotgun Magazine (8 cap)",
-      "category": "Ammo",
-      "recipe": [
-        {
-          "materialName": "Hephaestanite",
-          "qty": 0.01,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Taranite",
-          "qty": 0.01,
-          "unit": "SCU"
-        }
-      ]
-    },
-    {
       "name": "Chiron Backpack Purgatory Camo",
       "category": "FPSArmours",
       "recipe": [
@@ -9956,7 +9380,7 @@
       ]
     },
     {
-      "name": "Oracle Helmet",
+      "name": "Oracle\u00a0Helmet",
       "category": "FPSArmours",
       "recipe": [
         {
@@ -9988,7 +9412,7 @@
       ]
     },
     {
-      "name": "Lynx Legs",
+      "name": "Lynx\u00a0Legs",
       "category": "FPSArmours",
       "recipe": [
         {
@@ -19266,7 +18690,7 @@
       ]
     },
     {
-      "name": "P8-SC Midnight SMG",
+      "name": "P8-SC\u00a0Midnight SMG",
       "category": "FPSWeapons",
       "recipe": [
         {
@@ -19287,7 +18711,7 @@
       ]
     },
     {
-      "name": "P8-SC Nightstalker SMG",
+      "name": "P8-SC\u00a0Nightstalker SMG",
       "category": "FPSWeapons",
       "recipe": [
         {
@@ -19308,7 +18732,7 @@
       ]
     },
     {
-      "name": "P8-SC Executive Edition SMG",
+      "name": "P8-SC\u00a0Executive Edition SMG",
       "category": "FPSWeapons",
       "recipe": [
         {
@@ -19329,7 +18753,7 @@
       ]
     },
     {
-      "name": "P8-SC Warhawk SMG",
+      "name": "P8-SC\u00a0Warhawk SMG",
       "category": "FPSWeapons",
       "recipe": [
         {
@@ -20166,7 +19590,7 @@
       ]
     },
     {
-      "name": "Arrowhead Voyager Sniper Rifle",
+      "name": "Arrowhead\u00a0Voyager Sniper Rifle",
       "category": "FPSWeapons",
       "recipe": [
         {
@@ -20244,7 +19668,7 @@
       ]
     },
     {
-      "name": "Arrowhead Pathfinder Sniper Rifle",
+      "name": "Arrowhead\u00a0Pathfinder Sniper Rifle",
       "category": "FPSWeapons",
       "recipe": [
         {
@@ -20656,43 +20080,6 @@
           "materialName": "Sadaryx",
           "qty": 1,
           "unit": "UNIT"
-        }
-      ]
-    },
-    {
-      "name": "Metamaterial Test #146",
-      "category": "MissionItem",
-      "recipe": [
-        {
-          "materialName": "Titanium",
-          "qty": 2,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Riccite",
-          "qty": 2,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Yormandi Eye",
-          "qty": 4,
-          "unit": "UNIT"
-        }
-      ]
-    },
-    {
-      "name": "carryable_2h_fl_missionitem_microsatellite_a",
-      "category": "MissionItem",
-      "recipe": [
-        {
-          "materialName": "Aluminium",
-          "qty": 0.2,
-          "unit": "SCU"
-        },
-        {
-          "materialName": "Silicon",
-          "qty": 0.2,
-          "unit": "SCU"
         }
       ]
     },
@@ -28458,7 +27845,7 @@
       ]
     },
     {
-      "name": "SW16BR1 “Buzzsaw” Repeater",
+      "name": "SW16BR1 \u201cBuzzsaw\u201d Repeater",
       "category": "Veh. Weapons S1",
       "recipe": [
         {
@@ -28479,7 +27866,7 @@
       ]
     },
     {
-      "name": "SW16BR2 “Sawbuck” Repeater",
+      "name": "SW16BR2 \u201cSawbuck\u201d Repeater",
       "category": "Veh. Weapons S2",
       "recipe": [
         {
@@ -28500,7 +27887,7 @@
       ]
     },
     {
-      "name": "SW16BR3 “Shredder” Repeater",
+      "name": "SW16BR3 \u201cShredder\u201d Repeater",
       "category": "Veh. Weapons S3",
       "recipe": [
         {
@@ -28563,7 +27950,7 @@
       ]
     },
     {
-      "name": "Hellion Scattergun",
+      "name": "Hellion\u00a0Scattergun",
       "category": "Veh. Weapons S2",
       "recipe": [
         {

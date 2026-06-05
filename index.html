@@ -3426,7 +3426,7 @@ function renderWoControls(){
   else if(woView==='crafting')   filters=isCrafter(u)
     ? `${b('setCfInvF',cfInvF,'available','Finished')}${b('setCfInvF',cfInvF,'shipping','Shipping')}`
     : `${b('setCfF',cfF,'open','Open')}${b('setCfF',cfF,'done','Done')}`;
-  else if(woView==='distribution') filters=`${b('setDsF',dsF,'instock','In Stockpile')}${b('setDsF',dsF,'handedout','Handed Out')}`;
+  else if(woView==='distribution') filters=`${b('setDsF',dsF,'available','Available')}${b('setDsF',dsF,'instock','In Stockpile')}${b('setDsF',dsF,'handedout','Handed Out')}`;
   return searchBar('wo', filters, 'Search…', 'toggleWoSearch()', 'woSearchInput(this.value)');
 }
 function renderWoListActive(){
@@ -3486,7 +3486,8 @@ function transferFields(w){
   if(w.kind==='borrow') return { what, from:w.giverName||'—', to:w.createdByName||'—', stage:woStatusLabel(w.status), stageOrder:({open:0,claimed:1,done:2})[w.status]??9, type:'Borrow' };
   const to = w.claimedByName || (w.kind==='delivery'?'any crafter':w.kind==='move'?'any logistics':'any distributor');
   const type = w.kind==='delivery'?'Delivery':w.kind==='move'?'Move':'Distribution';
-  return { what, from:w.createdByName||'—', to, stage:woStatusLabel(w.status), stageOrder:({open:0,claimed:1,done:2})[w.status]??9, type, destLocation:w.destLocation };
+  const from = (w.kind==='move' && w.giverName) ? w.giverName : (w.createdByName||'—');
+  return { what, from, to, stage:woStatusLabel(w.status), stageOrder:({open:0,claimed:1,done:2})[w.status]??9, type, destLocation:w.destLocation };
 }
 function renderTransfers(){
   const u=state.user;
@@ -3543,6 +3544,22 @@ async function doDistAccept(id){
   const location=pickedLocation('da'); const system=pickedLocationSystem('da');
   if(!location){ showErr('da-err','Pick a stockpile location'); return; }
   try{ await convexMutation('workorders:claim',{sessionToken:state.sessionToken,id,location,system}); toast('Accepted — meet logistics to receive'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('da-err',e.message); }
+}
+
+// Distributor pulls: ask logistics to move a crafter's finished item to them.
+function openRequestMove(id){
+  const s=state.stock.find(x=>x._id===id); if(!s) return;
+  showModal(`
+    <div class="modal-title">Request move — ${esc(s.name)}</div>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">Ask logistics to bring this from <strong>${esc(s.heldBy)}</strong> to your stockpile. Pick where you'll keep it.</p>
+    <div class="grid2">${locationPicker('rm', null)}</div>
+    <div class="err-msg" id="rm-err"></div>
+    <div style="display:flex;gap:10px;margin-top:var(--space-2);"><button class="btn btn-black" onclick="doRequestMove('${esc(s._id)}')">Request move</button><button class="btn btn-outline" onclick="closeModal()">Cancel</button></div>`);
+}
+async function doRequestMove(id){
+  const location=pickedLocation('rm'); const system=pickedLocationSystem('rm');
+  if(!location){ showErr('rm-err','Pick a stockpile location'); return; }
+  try{ await convexMutation('workorders:requestMove',{sessionToken:state.sessionToken,stockId:id,location,system}); toast('Requested — logistics will move it'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('rm-err',e.message); }
 }
 
 // ── Borrow materials from another crafter (browse who-holds-what → request) ──
@@ -3693,12 +3710,29 @@ async function submitManifest(id){
 }
 
 // ─── DISTRIBUTION (step 7) ─────────────────────────────────────────────────────
-// The distributor's page: their stockpile → hand out; Handed Out = history.
-// Finished goods arrive via logistics (the Distribution delivery in Transfers).
+// The distributor's page. Available = crafters' finished items they can ask
+// logistics to move to them; In Stockpile = what they hold → hand out; Handed
+// Out = history. (Goods still travel crafter → logistics → distributor.)
 function renderDistribution(){
   const u=state.user;
   const isDist=isDistributor(u)||isAdmin(u);
   const val=(s,c)=>{ switch(c){ case 'qty':return s.qty||0; case 'quality':return s.qualityValue!=null?s.qualityValue:-1; case 'location':return s.location||''; case 'heldby':return s.heldBy||''; default:return s.name||''; } };
+
+  if(dsF==='available'){
+    const locked=lockedStockSet();
+    let rows=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&s.heldBy!==u.username&&!locked.has(s._id)&&searchMatch('wo', s.name, s.location, s.heldBy))
+      .sort((a,b)=>cmpVals(val(a,dsSortCol),val(b,dsSortCol),dsSortDir));
+    if(!rows.length) return `<div class="empty">${searchGet('wo').text?'Nothing matches your search.':'No finished items available to request right now.'}</div>`;
+    const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['heldby','Crafter'],['location','Location']];
+    return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setDsSort',dsSortCol,dsSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(s=>`<tr>
+      <td data-label="Item" style="font-weight:700;">${esc(s.name)}</td>
+      <td data-label="Qty" style="font-weight:700;">${s.qty} <span style="font-weight:400;color:var(--fg);font-size:var(--text-sm);">${esc(s.unit)}</span></td>
+      <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.qualityValue!=null?`Q ${s.qualityValue}`:'—'}</td>
+      <td data-label="Crafter">${esc(s.heldBy)}</td>
+      <td data-label="Location" style="font-size:var(--text-md);">${esc(s.location||'—')}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}</td>
+      <td data-label="" style="white-space:nowrap;">${isDist?`<button class="btn btn-black btn-sm" onclick="openRequestMove('${esc(s._id)}')">Request move</button>`:''}</td>
+    </tr>`).join('')}</tbody></table>`;
+  }
 
   const wantStatus = dsF==='handedout' ? 'handed_out' : 'with_distributor';
   let rows=state.stock.filter(s=>s.kind==='item'&&s.status===wantStatus&&(isAdmin(u)||s.heldBy===u.username)&&searchMatch('wo', s.name, s.location, s.heldBy))
@@ -3971,15 +4005,13 @@ let catalogLocFilter = 'all';    // location system
 const MAT_TYPES = ['Mineable','Salvage','Loot'];
 const CAT_UNITS = ['SCU','UNIT'];
 const CAT_LIST_CAP = 300; // cap rows when the filtered list is still large
-const CAT_ITEM_GROUPS = ['FPS Armour','FPS Weapons','Ammo','Vehicle Components','Vehicle Weapons','Mission','Other'];
+const CAT_ITEM_GROUPS = ['FPS Armour','FPS Weapons','Vehicle Components','Vehicle Weapons','Other'];
 function catItemGroup(c){
   c=c||'';
   if(c==='FPSArmours') return 'FPS Armour';
   if(c==='FPSWeapons') return 'FPS Weapons';
-  if(c==='Ammo') return 'Ammo';
   if(c.startsWith('Veh. Comp')) return 'Vehicle Components';
   if(c.startsWith('Veh. Weapons')) return 'Vehicle Weapons';
-  if(c==='MissionItem') return 'Mission';
   return 'Other';
 }
 function setCatalogTab(t){ catalogTab=t; catalogSearch=''; catalogSearchActive=false; catalogItemFilter='all'; catalogMatFilter='all'; catalogLocFilter='all'; renderPage(); renderNav(); }
