@@ -1837,6 +1837,11 @@ function fpGap(i){ let s=(fpSeed ^ (i*0x9e3779b1))>>>0; s=(s*1664525+1013904223)
 // Map a headline to a navigation action (clicking the card jumps there).
 function fpGoFor(h){
   if(h.go) return h.go; // project headlines carry an explicit target
+  const u=state.user, wa=workViewsAllowed(u);
+  // Don't link a headline to a section the user can't reach (e.g. a gatherer's
+  // "Fresh Haul" pointing at the Pickup page) — it would just bounce back.
+  if((h.foot==='Pickup'||h.foot==='Crafting'||h.foot==='Distribution') && !wa.includes(h.foot.toLowerCase())) return '';
+  if(h.foot==='Admin' && !isAdmin(u)) return '';
   const map={Pickup:"goWork('pickup')",Crafting:"goWork('crafting')",Distribution:"goWork('distribution')",Materials:"goStock('materials')",Items:"goStock('items')",Stock:"goStock('materials')",Log:"goTo('archive')",Admin:"goTo('admin')",
     Projects:"goTo('tasks')",Inventory:"goTo('items')",Databank:"goTo('items')",Lottery:"goTo('lottery')",Archive:"goTo('archive')"};
   return map[h.foot]||'';
