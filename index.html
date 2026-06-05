@@ -254,10 +254,10 @@ tbody tr:hover{background:#f9f9f9;}
    Lives inside the padded .page on plain --bg — no background media. The
    pipeline frames lead, the editorial headline grid follows; both share one
    dotted/bordered, red/black card language. */
-/* Pipeline leads: 4 equal framed cards, then 230px breathing room before the
-   editorial headlines (matching the headline-to-headline vertical gap). */
-.fp-pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-5);margin-bottom:230px;}
-/* Editorial headline grid: 230px vertical gap between cards, exactly as before. */
+/* Pipeline: 230px from the subnav (page adds 60px, so +170px margin here),
+   then 230px before the first headline to match the headline gap rhythm. */
+.fp-pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-5);margin-top:170px;margin-bottom:230px;}
+/* Editorial headline grid: 230px vertical gap, exactly as navytrack had it. */
 .fp{display:grid;grid-template-columns:repeat(12,1fr);gap:230px 36px;align-items:start;}
 .fp-item{min-width:0;justify-self:start;max-width:100%;}
 .fp-item[role="button"]{cursor:pointer;}
@@ -273,23 +273,30 @@ tbody tr:hover{background:#f9f9f9;}
 .fp-bd,.fp-bd-red{border:3px solid currentColor;}
 
 /* ── PIPELINE FRAMES ─────────────────────────────────────────────
-   Mockup: dotted background fills the top zone with a huge centred number
-   (where the reference puts its image); a ruled line separates it from a
-   plain-white caption area that uses .fp-head + .fp-foot — no hover tint. */
+   Fixed card height (520px), split exactly 50/50 between the dotted number
+   zone and the white caption zone. All four cards look identical regardless
+   of whether the caption runs 3 or 4 lines — short captions just leave blank
+   space below, matching the top zone height. No hover tint. */
 .fp-pipe .fp-item{justify-self:stretch;}
-.fp-pl{display:flex;flex-direction:column;overflow:hidden;}
-.fp-pl-top{flex:1 1 0;min-height:180px;display:flex;align-items:center;justify-content:center;
+.fp-pl{height:520px;display:flex;flex-direction:column;overflow:hidden;}
+/* Top half — dotted, number centred, ruled separator */
+.fp-pl-top{flex:0 0 50%;display:flex;align-items:center;justify-content:center;
   background-color:var(--bg);
   background-image:radial-gradient(var(--fg) 0.8px,transparent 0.8px),radial-gradient(var(--fg) 0.8px,transparent 0.8px);
   background-size:8px 8px;background-position:0 0,4px 4px;
   border-bottom:3px solid currentColor;}
 .fp-pl-num{font-size:clamp(90px,11vw,160px);font-weight:900;letter-spacing:-5px;line-height:1;color:var(--red);font-variant-numeric:tabular-nums;}
-.fp-pl-body{padding:22px 24px;background:var(--bg);}
+/* Bottom half — plain white, text starts at top, spare space sits below */
+.fp-pl-body{flex:0 0 50%;padding:22px 24px;background:var(--bg);overflow:hidden;}
 
 @media(max-width:1100px){ .fp-pipe{grid-template-columns:repeat(2,1fr);} }
 @media(max-width:760px){
-  .fp-pipe{grid-template-columns:1fr;gap:var(--space-4);margin-bottom:60px;}
-  .fp-pl-top{min-height:140px;}
+  .fp-pipe{grid-template-columns:1fr;gap:var(--space-4);margin-top:60px;margin-bottom:60px;}
+  /* On mobile the cards stack and don't need to match each other — revert to
+     natural height but keep the halves equal via flex. */
+  .fp-pl{height:auto;}
+  .fp-pl-top{flex:1 1 0;min-height:160px;}
+  .fp-pl-body{flex:1 1 0;overflow:visible;}
   .fp-pl-num{font-size:clamp(70px,18vw,110px);}
   .fp{grid-template-columns:1fr;gap:44px 0;}
   .fp-item{grid-column:1 / -1 !important;}
