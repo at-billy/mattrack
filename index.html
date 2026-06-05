@@ -23,8 +23,15 @@ body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background
 
 /* ── PRIMARY NAV ─────────────────────────────────────────────────── */
 /* overflow:hidden clips items as they translate up (OMA mechanic)   */
-#nav-primary{display:flex;justify-content:space-between;align-items:flex-end;padding:10px 40px 0;overflow:hidden;}
-.nav-main{font-size:clamp(40px,8vw,220px);font-weight:900;letter-spacing:-0.03em;line-height:1;padding-bottom:10px;cursor:pointer;color:#000;text-transform:uppercase;user-select:none;will-change:transform;}
+#nav-primary{display:flex;justify-content:space-between;align-items:flex-end;padding:10px 40px 0;
+  overflow:clip; /* clip — not hidden — avoids Firefox BFC that breaks flex space-between */
+  column-gap:clamp(12px,1.5vw,30px); /* guaranteed minimum gap for Windows/Arial fallback */
+}
+.nav-main{font-size:clamp(40px,8vw,220px);font-weight:900;letter-spacing:-0.03em;line-height:1;padding-bottom:10px;cursor:pointer;color:#000;text-transform:uppercase;user-select:none;
+  /* will-change:transform removed — in Firefox it causes flex items to lose their
+     measured width for the space-between algorithm, smushing all words together */
+  flex-shrink:0; /* never compress the words */
+}
 .nav-main.outline{-webkit-text-stroke:2px #000;color:transparent;}
 
 /* ── SUB NAV ─────────────────────────────────────────────────────── */
