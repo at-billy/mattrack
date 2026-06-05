@@ -5,273 +5,1548 @@
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 346
+        },
+        {
+          "step": 2,
+          "value": 588
+        },
+        {
+          "step": 3,
+          "value": 667
+        },
+        {
+          "step": 4,
+          "value": 796
+        },
+        {
+          "step": 5,
+          "value": 852
+        },
+        {
+          "step": 6,
+          "value": 943
+        },
+        {
+          "step": 7,
+          "value": 971
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Aluminium",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 318
+        },
+        {
+          "step": 2,
+          "value": 511
+        },
+        {
+          "step": 3,
+          "value": 614
+        },
+        {
+          "step": 4,
+          "value": 783
+        },
+        {
+          "step": 5,
+          "value": 896
+        },
+        {
+          "step": 6,
+          "value": 919
+        },
+        {
+          "step": 7,
+          "value": 953
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Aphorite",
       "type": "Mineable",
       "category": "FPS Mining",
       "unit": "UNIT",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 348
+        },
+        {
+          "step": 2,
+          "value": 523
+        },
+        {
+          "step": 3,
+          "value": 686
+        },
+        {
+          "step": 4,
+          "value": 717
+        },
+        {
+          "step": 5,
+          "value": 861
+        },
+        {
+          "step": 6,
+          "value": 916
+        },
+        {
+          "step": 7,
+          "value": 975
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Aslarite",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 287
+        },
+        {
+          "step": 2,
+          "value": 575
+        },
+        {
+          "step": 3,
+          "value": 602
+        },
+        {
+          "step": 4,
+          "value": 741
+        },
+        {
+          "step": 5,
+          "value": 854
+        },
+        {
+          "step": 6,
+          "value": 927
+        },
+        {
+          "step": 7,
+          "value": 963
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Beradom",
       "type": "Mineable",
       "category": "Vehicle Mining",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 287
+        },
+        {
+          "step": 2,
+          "value": 578
+        },
+        {
+          "step": 3,
+          "value": 656
+        },
+        {
+          "step": 4,
+          "value": 723
+        },
+        {
+          "step": 5,
+          "value": 881
+        },
+        {
+          "step": 6,
+          "value": 937
+        },
+        {
+          "step": 7,
+          "value": 969
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Beryl",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 324
+        },
+        {
+          "step": 2,
+          "value": 547
+        },
+        {
+          "step": 3,
+          "value": 677
+        },
+        {
+          "step": 4,
+          "value": 717
+        },
+        {
+          "step": 5,
+          "value": 860
+        },
+        {
+          "step": 6,
+          "value": 937
+        },
+        {
+          "step": 7,
+          "value": 955
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Bexalite",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 302
+        },
+        {
+          "step": 2,
+          "value": 597
+        },
+        {
+          "step": 3,
+          "value": 632
+        },
+        {
+          "step": 4,
+          "value": 756
+        },
+        {
+          "step": 5,
+          "value": 875
+        },
+        {
+          "step": 6,
+          "value": 941
+        },
+        {
+          "step": 7,
+          "value": 959
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Borase",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 359
+        },
+        {
+          "step": 2,
+          "value": 584
+        },
+        {
+          "step": 3,
+          "value": 676
+        },
+        {
+          "step": 4,
+          "value": 743
+        },
+        {
+          "step": 5,
+          "value": 892
+        },
+        {
+          "step": 6,
+          "value": 903
+        },
+        {
+          "step": 7,
+          "value": 976
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Carinite",
       "type": "Mineable",
       "category": "FPS Mining",
       "unit": "UNIT",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 2,
+          "value": 554
+        },
+        {
+          "step": 3,
+          "value": 647
+        },
+        {
+          "step": 4,
+          "value": 716
+        },
+        {
+          "step": 5,
+          "value": 880
+        },
+        {
+          "step": 6,
+          "value": 909
+        },
+        {
+          "step": 7,
+          "value": 959
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Carinite",
       "type": "Mineable",
       "category": "Vehicle Mining",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 2,
+          "value": 554
+        },
+        {
+          "step": 3,
+          "value": 647
+        },
+        {
+          "step": 4,
+          "value": 716
+        },
+        {
+          "step": 5,
+          "value": 880
+        },
+        {
+          "step": 6,
+          "value": 909
+        },
+        {
+          "step": 7,
+          "value": 959
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Carinite Pure",
       "type": "Mineable",
       "category": "FPS Mining",
       "unit": "UNIT",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 2,
+          "value": 554
+        },
+        {
+          "step": 3,
+          "value": 647
+        },
+        {
+          "step": 4,
+          "value": 716
+        },
+        {
+          "step": 5,
+          "value": 880
+        },
+        {
+          "step": 6,
+          "value": 909
+        },
+        {
+          "step": 7,
+          "value": 959
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Copper",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 359
+        },
+        {
+          "step": 2,
+          "value": 593
+        },
+        {
+          "step": 3,
+          "value": 652
+        },
+        {
+          "step": 4,
+          "value": 742
+        },
+        {
+          "step": 5,
+          "value": 855
+        },
+        {
+          "step": 6,
+          "value": 917
+        },
+        {
+          "step": 7,
+          "value": 958
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Corundum",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 309
+        },
+        {
+          "step": 2,
+          "value": 504
+        },
+        {
+          "step": 3,
+          "value": 665
+        },
+        {
+          "step": 4,
+          "value": 793
+        },
+        {
+          "step": 5,
+          "value": 886
+        },
+        {
+          "step": 6,
+          "value": 904
+        },
+        {
+          "step": 7,
+          "value": 971
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Dolivine",
       "type": "Mineable",
       "category": "FPS Mining",
       "unit": "UNIT",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 304
+        },
+        {
+          "step": 2,
+          "value": 577
+        },
+        {
+          "step": 3,
+          "value": 621
+        },
+        {
+          "step": 4,
+          "value": 743
+        },
+        {
+          "step": 5,
+          "value": 886
+        },
+        {
+          "step": 6,
+          "value": 901
+        },
+        {
+          "step": 7,
+          "value": 957
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Feynmaline",
       "type": "Mineable",
       "category": "Vehicle Mining",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 371
+        },
+        {
+          "step": 2,
+          "value": 561
+        },
+        {
+          "step": 3,
+          "value": 682
+        },
+        {
+          "step": 4,
+          "value": 769
+        },
+        {
+          "step": 5,
+          "value": 880
+        },
+        {
+          "step": 6,
+          "value": 906
+        },
+        {
+          "step": 7,
+          "value": 965
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Glacosite",
       "type": "Mineable",
       "category": "Vehicle Mining",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 360
+        },
+        {
+          "step": 2,
+          "value": 567
+        },
+        {
+          "step": 3,
+          "value": 678
+        },
+        {
+          "step": 4,
+          "value": 724
+        },
+        {
+          "step": 5,
+          "value": 857
+        },
+        {
+          "step": 6,
+          "value": 916
+        },
+        {
+          "step": 7,
+          "value": 972
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Gold",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 264
+        },
+        {
+          "step": 2,
+          "value": 553
+        },
+        {
+          "step": 3,
+          "value": 644
+        },
+        {
+          "step": 4,
+          "value": 786
+        },
+        {
+          "step": 5,
+          "value": 864
+        },
+        {
+          "step": 6,
+          "value": 916
+        },
+        {
+          "step": 7,
+          "value": 959
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Hadanite",
       "type": "Mineable",
       "category": "FPS Mining",
       "unit": "UNIT",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 274
+        },
+        {
+          "step": 2,
+          "value": 526
+        },
+        {
+          "step": 3,
+          "value": 665
+        },
+        {
+          "step": 4,
+          "value": 762
+        },
+        {
+          "step": 5,
+          "value": 867
+        },
+        {
+          "step": 6,
+          "value": 916
+        },
+        {
+          "step": 7,
+          "value": 959
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Hephaestanite",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 330
+        },
+        {
+          "step": 2,
+          "value": 572
+        },
+        {
+          "step": 3,
+          "value": 692
+        },
+        {
+          "step": 4,
+          "value": 758
+        },
+        {
+          "step": 5,
+          "value": 896
+        },
+        {
+          "step": 6,
+          "value": 916
+        },
+        {
+          "step": 7,
+          "value": 975
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Ice",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 322
+        },
+        {
+          "step": 2,
+          "value": 561
+        },
+        {
+          "step": 3,
+          "value": 659
+        },
+        {
+          "step": 4,
+          "value": 714
+        },
+        {
+          "step": 5,
+          "value": 873
+        },
+        {
+          "step": 6,
+          "value": 922
+        },
+        {
+          "step": 7,
+          "value": 966
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Iron",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 325
+        },
+        {
+          "step": 2,
+          "value": 521
+        },
+        {
+          "step": 3,
+          "value": 664
+        },
+        {
+          "step": 4,
+          "value": 710
+        },
+        {
+          "step": 5,
+          "value": 874
+        },
+        {
+          "step": 6,
+          "value": 907
+        },
+        {
+          "step": 7,
+          "value": 970
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Jaclium",
       "type": "Mineable",
       "category": "FPS Mining",
       "unit": "UNIT",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 284
+        },
+        {
+          "step": 2,
+          "value": 576
+        },
+        {
+          "step": 3,
+          "value": 607
+        },
+        {
+          "step": 4,
+          "value": 781
+        },
+        {
+          "step": 5,
+          "value": 864
+        },
+        {
+          "step": 6,
+          "value": 941
+        },
+        {
+          "step": 7,
+          "value": 955
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Janalite",
       "type": "Mineable",
       "category": "FPS Mining",
       "unit": "UNIT",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 269
+        },
+        {
+          "step": 2,
+          "value": 596
+        },
+        {
+          "step": 3,
+          "value": 632
+        },
+        {
+          "step": 4,
+          "value": 732
+        },
+        {
+          "step": 5,
+          "value": 898
+        },
+        {
+          "step": 6,
+          "value": 926
+        },
+        {
+          "step": 7,
+          "value": 964
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Laranite",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 298
+        },
+        {
+          "step": 2,
+          "value": 510
+        },
+        {
+          "step": 3,
+          "value": 698
+        },
+        {
+          "step": 4,
+          "value": 707
+        },
+        {
+          "step": 5,
+          "value": 858
+        },
+        {
+          "step": 6,
+          "value": 910
+        },
+        {
+          "step": 7,
+          "value": 975
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Lindinium",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 305
+        },
+        {
+          "step": 2,
+          "value": 585
+        },
+        {
+          "step": 3,
+          "value": 618
+        },
+        {
+          "step": 4,
+          "value": 729
+        },
+        {
+          "step": 5,
+          "value": 853
+        },
+        {
+          "step": 6,
+          "value": 930
+        },
+        {
+          "step": 7,
+          "value": 954
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Ouratite",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 310
+        },
+        {
+          "step": 2,
+          "value": 523
+        },
+        {
+          "step": 3,
+          "value": 647
+        },
+        {
+          "step": 4,
+          "value": 779
+        },
+        {
+          "step": 5,
+          "value": 860
+        },
+        {
+          "step": 6,
+          "value": 912
+        },
+        {
+          "step": 7,
+          "value": 960
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Quantainium",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 344
+        },
+        {
+          "step": 2,
+          "value": 514
+        },
+        {
+          "step": 3,
+          "value": 669
+        },
+        {
+          "step": 4,
+          "value": 762
+        },
+        {
+          "step": 5,
+          "value": 852
+        },
+        {
+          "step": 6,
+          "value": 901
+        },
+        {
+          "step": 7,
+          "value": 974
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Quartz",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 330
+        },
+        {
+          "step": 2,
+          "value": 522
+        },
+        {
+          "step": 3,
+          "value": 641
+        },
+        {
+          "step": 4,
+          "value": 710
+        },
+        {
+          "step": 5,
+          "value": 899
+        },
+        {
+          "step": 6,
+          "value": 914
+        },
+        {
+          "step": 7,
+          "value": 969
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Riccite",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 325
+        },
+        {
+          "step": 2,
+          "value": 525
+        },
+        {
+          "step": 3,
+          "value": 671
+        },
+        {
+          "step": 4,
+          "value": 743
+        },
+        {
+          "step": 5,
+          "value": 870
+        },
+        {
+          "step": 6,
+          "value": 942
+        },
+        {
+          "step": 7,
+          "value": 965
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Sadaryx",
       "type": "Mineable",
       "category": "FPS Mining",
       "unit": "UNIT",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 258
+        },
+        {
+          "step": 2,
+          "value": 510
+        },
+        {
+          "step": 3,
+          "value": 688
+        },
+        {
+          "step": 4,
+          "value": 797
+        },
+        {
+          "step": 5,
+          "value": 865
+        },
+        {
+          "step": 6,
+          "value": 940
+        },
+        {
+          "step": 7,
+          "value": 971
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Saldynium",
       "type": "Mineable",
       "category": "FPS Mining",
       "unit": "UNIT",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 301
+        },
+        {
+          "step": 2,
+          "value": 575
+        },
+        {
+          "step": 3,
+          "value": 674
+        },
+        {
+          "step": 4,
+          "value": 757
+        },
+        {
+          "step": 5,
+          "value": 861
+        },
+        {
+          "step": 6,
+          "value": 938
+        },
+        {
+          "step": 7,
+          "value": 955
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Savrilium",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 322
+        },
+        {
+          "step": 2,
+          "value": 580
+        },
+        {
+          "step": 3,
+          "value": 636
+        },
+        {
+          "step": 4,
+          "value": 776
+        },
+        {
+          "step": 5,
+          "value": 878
+        },
+        {
+          "step": 6,
+          "value": 905
+        },
+        {
+          "step": 7,
+          "value": 967
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Silicon",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 310
+        },
+        {
+          "step": 2,
+          "value": 510
+        },
+        {
+          "step": 3,
+          "value": 672
+        },
+        {
+          "step": 4,
+          "value": 782
+        },
+        {
+          "step": 5,
+          "value": 889
+        },
+        {
+          "step": 6,
+          "value": 926
+        },
+        {
+          "step": 7,
+          "value": 968
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Stileron",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 330
+        },
+        {
+          "step": 2,
+          "value": 517
+        },
+        {
+          "step": 3,
+          "value": 681
+        },
+        {
+          "step": 4,
+          "value": 747
+        },
+        {
+          "step": 5,
+          "value": 874
+        },
+        {
+          "step": 6,
+          "value": 947
+        },
+        {
+          "step": 7,
+          "value": 972
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Taranite",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 310
+        },
+        {
+          "step": 2,
+          "value": 525
+        },
+        {
+          "step": 3,
+          "value": 646
+        },
+        {
+          "step": 4,
+          "value": 718
+        },
+        {
+          "step": 5,
+          "value": 853
+        },
+        {
+          "step": 6,
+          "value": 925
+        },
+        {
+          "step": 7,
+          "value": 957
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Tin",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 340
+        },
+        {
+          "step": 2,
+          "value": 537
+        },
+        {
+          "step": 3,
+          "value": 664
+        },
+        {
+          "step": 4,
+          "value": 704
+        },
+        {
+          "step": 5,
+          "value": 880
+        },
+        {
+          "step": 6,
+          "value": 940
+        },
+        {
+          "step": 7,
+          "value": 964
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Titanium",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 295
+        },
+        {
+          "step": 2,
+          "value": 516
+        },
+        {
+          "step": 3,
+          "value": 622
+        },
+        {
+          "step": 4,
+          "value": 784
+        },
+        {
+          "step": 5,
+          "value": 866
+        },
+        {
+          "step": 6,
+          "value": 916
+        },
+        {
+          "step": 7,
+          "value": 959
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Torite",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 262
+        },
+        {
+          "step": 2,
+          "value": 528
+        },
+        {
+          "step": 3,
+          "value": 661
+        },
+        {
+          "step": 4,
+          "value": 785
+        },
+        {
+          "step": 5,
+          "value": 873
+        },
+        {
+          "step": 6,
+          "value": 944
+        },
+        {
+          "step": 7,
+          "value": 951
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Tungsten",
       "type": "Mineable",
       "category": "Ores",
       "unit": "SCU",
-      "qualities": []
+      "qualities": [
+        {
+          "step": 1,
+          "value": 363
+        },
+        {
+          "step": 2,
+          "value": 530
+        },
+        {
+          "step": 3,
+          "value": 662
+        },
+        {
+          "step": 4,
+          "value": 787
+        },
+        {
+          "step": 5,
+          "value": 858
+        },
+        {
+          "step": 6,
+          "value": 902
+        },
+        {
+          "step": 7,
+          "value": 964
+        },
+        {
+          "step": 8,
+          "value": 1000
+        }
+      ]
     },
     {
       "name": "Pressurized_Ice",
@@ -9380,7 +10655,7 @@
       ]
     },
     {
-      "name": "Oracle\u00a0Helmet",
+      "name": "Oracle Helmet",
       "category": "FPSArmours",
       "recipe": [
         {
@@ -9412,7 +10687,7 @@
       ]
     },
     {
-      "name": "Lynx\u00a0Legs",
+      "name": "Lynx Legs",
       "category": "FPSArmours",
       "recipe": [
         {
@@ -18690,7 +19965,7 @@
       ]
     },
     {
-      "name": "P8-SC\u00a0Midnight SMG",
+      "name": "P8-SC Midnight SMG",
       "category": "FPSWeapons",
       "recipe": [
         {
@@ -18711,7 +19986,7 @@
       ]
     },
     {
-      "name": "P8-SC\u00a0Nightstalker SMG",
+      "name": "P8-SC Nightstalker SMG",
       "category": "FPSWeapons",
       "recipe": [
         {
@@ -18732,7 +20007,7 @@
       ]
     },
     {
-      "name": "P8-SC\u00a0Executive Edition SMG",
+      "name": "P8-SC Executive Edition SMG",
       "category": "FPSWeapons",
       "recipe": [
         {
@@ -18753,7 +20028,7 @@
       ]
     },
     {
-      "name": "P8-SC\u00a0Warhawk SMG",
+      "name": "P8-SC Warhawk SMG",
       "category": "FPSWeapons",
       "recipe": [
         {
@@ -19590,7 +20865,7 @@
       ]
     },
     {
-      "name": "Arrowhead\u00a0Voyager Sniper Rifle",
+      "name": "Arrowhead Voyager Sniper Rifle",
       "category": "FPSWeapons",
       "recipe": [
         {
@@ -19668,7 +20943,7 @@
       ]
     },
     {
-      "name": "Arrowhead\u00a0Pathfinder Sniper Rifle",
+      "name": "Arrowhead Pathfinder Sniper Rifle",
       "category": "FPSWeapons",
       "recipe": [
         {
@@ -27845,7 +29120,7 @@
       ]
     },
     {
-      "name": "SW16BR1 \u201cBuzzsaw\u201d Repeater",
+      "name": "SW16BR1 “Buzzsaw” Repeater",
       "category": "Veh. Weapons S1",
       "recipe": [
         {
@@ -27866,7 +29141,7 @@
       ]
     },
     {
-      "name": "SW16BR2 \u201cSawbuck\u201d Repeater",
+      "name": "SW16BR2 “Sawbuck” Repeater",
       "category": "Veh. Weapons S2",
       "recipe": [
         {
@@ -27887,7 +29162,7 @@
       ]
     },
     {
-      "name": "SW16BR3 \u201cShredder\u201d Repeater",
+      "name": "SW16BR3 “Shredder” Repeater",
       "category": "Veh. Weapons S3",
       "recipe": [
         {
@@ -27950,7 +29225,7 @@
       ]
     },
     {
-      "name": "Hellion\u00a0Scattergun",
+      "name": "Hellion Scattergun",
       "category": "Veh. Weapons S2",
       "recipe": [
         {

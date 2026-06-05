@@ -2382,9 +2382,9 @@ function craftAvail(item, order){
   return Math.floor(Math.min(...item.recipe.map(r=>{ const have=myMats.filter(s=>s.name===r.materialName).reduce((a,s)=>a+s.qty,0); return r.qty>0?(have+1e-9)/r.qty:Infinity; })));
 }
 function qualityRangeLabel(o){
-  if(o.minQuality!=null&&o.maxQuality!=null) return `Q${o.minQuality}–${o.maxQuality}`;
-  if(o.minQuality!=null) return `Q${o.minQuality}+`;
-  if(o.maxQuality!=null) return `≤Q${o.maxQuality}`;
+  if(o.minQuality!=null&&o.maxQuality!=null) return o.minQuality===o.maxQuality?qBandLabel(o.minQuality):`${qBandLabel(o.minQuality)} – ${qBandLabel(o.maxQuality)}`;
+  if(o.minQuality!=null) return `${qBandLabel(o.minQuality)} and up`;
+  if(o.maxQuality!=null) return `up to ${qBandLabel(o.maxQuality)}`;
   return 'any quality';
 }
 function craftersLabel(o){
@@ -2479,7 +2479,7 @@ async function doCraftModal(orderId){
 }
 function openCraftOrderModal(){
   const items=[...state.catalog.items].sort((a,b)=>a.name.localeCompare(b.name));
-  const qOpts=label=>`<option value="">${label}</option>`+[1,2,3,4,5,6,7,8,9,10].map(q=>`<option value="${q}">Q${q}</option>`).join('');
+  const qOpts=label=>`<option value="">${label}</option>`+QUALITY_BANDS.map((b,i)=>`<option value="${i+1}">${b}</option>`).join('');
   showModal(`
     <div class="modal-title">New craft order</div>
     <div class="field"><label class="lbl">Item</label><select id="co-item" onchange="coRecipe()">${items.map(it=>`<option value="${esc(it.name)}">${esc(it.name)}</option>`).join('')}</select></div>
@@ -2610,7 +2610,7 @@ function renderPickupTable(){
     const canFinish=w.status==='claimed'&&(isAdmin(u)||mine);
     const canDelete=w.status==='done'&&(isAdmin(u)||w.createdBy===u._id);
     const reportHtml=(w.report||[]).map(r=>`${esc(r.what)} <span style="color:var(--mid);">(${esc(r.type)}, ~${r.approxQty} ${esc(r.unit||'')})</span>`).join('<br>')
-      || (w.items||[]).map(it=>`${esc(it.name)}${it.qualityStep?` Q${it.qualityStep}`:''} ×${it.qty} ${esc(it.unit)}`).join('<br>') || '—';
+      || (w.items||[]).map(it=>`${esc(it.name)}${it.qualityStep?` · ${qBandLabel(it.qualityStep)}`:''} ×${it.qty} ${esc(it.unit)}`).join('<br>') || '—';
     return `<tr>
       <td data-label="Location" style="font-weight:700;">${esc(w.location||'—')}${w.system?` <span class="sys-badge">${esc(w.system)}</span>`:''}${w.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(w.note)}</div>`:''}</td>
       <td data-label="Reported" style="font-size:var(--text-sm);color:var(--fg);">${reportHtml}</td>
@@ -2640,7 +2640,7 @@ function transferVisible(w,u){
 }
 function transferActiveCount(){ const u=state.user; return state.workorders.filter(w=>TRANSFER_KINDS.includes(w.kind)&&w.status!=='done'&&transferVisible(w,u)).length; }
 function transferFields(w){
-  const what=(w.items||[]).map(it=>`${esc(it.name)}${it.qualityStep!=null?` Q${it.qualityStep}`:''} ×${it.qty}`).join(', ')||'—';
+  const what=(w.items||[]).map(it=>`${esc(it.name)}${it.qualityStep!=null?` · ${qBandLabel(it.qualityStep)}`:''} ×${it.qty}`).join(', ')||'—';
   if(w.kind==='borrow') return { what, from:w.giverName||'—', to:w.createdByName||'—', stage:woStatusLabel(w.status), stageOrder:({open:0,claimed:1,done:2})[w.status]??9, type:'Borrow' };
   const to = w.claimedByName || (w.kind==='delivery'?'any crafter':w.kind==='move'?'any logistics':'any distributor');
   const type = w.kind==='delivery'?'Delivery':w.kind==='move'?'Move':'Distribution';
@@ -2725,7 +2725,7 @@ function openBorrowModal(id){
   const s=state.stock.find(x=>x._id===id); if(!s) return;
   showModal(`
     <div class="modal-title">Borrow ${esc(s.name)}</div>
-    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">From <strong>${esc(s.heldBy)}</strong>${s.qualityStep!=null?` · Q${s.qualityStep}`:''} · ${s.qty} ${esc(s.unit)} on hand. They'll be asked to agree and meet you; you confirm receipt once you've got it.</p>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">From <strong>${esc(s.heldBy)}</strong>${s.qualityStep!=null?` · ${qBandLabel(s.qualityStep)}`:''} · ${s.qty} ${esc(s.unit)} on hand. They'll be asked to agree and meet you; you confirm receipt once you've got it.</p>
     <div class="field"><label class="lbl">Quantity</label><input id="bw-qty" type="number" min="0" step="any" max="${s.qty}" value="${s.qty}"></div>
     <div class="err-msg" id="bw-err"></div>
     <div style="display:flex;gap:10px;margin-top:var(--space-2);"><button class="btn btn-black" onclick="doBorrow('${esc(s._id)}')">Request</button><button class="btn btn-outline" onclick="closeModal()">Cancel</button></div>`);
@@ -2848,11 +2848,20 @@ function addManifestLine(){
   row.className='mn-line';
   row.style.cssText='display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:var(--space-2);';
   row.innerHTML=`
-    <select class="mn-name" style="flex:1;min-width:160px;"><option value="">— material —</option>${mats.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}</select>
-    <select class="mn-q" style="width:74px;"><option value="">Q?</option>${[1,2,3,4,5,6,7,8,9,10].map(s=>`<option value="${s}">Q${s}</option>`).join('')}</select>
+    <select class="mn-name" style="flex:1;min-width:160px;" onchange="mnFillBands(this)"><option value="">— material —</option>${mats.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}</select>
+    <select class="mn-q" style="width:150px;"><option value="">band —</option></select>
     <input class="mn-qty" type="number" min="0" step="any" placeholder="qty" style="width:80px;">
     <button class="btn-del" onclick="this.closest('.mn-line').remove()" aria-label="Remove">&times;</button>`;
   document.getElementById('mn-lines').appendChild(row);
+}
+// Fill a manifest line's quality dropdown with the bands the chosen material
+// actually has (band label · value). Empty material → just a placeholder.
+function mnFillBands(nameSel){
+  const row=nameSel.closest('.mn-line'); if(!row) return;
+  const q=row.querySelector('.mn-q'); if(!q) return;
+  const m=(window._manMats||[]).find(x=>x.name===nameSel.value);
+  const bands=m?[...(m.qualities||[])].sort((a,b)=>a.step-b.step):[];
+  q.innerHTML=`<option value="">band —</option>`+bands.map(b=>`<option value="${b.step}">${qBandLabel(b.step)} · ${b.value}</option>`).join('');
 }
 async function submitManifest(id){
   const location=pickedLocation('mn'); const system=pickedLocationSystem('mn');
@@ -3045,7 +3054,7 @@ function renderStockList(){
       return `<tr>
         <td data-label="Name" style="font-weight:700;">${esc(s.name)}${s.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(s.note)}</div>`:''}</td>
         <td data-label="Kind">${s.kind==='material'?'Material':'Item'}</td>
-        <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.kind==='material'?(s.qualityStep?`Q${s.qualityStep}${s.qualityValue!=null?' · '+s.qualityValue:''}`:'—'):(s.qualityValue!=null?`Q ${s.qualityValue}`:'—')}</td>
+        <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.kind==='material'?(s.qualityStep?`${qBandLabel(s.qualityStep)}${s.qualityValue!=null?' · '+s.qualityValue:''}`:'—'):(s.qualityValue!=null?`Q ${s.qualityValue}`:'—')}</td>
         <td data-label="Qty" style="font-weight:700;">${s.qty} <span style="font-weight:400;color:var(--fg);font-size:var(--text-sm);">${esc(s.unit)}</span></td>
         <td data-label="Location" style="font-size:var(--text-md);">${esc(s.location)}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}</td>
         <td data-label="Held By">${esc(s.heldBy)}</td>
@@ -3077,7 +3086,7 @@ function stockNameChanged(){
     if(unit) unit.value=m?m.unit:'SCU';
     if(qwrap) qwrap.style.display='';
     const q=document.getElementById('st-q');
-    if(q) q.innerHTML=(m?[...(m.qualities||[])].sort((a,b)=>a.step-b.step):[]).map(qq=>`<option value="${qq.step}">Q${qq.step} · ${qq.value}</option>`).join('')||'<option value="">—</option>';
+    if(q) q.innerHTML=(m?[...(m.qualities||[])].sort((a,b)=>a.step-b.step):[]).map(qq=>`<option value="${qq.step}">${qBandLabel(qq.step)} · ${qq.value}</option>`).join('')||'<option value="">—</option>';
   } else {
     if(unit) unit.value='UNIT';
     if(qwrap) qwrap.style.display='none';
@@ -3162,6 +3171,12 @@ let catalogMatFilter = 'all';    // material type
 let catalogLocFilter = 'all';    // location system
 const MAT_TYPES = ['Mineable','Salvage','Loot'];
 const CAT_UNITS = ['SCU','UNIT'];
+// Refined-material quality bands (the in-game quality-% ranges). A stock row
+// stores the band index (step 1..8); the per-material value comes from the
+// catalog. Keep in sync with QUALITY_BANDS in convex/_constants.ts.
+const QUALITY_BANDS = ['0–399','400–599','600–699','700–799','800–899','900–949','950–998','999–1000'];
+// Short label for a band step (1-based). Falls back to "Q{step}" if out of range.
+function qBandLabel(step){ const i=Number(step); return (i>=1&&i<=QUALITY_BANDS.length)?QUALITY_BANDS[i-1]:('Q'+step); }
 const CAT_LIST_CAP = 300; // cap rows when the filtered list is still large
 const CAT_ITEM_GROUPS = ['FPS Armour','FPS Weapons','Vehicle Components','Vehicle Weapons','Other'];
 function catItemGroup(c){
@@ -3255,7 +3270,7 @@ function renderCatMaterials(rows){
   if(!state.catalog.materials.length) return `<div class="empty">No materials yet. Add one, or import the seed data.</div>`;
   if(!rows.length) return `<div class="empty">No materials match this filter.</div>`;
   return `<table class="cards">
-    <thead><tr><th>Material</th><th>Type</th><th>Category</th><th>Unit</th><th>Quality steps 1–10</th><th></th></tr></thead>
+    <thead><tr><th>Material</th><th>Type</th><th>Category</th><th>Unit</th><th>Value by quality band</th><th></th></tr></thead>
     <tbody>${rows.map(m=>`<tr>
       <td data-label="Material" style="font-weight:700;">${esc(m.name)}</td>
       <td data-label="Type">${esc(m.type)}</td>
@@ -3308,9 +3323,9 @@ function renderCatLocations(rows){
 function openMaterialModal(id){
   const m = id ? state.catalog.materials.find(x=>x._id===id) : null;
   const q = {}; if(m) for(const x of (m.qualities||[])) q[x.step]=x.value;
-  const qInputs = Array.from({length:10},(_,i)=>{const s=i+1;return `<div style="display:flex;align-items:center;gap:8px;">
-    <span style="width:34px;font-size:var(--text-sm);color:var(--fg);">Q${s}</span>
-    <input id="mq-${s}" type="number" step="any" value="${m?(q[s]??s):s}" style="width:100%;">
+  const qInputs = QUALITY_BANDS.map((band,i)=>{const s=i+1;return `<div style="display:flex;align-items:center;gap:8px;">
+    <span style="width:74px;font-size:var(--text-sm);color:var(--fg);white-space:nowrap;">${band}</span>
+    <input id="mq-${s}" type="number" step="any" placeholder="—" value="${m&&q[s]!=null?q[s]:''}" style="width:100%;">
   </div>`;}).join('');
   showModal(`
     <div class="modal-title">${m?'Edit material':'New material'}</div>
@@ -3320,9 +3335,9 @@ function openMaterialModal(id){
       <div class="field"><label class="lbl">Unit</label><select id="m-unit">${CAT_UNITS.map(t=>`<option${m&&m.unit===t?' selected':''}>${t}</option>`).join('')}</select></div>
     </div>
     <div class="field"><label class="lbl">Category</label><input id="m-cat" type="text" value="${m?esc(m.category||''):''}" placeholder="e.g. Ores"></div>
-    <div class="field"><label class="lbl">Quality values (steps 1–10)</label>
+    <div class="field"><label class="lbl">Value by quality band</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;margin-top:6px;">${qInputs}</div>
-      <div style="font-size:var(--text-sm);color:var(--fg);margin-top:6px;">Placeholder 1–10 for now — fill in the real game values later.</div>
+      <div style="font-size:var(--text-sm);color:var(--fg);margin-top:6px;">Per-unit value (0–1000) at each in-game quality band. Leave a band blank if the material can't reach it.</div>
     </div>
     <div class="err-msg" id="m-err"></div>
     <div style="display:flex;gap:10px;margin-top:8px;">
@@ -3336,7 +3351,7 @@ async function saveCatMaterial(id){
   const unit=document.getElementById('m-unit').value;
   const category=document.getElementById('m-cat').value.trim();
   if(!name){showErr('m-err','Name is required');return;}
-  const qualities=Array.from({length:10},(_,i)=>({step:i+1,value:Number(document.getElementById('mq-'+(i+1)).value)}));
+  const qualities=QUALITY_BANDS.map((_,i)=>{const el=document.getElementById('mq-'+(i+1));const raw=el?el.value.trim():'';return raw===''?null:{step:i+1,value:Number(raw)};}).filter(q=>q&&Number.isFinite(q.value));
   try{
     await convexMutation('catalog:upsertMaterial',{sessionToken:state.sessionToken,id:id||undefined,name,type,category,unit,qualities});
     toast('Material saved'); closeModal(); await refreshAll(); renderPage();
@@ -3435,7 +3450,7 @@ async function importCatalogSeed(){
     const res=await fetch('seed/catalog-seed.json',{cache:'no-store'});
     if(!res.ok) throw new Error('Could not load seed file');
     const seed=await res.json();
-    const materials=(seed.materials||[]).map(m=>({name:m.name,type:m.type||'Mineable',category:m.category||'',unit:m.unit||'SCU'}));
+    const materials=(seed.materials||[]).map(m=>({name:m.name,type:m.type||'Mineable',category:m.category||'',unit:m.unit||'SCU',qualities:Array.isArray(m.qualities)?m.qualities.map(q=>({step:Number(q.step),value:Number(q.value)})):undefined}));
     const items=(seed.items||[]).map(i=>({name:i.name,category:i.category||'',recipe:(i.recipe||[]).map(r=>({materialName:r.materialName,qty:Number(r.qty),unit:r.unit||'SCU'}))}));
     const locations=(seed.locations||[]).map(l=>({name:l.name,system:l.system||undefined,isBase:!!l.isBase}));
     // The item list is large — send materials/locations once, then items in chunks.

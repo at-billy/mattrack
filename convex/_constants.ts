@@ -12,6 +12,13 @@ export const GRANTABLE_ROLES = REQUESTABLE_ROLES;
 // Roles a workorder/task can target for visibility.
 export const TASK_TARGET_ROLES = ["gatherer", "logistics", "crafter", "distributor", "admin"];
 
+// ── Quality bands ───────────────────────────────────────────────────────────────
+// Refined-material quality is graded in 8 bands (the in-game quality-% ranges).
+// Each material carries a per-band value (0–1000) from the client's data. A stock
+// row stores the band index (step 1..8); its value is looked up from the catalog.
+export const QUALITY_BANDS = ["0–399", "400–599", "600–699", "700–799", "800–899", "900–949", "950–998", "999–1000"];
+export const QUALITY_STEPS = QUALITY_BANDS.length; // 8
+
 // ── Enums ──────────────────────────────────────────────────────────────────────
 export const TASK_PRIORITIES = ["urgent", "high", "normal", "whenever"];
 export const ITEM_CATEGORIES = ["fps_armor", "fps_weapon", "ship_component", "ship_weapon", "wikelo", "other"];

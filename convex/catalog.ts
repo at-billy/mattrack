@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireSession, requireMember, assertRole } from "./_helpers";
-import { assertLen } from "./_constants";
+import { assertLen, QUALITY_STEPS } from "./_constants";
 
 const MAT_TYPES = ["Mineable", "Salvage", "Loot"];
 const UNITS = ["SCU", "UNIT"];
@@ -12,14 +12,21 @@ async function requireAdmin(db: any, token: string) {
   return u;
 }
 
-// Always store exactly 10 quality steps (1..10). Missing values default to the
-// step number as a placeholder (real game values filled in later).
+// Clean a material's quality grid: keep only real band values (step 1..8 with a
+// finite value), dedupe by step, sort ascending. Bands a material can't reach
+// (blank cells in the source data) are simply omitted rather than padded.
 function normalizeQualities(input?: { step: number; value: number }[]) {
   const byStep: Record<number, number> = {};
-  for (const q of input ?? []) if (Number.isFinite(q.step)) byStep[q.step] = Number(q.value);
-  const out: { step: number; value: number }[] = [];
-  for (let s = 1; s <= 10; s++) out.push({ step: s, value: Number.isFinite(byStep[s]) ? byStep[s] : s });
-  return out;
+  for (const q of input ?? []) {
+    const s = Number(q.step);
+    if (Number.isInteger(s) && s >= 1 && s <= QUALITY_STEPS && Number.isFinite(Number(q.value))) {
+      byStep[s] = Number(q.value);
+    }
+  }
+  return Object.keys(byStep)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .map(step => ({ step, value: byStep[step] }));
 }
 
 // ── Read (any approved user) ──────────────────────────────────────────────────
@@ -139,7 +146,7 @@ export const deleteLocation = mutation({
 export const importCatalog = mutation({
   args: {
     sessionToken: v.string(),
-    materials: v.optional(v.array(v.object({ name: v.string(), type: v.string(), category: v.string(), unit: v.string() }))),
+    materials: v.optional(v.array(v.object({ name: v.string(), type: v.string(), category: v.string(), unit: v.string(), qualities: v.optional(v.array(v.object({ step: v.number(), value: v.number() }))) }))),
     items: v.optional(v.array(v.object({ name: v.string(), category: v.string(), recipe: v.array(v.object({ materialName: v.string(), qty: v.number(), unit: v.string() })) }))),
     locations: v.optional(v.array(v.object({ name: v.string(), system: v.optional(v.string()), isBase: v.optional(v.boolean()) }))),
   },
@@ -155,7 +162,7 @@ export const importCatalog = mutation({
         type: MAT_TYPES.includes(m.type) ? m.type : "Mineable",
         category: (m.category ?? "").trim(),
         unit: UNITS.includes(m.unit) ? m.unit : "SCU",
-        qualities: normalizeQualities([]),
+        qualities: normalizeQualities(m.qualities),
       });
       matAdded++;
     }
