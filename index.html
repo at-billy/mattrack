@@ -250,8 +250,12 @@ tbody tr:hover{background:#f9f9f9;}
 .hint-box{background:#f5f5f5;border-left:3px solid #000;padding:var(--space-4) 20px;font-size:var(--text-md);color:#000;margin-top:var(--space-4);line-height:1.8;}
 .hint-box strong{color:#000;}
 
-/* ── FRONT PAGE (editorial headline grid) ────────────────────────── */
-.fp{display:grid;grid-template-columns:repeat(12,1fr);gap:230px 36px;padding:calc(var(--nav-h,170px) + 230px) 40px 160px;align-items:start;}
+/* ── FRONT PAGE (editorial board: pipeline frames + headline cards) ───
+   Lives inside the padded .page on plain --bg — no background media. The
+   pipeline frames lead, the editorial headline grid follows; both share one
+   dotted/bordered, red/black card language. */
+.fp-pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-5);margin-bottom:var(--space-7);}
+.fp{display:grid;grid-template-columns:repeat(12,1fr);gap:var(--space-7) 36px;align-items:start;}
 .fp-item{min-width:0;justify-self:start;max-width:100%;}
 .fp-item[role="button"]{cursor:pointer;}
 .fp-kicker{font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red);margin-bottom:8px;}
@@ -260,73 +264,31 @@ tbody tr:hover{background:#f9f9f9;}
 .fp-red{color:var(--red);}
 .fp-red .fp-head{color:var(--red);}
 .fp-box{padding:22px 24px;background-color:var(--bg);}
-.fp-dots{background-color:var(--bg);background-image:radial-gradient(#000 0.8px, transparent 0.8px),radial-gradient(#000 0.8px, transparent 0.8px);background-size:8px 8px;background-position:0 0,4px 4px;}
+.fp-dots{background-color:var(--bg);background-image:radial-gradient(var(--fg) 0.8px, transparent 0.8px),radial-gradient(var(--fg) 0.8px, transparent 0.8px);background-size:8px 8px;background-position:0 0,4px 4px;}
 /* On dotted boxes, give each glyph a soft background-colour halo so the dots
    don't cut into the letters (reads cleaner than a box behind the text). */
 .fp-dots .fp-head,.fp-dots .fp-kicker,.fp-dots .fp-foot{text-shadow:.5px 0 0 var(--bg),-.5px 0 0 var(--bg),0 .5px 0 var(--bg),0 -.5px 0 var(--bg),.5px .5px 0 var(--bg),-.5px -.5px 0 var(--bg),.5px -.5px 0 var(--bg),-.5px .5px 0 var(--bg),1px 0 0 var(--bg),-1px 0 0 var(--bg),0 1px 0 var(--bg),0 -1px 0 var(--bg),1px .5px 0 var(--bg),1px -.5px 0 var(--bg),-1px .5px 0 var(--bg),-1px -.5px 0 var(--bg),.5px 1px 0 var(--bg),-.5px 1px 0 var(--bg),.5px -1px 0 var(--bg),-.5px -1px 0 var(--bg),1px 1px 0 var(--bg),-1px -1px 0 var(--bg),1px -1px 0 var(--bg),-1px 1px 0 var(--bg);}
-/* Border always matches the headline colour (currentColor follows tone) */
+/* Border always matches the card colour (currentColor follows tone) */
 .fp-bd,.fp-bd-red{border:3px solid currentColor;}
-/* The front page keeps its light treatment even in dark mode — the imagery
-   already provides a dark backdrop (tokens are overridden on .fp-stage). */
+
+/* ── PIPELINE FRAMES ──────────────────────────────────────────────
+   Same framed card as a red headline, but laid out image-top / caption-below:
+   a big live number where the reference puts its photo, then role + status. */
+.fp-pipe .fp-item{justify-self:stretch;}
+.fp-pl{display:flex;flex-direction:column;}
+.fp-pl-top{padding-bottom:var(--space-4);margin-bottom:var(--space-4);border-bottom:2px solid currentColor;}
+.fp-pl-num{font-size:clamp(44px,5vw,78px);font-weight:900;letter-spacing:-3px;line-height:.82;color:var(--red);font-variant-numeric:tabular-nums;}
+.fp-pl-lbl{font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red);margin-top:10px;}
+.fp-pl-role{font-size:clamp(22px,2.4vw,32px);font-weight:900;letter-spacing:-.5px;line-height:1.04;color:var(--red);margin-top:auto;}
+.fp-pl-meta{font-size:var(--text-sm);color:var(--red);margin-top:8px;line-height:1.4;}
+.fp-pl[role="button"]:hover{background:var(--bg2);}
+
+@media(max-width:1100px){ .fp-pipe{grid-template-columns:repeat(2,1fr);} }
 @media(max-width:760px){
-  .fp{grid-template-columns:1fr;gap:44px 0;padding:calc(var(--nav-h,120px) + 28px) var(--space-4) 80px;}
+  .fp-pipe{grid-template-columns:1fr;gap:var(--space-4);}
+  .fp{grid-template-columns:1fr;gap:28px 0;}
   .fp-item{grid-column:1 / -1 !important;}
 }
-
-/* ── FRONT PAGE MEDIA (full-bleed images BEHIND the headline grid) ── */
-/* The images form a fixed-order full-bleed column behind the editorial
-   grid, with seeded background-colour gaps between them. The first image
-   runs under the (transparent) nav. Headlines flow with their normal
-   spacing on top and simply land wherever they land — on an image or in
-   a gap. */
-.fp-stage{position:relative;--bg:#fff;--fg:#000;color:var(--fg);background:#fff;}
-.fp-bg{position:relative;z-index:0;}                  /* full-bleed images drive the page height */
-.fp-img{display:block;width:100%;height:auto;}        /* full bleed, native aspect ratio, never cropped */
-/* On phones, full-width images get too short — fill a tall band by height and
-   let the sides crop instead. */
-@media(max-width:760px){ .fp-img{height:80vh;object-fit:cover;} }
-.fp-gap{width:100%;}
-.fp-stage .fp{position:absolute;top:0;left:0;right:0;z-index:1;}  /* headlines overlaid on top */
-/* Over the imagery the nav simply inverts to white. */
-/* (front-page nav stays white — rules live after the theme blocks so they win) */
-
-/* ── "THE LINE" — live pipeline board (alternate landing view) ──────
-   The pipeline as a row of uniform square stations (where stock sits right
-   now), linked by flow connectors that count the pending meet-&-confirm
-   handovers. Reuses the page's own design language — page-head + page-lead,
-   token type scale, 2px borders, red accent — so it sits flush with the Work,
-   Stock and Log pages. Theme-safe via --fg/--bg tokens. */
-.pl-flow{display:flex;align-items:flex-start;width:100%;}
-.pl-station{flex:1 1 0;min-width:0;aspect-ratio:1/1;border:2px solid var(--border);padding:var(--space-4);display:flex;flex-direction:column;background:var(--bg);}
-.pl-station[role="button"]{cursor:pointer;}
-.pl-station[role="button"]:hover{background:var(--bg2);}
-.pl-station.hot{border-color:var(--red);}
-.pl-role{font-size:var(--text-md);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--fg);line-height:1.1;}
-.pl-where{font-size:var(--text-sm);color:var(--fg);opacity:.55;margin-top:6px;}
-.pl-num{font-size:var(--text-2xl);font-weight:900;letter-spacing:-2px;line-height:1;color:var(--fg);margin-top:auto;}
-.pl-station.hot .pl-num{color:var(--red);}
-.pl-numlbl{font-size:var(--text-sm);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg);margin-top:8px;}
-.pl-meta{font-size:var(--text-sm);color:var(--fg);opacity:.55;margin-top:10px;line-height:1.4;}
-.pl-link{flex:0 0 auto;width:62px;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
-.pl-arrow{font-size:24px;font-weight:400;color:var(--fg);opacity:.3;line-height:1;}
-.pl-link.flowing .pl-arrow{opacity:1;color:var(--red);}
-.pl-badge{font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:var(--fg);opacity:.4;line-height:1.2;}
-.pl-link.flowing .pl-badge{opacity:1;color:var(--red);}
-.pl-link[role="button"]{cursor:pointer;}
-.pl-end{margin-top:var(--space-7);font-size:var(--text-md);color:var(--fg);}
-.pl-end b{font-size:var(--text-lg);font-weight:900;letter-spacing:-.5px;}
-.pl-end .red{color:var(--red);}
-@media(max-width:900px){
-  .pl-flow{flex-direction:column;}
-  .pl-station{aspect-ratio:auto;flex:none;}
-  .pl-link{width:100%;flex-direction:row;height:48px;gap:12px;}
-  .pl-arrow{transform:rotate(90deg);}
-}
-/* Front Page / The Line switch — btn-ghost pair (matches page filter rows).
-   On the image-backed front page it floats in a white pill so the ghost
-   buttons stay readable over the photography. */
-.ms-fixed{position:fixed;right:24px;top:calc(var(--nav-h,120px) + 18px);z-index:450;background:#fff;padding:8px;display:flex;gap:6px;box-shadow:0 2px 12px rgba(0,0,0,.18);}
-@media(max-width:760px){ .ms-fixed{right:var(--space-4);top:calc(var(--nav-h,110px) + 10px);} }
 
 /* ── OVERVIEW / LANDING ──────────────────────────────────────────── */
 .ov-wrap{}
@@ -498,17 +460,8 @@ body.billy .hint-box{background:#eef1f9;border-left-color:#3a57a4;}
 body.billy .unit-tag{color:#3a57a4;}
 body.billy .loc-display{color:#3a57a4;}
 body.billy .comp-type-badge{background:#3a57a4;color:#fff;}
-/* Front page: blue ink + new red (it otherwise forces light tokens). */
-body.billy .fp-stage{--fg:#3a57a4;}
+/* Front page dot pattern follows the blue ink in the billy theme. */
 body.billy .fp-dots{background-image:radial-gradient(#3a57a4 0.8px,transparent 0.8px),radial-gradient(#3a57a4 0.8px,transparent 0.8px);}
-
-/* Front-page nav floats over the images and stays white in every theme.
-   Placed after the theme blocks so it wins on equal specificity. */
-body.fp-on .nav-main{color:#ffffff;}
-body.fp-on .nav-main.outline{-webkit-text-stroke:2px #ffffff;color:transparent;}
-body.fp-on .nav-sub-item{color:#ffffff;}
-body.fp-on .nav-sub-item.active{border-bottom-color:#ffffff;}
-body.fp-on .nav-divider{border-top-color:#ffffff;}
 
 .comp-grade-mil{color:#cc0000;}
 .comp-grade-sth{color:#7c3aed;}
@@ -1683,41 +1636,20 @@ function renderPage() {
   renderPageContent();
 }
 
-// The non-recruit overview is a full-bleed image front page (no .page wrapper,
-// image runs under the nav). Everything else stays inside the padded .page.
-function fpFullBleed(){ return currentPage==='overview' && !isRecruit(state.user) && fpMode!=='line'; }
+// Every page — overview included — renders inside the padded .page below the nav.
 function renderPageContent() {
   const pw=document.getElementById('page-wrap'); if(!pw) return;
   const nav=document.getElementById('nav');
   const navH=nav?nav.offsetHeight:0;
-  if(fpFullBleed()){
-    document.body.classList.add('fp-on');
-    pw.style.marginTop='0px';      // image sits under the fixed nav
-    pw.innerHTML=pageOverview();
-    requestAnimationFrame(fpFitImages);
-  } else {
-    document.body.classList.remove('fp-on');
-    pw.style.marginTop=navH+'px';
-    const pages={overview:pageOverview,items:pageStock,tasks:pageWorkorders,archive:pageArchive,admin:pageAdmin,member:pageMember,lottery:pageLottery,catalog:pageCatalog};
-    pw.innerHTML=`<div class="page">${(pages[currentPage]||pageOverview)()}</div>`;
-  }
+  pw.style.marginTop=navH+'px';
+  const pages={overview:pageOverview,items:pageStock,tasks:pageWorkorders,archive:pageArchive,admin:pageAdmin,member:pageMember,lottery:pageLottery,catalog:pageCatalog};
+  pw.innerHTML=`<div class="page">${(pages[currentPage]||pageOverview)()}</div>`;
 }
 
 // ─── OVERVIEW PAGE ────────────────────────────────────────────────────────────
 // Seed picked once per page load → layout/order stays stable during the session
 // but reshuffles on reload.
 const fpSeed = Math.floor(Math.random()*1e9) >>> 0;
-// Landing view: 'news' (editorial headline grid) | 'line' (live pipeline board).
-// Persisted so the client can flip between the two and it sticks.
-let fpMode = 'news';
-try { const m = localStorage.getItem('matOverview'); if(m==='line'||m==='news') fpMode=m; } catch(e) {}
-function setMode(m){ fpMode = (m==='line'?'line':'news'); try{ localStorage.setItem('matOverview', fpMode); }catch(e){} renderPage(); }
-function fpModeToggle(active){
-  return `<div style="display:flex;gap:6px;flex-shrink:0;">`
-    + `<button class="btn-ghost btn-sm${active==='news'?' active':''}" onclick="setMode('news')">Front Page</button>`
-    + `<button class="btn-ghost btn-sm${active==='line'?' active':''}" onclick="setMode('line')">The Line</button>`
-    + `</div>`;
-}
 function fpShuffle(arr, seed){
   const a=arr.slice(); let s=seed>>>0;
   for(let i=a.length-1;i>0;i--){
@@ -1855,13 +1787,6 @@ const FP_SLOTS = [
   { tone:'fp-red', box:'fp-box fp-bd',      col:'8 / span 5'  },
 ];
 
-// Full-bleed front-page imagery (fixed order; the headlines reshuffle around it).
-// ?v bust the cache when an image's contents change at the same path.
-const FP_IMAGES = ['media/front-1.jpg?v=2','media/front-2.jpg?v=2','media/front-3.jpg?v=2','media/front-4.jpg?v=2','media/front-5.jpg?v=2'];
-// Deterministic background-colour gap height between images: 80–240px, stable
-// per page load (seeded), independent per gap.
-function fpGap(i){ let s=(fpSeed ^ (i*0x9e3779b1))>>>0; s=(s*1664525+1013904223)>>>0; return 80 + (s % 161); }
-
 // Map a headline to a navigation action (clicking the card jumps there).
 function fpGoFor(h){
   if(h.go) return h.go; // project headlines carry an explicit target
@@ -1877,52 +1802,19 @@ function fpGoFor(h){
 function goWork(view){ woView=view; currentPage='tasks'; renderNav(); renderPage(); }
 function goStock(view){ stockView=view; currentPage='items'; renderNav(); renderPage(); }
 
-// Only render as many full-bleed images as the headlines reach: hide any image
-// that starts below the last headline (keep the one the last headline sits on,
-// uncut). Re-run on render, image load and resize since image heights are
-// width-driven while the headline grid height is not.
-function fpFitImages(){
-  const stage=document.querySelector('.fp-stage'); if(!stage) return;
-  const grid=stage.querySelector('.fp'); const bg=stage.querySelector('.fp-bg');
-  if(!grid||!bg) return;
-  const items=grid.querySelectorAll('.fp-item'); if(!items.length) return;
-  const last=items[items.length-1];
-  const limit=last.offsetTop+last.offsetHeight;          // bottom of last headline
-  const imgs=[...bg.querySelectorAll('.fp-img')];
-  const gaps=[...bg.querySelectorAll('.fp-gap')];
-  imgs.forEach(im=>im.style.display='');                 // reset (window may have grown)
-  gaps.forEach(g=>g.style.display='');
-  const tops=imgs.map(im=>im.offsetTop);                 // snapshot with all visible
-  imgs.forEach((im,i)=>{
-    if(tops[i] >= limit){                                // starts past the last headline
-      im.style.display='none';
-      const prev=im.previousElementSibling;
-      if(prev && prev.classList.contains('fp-gap')) prev.style.display='none';
-    }
-  });
-}
-window.addEventListener('resize', ()=>{ if(document.body.classList.contains('fp-on')) fpFitImages(); });
-
 function pageOverview() {
   const u = state.user;
   if(isRecruit(u)) return pageRecruitOverview(u);
-  if(fpMode==='line') return pipelineBoard(u);
 
+  // ── Pipeline frames: number-on-top, tagline-below, framed in the headline
+  // language (red border, red type). One per pipeline stage, read in order. ──
+  const pipe = `<div class="fp-pipe">${pipelineCards(u)}</div>`;
+
+  // ── Editorial headlines below, same dotted/bordered card language. ──
   const headlines = buildHeadlines();
-  if(!headlines.length) return `<div style="padding:160px 40px;font-size:var(--text-lg);font-weight:900;">Nothing to report yet.</div>`;
-
-  // Background layer: fixed-order full-bleed images with seeded colour gaps.
-  let bg = '<div class="fp-bg" aria-hidden="true">';
-  FP_IMAGES.forEach((src,i)=>{
-    if(i>0) bg += `<div class="fp-gap" style="height:${fpGap(i)}px"></div>`;
-    bg += `<img class="fp-img" src="${src}" alt="" onload="fpFitImages()">`;
-  });
-  bg += '</div>';
-
-  // Foreground layer: the editorial headline grid, original spacing, on top.
   const slotOffset = fpSeed % FP_SLOTS.length;
   const grid = `<div class="fp">${headlines.map((h,i)=>{
-    // Colophon is always rendered as a full-width solo box, never clickable.
+    // Colophon is always a full-width solo box, never clickable.
     const s = h.credits ? {tone:'fp-red', box:'fp-box fp-dots', col:'1 / span 12'} : FP_SLOTS[(i + slotOffset) % FP_SLOTS.length];
     const footColor = s.tone==='fp-red' ? 'var(--red)' : 'var(--fg)';
     const go = h.credits ? '' : fpGoFor(h);
@@ -1934,16 +1826,13 @@ function pageOverview() {
     </div>`;
   }).join('')}</div>`;
 
-  return `<div class="ms-fixed">${fpModeToggle('news')}</div><div class="fp-stage">${bg}${grid}</div>`;
+  return pipe + grid;
 }
 
-// ── "THE LINE" — live pipeline board ─────────────────────────────────────────
-// The spreadsheet's status column, made live: four uniform square stations
-// (one per role) showing what each is holding right now, linked by flow
-// connectors that count the pending meet-&-confirm handovers between them.
-// Built from the page's own design language (page-head/page-lead, token type
-// scale, 2px borders, red accent) so it sits flush with Work / Stock / Log.
-function pipelineBoard(u){
+// The four pipeline stages as framed cards: a big live number up top (where the
+// reference puts its image), the role + status tagline below. Each links to the
+// matching section when the viewer can act there.
+function pipelineCards(u){
   const stock = state.stock||[], wos = state.workorders||[];
   const M = a=>a.filter(x=>x.kind==='material'), I = a=>a.filter(x=>x.kind==='item');
   const st = s=>stock.filter(x=>x.status===s);
@@ -1952,74 +1841,40 @@ function pipelineBoard(u){
   const pl = (n,w)=>`${n} ${w}${n!==1?'s':''}`;
 
   const reported = M(st('reported')), inTransit = M(st('in_transit')), atBase = M(st('at_base'));
-  const crafted = I(st('crafted')), withDist = I(st('with_distributor')), handedOut = I(st('handed_out'));
-  const openPickups = wos.filter(w=>w.kind==='pickup'   && w.status==='open');
-  const openDeliv   = wos.filter(w=>w.kind==='delivery' && w.status==='open');
+  const crafted = I(st('crafted')), withDist = I(st('with_distributor'));
+  const openPickups = wos.filter(w=>w.kind==='pickup'   && w.status==='open').length;
+  const openDeliv   = wos.filter(w=>w.kind==='delivery' && w.status==='open').length;
   const craftOpen   = wos.filter(w=>w.kind==='craft'    && w.status==='open');
   const owed        = craftOpen.reduce((s,o)=>s+Math.max(0,(o.qtyNeeded||0)-(o.qtyDone||0)),0);
-  const urgent      = craftOpen.some(o=>o.priority==='urgent');
-  const moveFlow    = wos.filter(w=>(w.kind==='move'||w.kind==='distribution') && w.status!=='done');
+  const moveFlow    = wos.filter(w=>(w.kind==='move'||w.kind==='distribution') && w.status!=='done').length;
 
   const wa = workViewsAllowed(u);
-  const stations = [
-    { role:'Gather', where:'In the field', num:reported.length, lbl:(reported.length===1?'lot':'lots')+' reported',
-      meta:`${qsum(reported)} units on the ground, awaiting pickup`, hot:reported.length>0,
+  const cards = [
+    { role:'Gather', num:reported.length, lbl:(reported.length===1?'lot':'lots')+' reported',
+      meta:`${qsum(reported)} units in the field${openPickups?` · ${pl(openPickups,'pickup')} waiting`:''}`,
       go:"goStock('materials')" },
-    { role:'Logistics', where:'On the haul', num:inTransit.length, lbl:'lots in transit',
-      meta:`${qsum(inTransit)} units moving to base`, hot:false,
+    { role:'Logistics', num:inTransit.length, lbl:'lots in transit',
+      meta:`${qsum(inTransit)} units inbound to base${openDeliv?` · ${pl(openDeliv,'delivery')} to drop`:''}`,
       go: wa.includes('pickup') ? "goWork('pickup')" : "goStock('materials')" },
-    { role:'Craft', where:'At the bench', num:owed, lbl:'items owed',
-      meta:`${pl(craftOpen.length,'order')} open · ${pl(atBase.length,'lot')} ready to craft`, hot:urgent,
+    { role:'Craft', num:owed, lbl:'items owed',
+      meta:`${pl(craftOpen.length,'order')} open · ${pl(atBase.length,'lot')} at the bench`,
       go: wa.includes('crafting') ? "goWork('crafting')" : '' },
-    { role:'Distribute', where:'In stockpiles', num:isum(withDist), lbl:'items to hand out',
-      meta:`${pl(isum(crafted),'item')} just off the bench`, hot:crafted.length>0,
+    { role:'Distribute', num:isum(withDist), lbl:'items to hand out',
+      meta:`${pl(isum(crafted),'item')} just off the bench${moveFlow?` · ${pl(moveFlow,'move')} in motion`:''}`,
       go: wa.includes('distribution') ? "goWork('distribution')" : '' },
   ];
-  const links = [
-    { n:openPickups.length, lbl:'to collect', go: wa.includes('pickup')    ? "goWork('pickup')"    : '' },
-    { n:openDeliv.length,   lbl:'to deliver', go: wa.includes('transfers') ? "goWork('transfers')" : '' },
-    { n:moveFlow.length,    lbl:'to move',    go: wa.includes('transfers') ? "goWork('transfers')" : '' },
-  ];
 
-  const stationHtml = s=>{
-    const click = s.go ? ` role="button" tabindex="0" onclick="${s.go}"` : '';
-    return `<div class="pl-station ${s.hot?'hot':''}"${click}>`
-      + `<div class="pl-role">${s.role}</div>`
-      + `<div class="pl-where">${esc(s.where)}</div>`
-      + `<div class="pl-num">${s.num}</div>`
-      + `<div class="pl-numlbl">${esc(s.lbl)}</div>`
-      + `<div class="pl-meta">${esc(s.meta)}</div>`
-      + `</div>`;
-  };
-  const linkHtml = l=>{
-    const flowing = l.n>0;
-    const click = (flowing && l.go) ? ` role="button" tabindex="0" onclick="${l.go}"` : '';
-    return `<div class="pl-link ${flowing?'flowing':''}"${click}>`
-      + `<div class="pl-arrow">&rarr;</div>`
-      + `<div class="pl-badge">${flowing ? esc(l.n+' '+l.lbl) : 'clear'}</div>`
-      + `</div>`;
-  };
-
-  let flow = '';
-  stations.forEach((s,i)=>{ flow += stationHtml(s); if(i<links.length) flow += linkHtml(links[i]); });
-
-  const movingLots = reported.length + inTransit.length + atBase.length;
-  const pending = openPickups.length + openDeliv.length + moveFlow.length;
-  const quiet = !stock.length && !wos.length;
-  const lead = quiet ? `The line is quiet` : `${pl(movingLots,'material lot')} moving down the line`;
-
-  const end = `<b>${isum(handedOut)}</b> items delivered to the wing so far`
-    + (pending ? ` &nbsp;·&nbsp; <b class="red">${pending}</b> handover${pending!==1?'s':''} waiting to be met &amp; confirmed` : ``);
-
-  return `
-    <div class="page-head">
-      <div class="page-head-left"><div class="page-lead">${lead}</div></div>
-      ${fpModeToggle('line')}
-    </div>
-    <div style="margin-top:var(--space-6);">
-      <div class="pl-flow">${flow}</div>
-      <div class="pl-end">${end}</div>
+  return cards.map(c=>{
+    const click = c.go ? ` role="button" tabindex="0" aria-label="${esc(c.role)}" onclick="${c.go}"` : '';
+    return `<div class="fp-item fp-red fp-box fp-bd-red fp-pl"${click}>
+      <div class="fp-pl-top">
+        <div class="fp-pl-num">${c.num}</div>
+        <div class="fp-pl-lbl">${esc(c.lbl)}</div>
+      </div>
+      <div class="fp-pl-role">${esc(c.role)}</div>
+      <div class="fp-pl-meta">${esc(c.meta)}</div>
     </div>`;
+  }).join('');
 }
 
 function pageRecruitOverview(u) {
@@ -4732,8 +4587,7 @@ init();
     primary.style.height = HEADER_H + 'px';
 
     if(updateMargin || !pageWrap.style.marginTop){
-      // Full-bleed front page: image runs under the nav (no top margin).
-      pageWrap.style.marginTop = document.body.classList.contains('fp-on') ? '0px' : nav.offsetHeight + 'px';
+      pageWrap.style.marginTop = nav.offsetHeight + 'px';
     }
     document.documentElement.style.setProperty('--nav-h', nav.offsetHeight + 'px');
   }
