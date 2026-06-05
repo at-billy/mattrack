@@ -291,45 +291,41 @@ tbody tr:hover{background:#f9f9f9;}
 /* (front-page nav stays white — rules live after the theme blocks so they win) */
 
 /* ── "THE LINE" — live pipeline board (alternate landing view) ──────
-   A single conveyor: role stations (where stock sits right now) linked by
-   flow connectors (the pending meet-&-confirm handovers). Same black/white/red
-   editorial language as the front page, theme-safe via --fg/--bg tokens. */
-.pl-wrap{max-width:1240px;}
-.pl-sub{font-size:var(--text-md);color:var(--fg);line-height:1.5;max-width:680px;margin-bottom:var(--space-7);}
-.pl-sub b{color:var(--red);}
-.pl-live{display:inline-block;width:9px;height:9px;background:var(--red);border-radius:50%;margin-right:9px;vertical-align:middle;animation:plpulse 1.6s ease-in-out infinite;}
-@keyframes plpulse{0%,100%{opacity:1;}50%{opacity:.2;}}
-.pl-flow{display:flex;align-items:stretch;flex-wrap:nowrap;}
-.pl-station{flex:1 1 0;min-width:0;border:3px solid var(--fg);padding:var(--space-4) var(--space-4) var(--space-5);display:flex;flex-direction:column;background:var(--bg);}
+   The pipeline as a row of uniform square stations (where stock sits right
+   now), linked by flow connectors that count the pending meet-&-confirm
+   handovers. Reuses the page's own design language — page-head + page-lead,
+   token type scale, 2px borders, red accent — so it sits flush with the Work,
+   Stock and Log pages. Theme-safe via --fg/--bg tokens. */
+.pl-flow{display:flex;align-items:flex-start;width:100%;}
+.pl-station{flex:1 1 0;min-width:0;aspect-ratio:1/1;border:2px solid var(--border);padding:var(--space-4);display:flex;flex-direction:column;background:var(--bg);}
 .pl-station[role="button"]{cursor:pointer;}
 .pl-station[role="button"]:hover{background:var(--bg2);}
 .pl-station.hot{border-color:var(--red);}
-.pl-role{font-size:var(--text-md);font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:var(--fg);line-height:1;}
-.pl-where{font-size:var(--text-sm);color:#8a8a8a;letter-spacing:.02em;margin-top:6px;margin-bottom:var(--space-5);}
-.pl-num{font-size:clamp(38px,4.4vw,62px);font-weight:900;letter-spacing:-3px;line-height:.85;color:var(--fg);font-variant-numeric:tabular-nums;}
+.pl-role{font-size:var(--text-md);font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--fg);line-height:1.1;}
+.pl-where{font-size:var(--text-sm);color:var(--fg);opacity:.55;margin-top:6px;}
+.pl-num{font-size:var(--text-2xl);font-weight:900;letter-spacing:-2px;line-height:1;color:var(--fg);margin-top:auto;}
 .pl-station.hot .pl-num{color:var(--red);}
 .pl-numlbl{font-size:var(--text-sm);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg);margin-top:8px;}
-.pl-meta{margin-top:auto;padding-top:var(--space-5);font-size:var(--text-sm);color:#8a8a8a;line-height:1.5;letter-spacing:.02em;}
-.pl-link{flex:0 0 auto;width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:0 4px;align-self:center;}
-.pl-arrow{font-size:26px;font-weight:900;color:#bdbdbd;line-height:1;}
-.pl-link.flowing .pl-arrow{color:var(--red);animation:plpulse 1.3s ease-in-out infinite;}
-.pl-badge{font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:#bdbdbd;line-height:1.2;}
-.pl-link.flowing .pl-badge{color:var(--red);}
+.pl-meta{font-size:var(--text-sm);color:var(--fg);opacity:.55;margin-top:10px;line-height:1.4;}
+.pl-link{flex:0 0 auto;width:62px;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
+.pl-arrow{font-size:24px;font-weight:400;color:var(--fg);opacity:.3;line-height:1;}
+.pl-link.flowing .pl-arrow{opacity:1;color:var(--red);}
+.pl-badge{font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:center;color:var(--fg);opacity:.4;line-height:1.2;}
+.pl-link.flowing .pl-badge{opacity:1;color:var(--red);}
 .pl-link[role="button"]{cursor:pointer;}
-.pl-end{display:flex;align-items:baseline;gap:14px;margin-top:var(--space-6);padding-top:var(--space-5);border-top:2px solid var(--fg);}
-.pl-end-num{font-size:var(--text-lg);font-weight:900;letter-spacing:-1px;color:var(--fg);font-variant-numeric:tabular-nums;}
-.pl-end-lbl{font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a8a8a;}
+.pl-end{margin-top:var(--space-7);font-size:var(--text-md);color:var(--fg);}
+.pl-end b{font-size:var(--text-lg);font-weight:900;letter-spacing:-.5px;}
+.pl-end .red{color:var(--red);}
 @media(max-width:900px){
   .pl-flow{flex-direction:column;}
-  .pl-station{flex:none;}
-  .pl-link{width:100%;flex-direction:row;height:56px;gap:14px;}
+  .pl-station{aspect-ratio:auto;flex:none;}
+  .pl-link{width:100%;flex-direction:row;height:48px;gap:12px;}
   .pl-arrow{transform:rotate(90deg);}
 }
-/* Front Page / The Line switch */
-.mode-switch{display:inline-flex;border:2px solid currentColor;flex-shrink:0;}
-.ms-btn{font:inherit;background:none;border:none;cursor:pointer;padding:7px 15px;font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:currentColor;white-space:nowrap;}
-.ms-btn.on{background:var(--red);color:#fff;}
-.ms-fixed{position:fixed;right:24px;top:calc(var(--nav-h,120px) + 18px);z-index:450;background:#fff;color:#000;box-shadow:0 2px 12px rgba(0,0,0,.18);}
+/* Front Page / The Line switch — btn-ghost pair (matches page filter rows).
+   On the image-backed front page it floats in a white pill so the ghost
+   buttons stay readable over the photography. */
+.ms-fixed{position:fixed;right:24px;top:calc(var(--nav-h,120px) + 18px);z-index:450;background:#fff;padding:8px;display:flex;gap:6px;box-shadow:0 2px 12px rgba(0,0,0,.18);}
 @media(max-width:760px){ .ms-fixed{right:var(--space-4);top:calc(var(--nav-h,110px) + 10px);} }
 
 /* ── OVERVIEW / LANDING ──────────────────────────────────────────── */
@@ -1717,9 +1713,9 @@ let fpMode = 'news';
 try { const m = localStorage.getItem('matOverview'); if(m==='line'||m==='news') fpMode=m; } catch(e) {}
 function setMode(m){ fpMode = (m==='line'?'line':'news'); try{ localStorage.setItem('matOverview', fpMode); }catch(e){} renderPage(); }
 function fpModeToggle(active){
-  return `<div class="mode-switch">`
-    + `<button class="ms-btn ${active==='news'?'on':''}" onclick="setMode('news')">Front Page</button>`
-    + `<button class="ms-btn ${active==='line'?'on':''}" onclick="setMode('line')">The Line</button>`
+  return `<div style="display:flex;gap:6px;flex-shrink:0;">`
+    + `<button class="btn-ghost btn-sm${active==='news'?' active':''}" onclick="setMode('news')">Front Page</button>`
+    + `<button class="btn-ghost btn-sm${active==='line'?' active':''}" onclick="setMode('line')">The Line</button>`
     + `</div>`;
 }
 function fpShuffle(arr, seed){
@@ -1942,9 +1938,11 @@ function pageOverview() {
 }
 
 // ── "THE LINE" — live pipeline board ─────────────────────────────────────────
-// An at-a-glance conveyor that replaces the spreadsheet's status column: four
-// role stations showing what each role is holding right now, linked by flow
+// The spreadsheet's status column, made live: four uniform square stations
+// (one per role) showing what each is holding right now, linked by flow
 // connectors that count the pending meet-&-confirm handovers between them.
+// Built from the page's own design language (page-head/page-lead, token type
+// scale, 2px borders, red accent) so it sits flush with Work / Stock / Log.
 function pipelineBoard(u){
   const stock = state.stock||[], wos = state.workorders||[];
   const M = a=>a.filter(x=>x.kind==='material'), I = a=>a.filter(x=>x.kind==='item');
@@ -2006,28 +2004,21 @@ function pipelineBoard(u){
   stations.forEach((s,i)=>{ flow += stationHtml(s); if(i<links.length) flow += linkHtml(links[i]); });
 
   const movingLots = reported.length + inTransit.length + atBase.length;
-  const finished = isum(withDist) + isum(crafted);
   const pending = openPickups.length + openDeliv.length + moveFlow.length;
   const quiet = !stock.length && !wos.length;
-  const sub = quiet
-    ? `The line is quiet — nothing in motion yet. Report a haul to set it running.`
-    : `<b>${pl(movingLots,'material lot')}</b> moving down the line, <b>${pl(finished,'finished item')}</b> waiting to reach the wing`
-      + (pending ? `, and <b>${pl(pending,'handover')}</b> waiting on someone to meet and confirm.` : `.`);
+  const lead = quiet ? `The line is quiet` : `${pl(movingLots,'material lot')} moving down the line`;
+
+  const end = `<b>${isum(handedOut)}</b> items delivered to the wing so far`
+    + (pending ? ` &nbsp;·&nbsp; <b class="red">${pending}</b> handover${pending!==1?'s':''} waiting to be met &amp; confirmed` : ``);
 
   return `
     <div class="page-head">
-      <div class="page-head-left">
-        <div class="page-title"><span class="pl-live"></span>The Line</div>
-      </div>
+      <div class="page-head-left"><div class="page-lead">${lead}</div></div>
       ${fpModeToggle('line')}
     </div>
-    <div class="pl-wrap">
-      <div class="pl-sub">${sub}</div>
+    <div style="margin-top:var(--space-6);">
       <div class="pl-flow">${flow}</div>
-      <div class="pl-end">
-        <div class="pl-end-num">${isum(handedOut)}</div>
-        <div class="pl-end-lbl">items delivered to the wing so far</div>
-      </div>
+      <div class="pl-end">${end}</div>
     </div>`;
 }
 
