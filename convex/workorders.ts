@@ -144,7 +144,7 @@ export const createMove = mutation({
     for (const sid of stockIds) {
       const s = await ctx.db.get(sid);
       if (!s || s.kind !== "item" || s.status !== "crafted") continue;
-      if (s.heldBy !== user.username && !user.roles.includes("admin")) continue;
+      if (s.heldBy !== user.username) continue; // can only ship what you physically hold
       if (locked.has(sid)) continue;
       items.push({ stockId: s._id, name: s.name, kind: s.kind, qty: s.qty, unit: s.unit, qualityStep: s.qualityValue ?? undefined });
     }

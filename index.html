@@ -2312,19 +2312,18 @@ function renderCraftOrders(){
 function renderCraftInventory(){
   const u=state.user;
   const locked=lockedStockSet();
-  let rows=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&(isAdmin(u)||s.heldBy===u.username)&&searchMatch('wo', s.name, s.location, s.heldBy));
+  let rows=state.stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&s.heldBy===u.username&&searchMatch('wo', s.name, s.location, s.heldBy));
   rows = cfInvF==='shipping' ? rows.filter(s=>locked.has(s._id)) : rows.filter(s=>!locked.has(s._id));
   const val=(s,c)=>{ switch(c){ case 'qty':return s.qty||0; case 'quality':return s.qualityValue!=null?s.qualityValue:-1; case 'location':return s.location||''; case 'heldby':return s.heldBy||''; default:return s.name||''; } };
   rows=[...rows].sort((a,b)=>cmpVals(val(a,cfInvSortCol),val(b,cfInvSortCol),cfInvSortDir));
   if(!rows.length) return `<div class="empty">${cfInvF==='shipping'?'Nothing waiting on logistics right now.':'No finished items yet. Hit “Craft” to make what’s being asked for.'}</div>`;
-  const canSend=isCrafter(u)||isAdmin(u);
-  const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['location','Location']].concat(isAdmin(u)?[['heldby','Held By']]:[]);
+  const canSend=isCrafter(u); // only crafters ship — admin site powers don't extend to physical inventory actions
+  const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['location','Location']];
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setCfInvSort',cfInvSortCol,cfInvSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(s=>`<tr>
     <td data-label="Item" style="font-weight:700;">${esc(s.name)}</td>
     <td data-label="Qty" style="font-weight:700;">${s.qty} <span style="font-weight:400;color:var(--fg);font-size:var(--text-sm);">${esc(s.unit)}</span></td>
     <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.qualityValue!=null?`Q ${s.qualityValue}`:'—'}</td>
     <td data-label="Location" style="font-size:var(--text-md);">${esc(s.location||'—')}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}</td>
-    ${isAdmin(u)?`<td data-label="Held By">${esc(s.heldBy)}</td>`:''}
     <td data-label="" style="white-space:nowrap;">${cfInvF==='shipping'?`<span style="font-size:var(--text-sm);color:var(--mid);text-transform:uppercase;letter-spacing:.04em;">With logistics</span>`:(canSend?`<button class="btn btn-black btn-sm" onclick="doSendOne('${esc(s._id)}')">Send</button>`:'')}</td>
   </tr>`).join('')}</tbody></table>`;
 }
@@ -2769,7 +2768,7 @@ async function submitManifest(id){
 // Out = history. (Goods still travel crafter → logistics → distributor.)
 function renderDistribution(){
   const u=state.user;
-  const isDist=isDistributor(u)||isAdmin(u);
+  const isDist=isDistributor(u); // only distributors have game actions (request move, hand out)
   const val=(s,c)=>{ switch(c){ case 'qty':return s.qty||0; case 'quality':return s.qualityValue!=null?s.qualityValue:-1; case 'location':return s.location||''; case 'heldby':return s.heldBy||''; default:return s.name||''; } };
 
   if(dsF==='available'){
@@ -2789,16 +2788,15 @@ function renderDistribution(){
   }
 
   const wantStatus = dsF==='handedout' ? 'handed_out' : 'with_distributor';
-  let rows=state.stock.filter(s=>s.kind==='item'&&s.status===wantStatus&&(isAdmin(u)||s.heldBy===u.username)&&searchMatch('wo', s.name, s.location, s.heldBy))
+  let rows=state.stock.filter(s=>s.kind==='item'&&s.status===wantStatus&&s.heldBy===u.username&&searchMatch('wo', s.name, s.location, s.heldBy))
     .sort((a,b)=>cmpVals(val(a,dsSortCol),val(b,dsSortCol),dsSortDir));
   if(!rows.length) return `<div class="empty">${searchGet('wo').text?'Nothing matches your search.':(dsF==='handedout'?'Nothing handed out yet.':'Your stockpile is empty. Finished goods arrive via logistics — accept a delivery in Transfers.')}</div>`;
-  const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['location','Location']].concat(isAdmin(u)?[['heldby','Held By']]:[]);
+  const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['location','Location']];
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setDsSort',dsSortCol,dsSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(s=>`<tr>
     <td data-label="Item" style="font-weight:700;">${esc(s.name)}${s.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(s.note)}</div>`:''}</td>
     <td data-label="Qty" style="font-weight:700;">${s.qty} <span style="font-weight:400;color:var(--fg);font-size:var(--text-sm);">${esc(s.unit)}</span></td>
     <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.qualityValue!=null?`Q ${s.qualityValue}`:'—'}</td>
     <td data-label="Location" style="font-size:var(--text-md);">${esc(s.location||'—')}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}</td>
-    ${isAdmin(u)?`<td data-label="Held By">${esc(s.heldBy)}</td>`:''}
     <td data-label="" style="white-space:nowrap;">${(isDist&&dsF==='instock')?`<button class="btn btn-black btn-sm" onclick="openHandoutModal('${esc(s._id)}')">Hand Out</button>`:''}</td>
   </tr>`).join('')}</tbody></table>`;
 }

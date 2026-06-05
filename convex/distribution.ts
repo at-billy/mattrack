@@ -19,11 +19,12 @@ export const handOut = mutation({
   },
   handler: async (ctx, { sessionToken, stockId, qty, recipient, context, note }) => {
     const user = await requireSession(ctx.db, sessionToken);
-    assertRole(user, ["distributor", "admin"]);
+    // Only distributors can hand out — this is a physical in-game action.
+    // Admin site powers don't extend to handing out items they don't hold.
+    assertRole(user, ["distributor"]);
     const s = await ctx.db.get(stockId);
     if (!s || s.status !== "with_distributor") throw new ConvexError("Item is not in a stockpile");
-    const isAdmin = user.roles.includes("admin");
-    if (!isAdmin && s.heldBy !== user.username) throw new ConvexError("Not your stockpile");
+    if (s.heldBy !== user.username) throw new ConvexError("You can only hand out items from your own stockpile");
     if (!(qty > 0) || qty > s.qty) throw new ConvexError("Invalid quantity");
     if (!recipient.trim()) throw new ConvexError("Recipient is required");
     assertLen(recipient, 120, "recipient");
