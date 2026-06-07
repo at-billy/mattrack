@@ -312,7 +312,10 @@ const r3 = (n: number) => Math.round(n * 1000) / 1000;
 export const createCraftOrder = mutation({
   args: {
     sessionToken: v.string(), itemName: v.string(), qtyNeeded: v.number(), priority: v.string(),
-    maxCrafters: v.optional(v.number()), minQuality: v.optional(v.number()), maxQuality: v.optional(v.number()),
+    maxCrafters: v.optional(v.number()),
+    matReqs: v.optional(v.array(v.object({
+      materialName: v.string(), minQuality: v.optional(v.number()), maxQuality: v.optional(v.number()),
+    }))),
   },
   handler: async (ctx, a) => {
     const user = await requireSession(ctx.db, a.sessionToken);
@@ -321,14 +324,25 @@ export const createCraftOrder = mutation({
     if (!item) throw new ConvexError("Unknown item");
     if (!(a.qtyNeeded > 0)) throw new ConvexError("Quantity must be greater than 0");
     if (!PRIORITIES.includes(a.priority)) throw new ConvexError("Invalid priority");
-    const qOk = (q?: number) => q == null || (Number.isInteger(q) && q >= 1 && q <= QUALITY_STEPS);
-    if (!qOk(a.minQuality) || !qOk(a.maxQuality)) throw new ConvexError(`Quality band must be between 1 and ${QUALITY_STEPS}`);
-    if (a.minQuality != null && a.maxQuality != null && a.minQuality > a.maxQuality) throw new ConvexError("Min quality can't exceed max quality");
     if (a.maxCrafters != null && (!Number.isInteger(a.maxCrafters) || a.maxCrafters < 1)) throw new ConvexError("Crafters cap must be 1 or more");
+
+    // Validate per-material quality windows against the recipe.
+    const qOk = (q?: number) => q == null || (Number.isInteger(q) && q >= 1 && q <= QUALITY_STEPS);
+    const recipeNames = new Set((item.recipe ?? []).map(r => r.materialName));
+    const matReqs = (a.matReqs ?? [])
+      .map(m => ({ materialName: m.materialName.trim(), minQuality: m.minQuality ?? undefined, maxQuality: m.maxQuality ?? undefined }))
+      .filter(m => m.materialName && (m.minQuality != null || m.maxQuality != null));
+    for (const m of matReqs) {
+      if (!recipeNames.has(m.materialName)) throw new ConvexError(`${m.materialName} is not in this item's recipe`);
+      if (!qOk(m.minQuality) || !qOk(m.maxQuality)) throw new ConvexError(`Quality band must be between 1 and ${QUALITY_STEPS}`);
+      if (m.minQuality != null && m.maxQuality != null && m.minQuality > m.maxQuality) throw new ConvexError(`${m.materialName}: min quality can't exceed max quality`);
+    }
+
     const id = await ctx.db.insert("workorders", {
       kind: "craft", status: "open",
       itemName: item.name, qtyNeeded: a.qtyNeeded, qtyDone: 0, priority: a.priority,
-      maxCrafters: a.maxCrafters ?? undefined, minQuality: a.minQuality ?? undefined, maxQuality: a.maxQuality ?? undefined,
+      maxCrafters: a.maxCrafters ?? undefined,
+      matReqs: matReqs.length ? matReqs : undefined,
       crafters: [],
       createdBy: user._id, createdByName: user.username,
     });
@@ -367,24 +381,37 @@ export const craftItem = mutation({
     const item = await ctx.db.query("itemCatalog").withIndex("by_name", q => q.eq("name", order.itemName!)).first();
     if (!item || !item.recipe?.length) throw new ConvexError("This item has no recipe");
 
-    // The crafter's own At-Base material stock, within the order's quality window.
-    const minQ = order.minQuality ?? 1, maxQ = order.maxQuality ?? QUALITY_STEPS;
+    // Each recipe material has its own quality window: prefer the order's
+    // per-material req, fall back to the legacy order-wide window, else any.
     const matQ = (s: any) => s.qualityStep ?? s.qualityValue ?? 0;
-    const myMats = (await ctx.db.query("stock").withIndex("by_status", q => q.eq("status", "at_base")).collect())
-      .filter(s => s.kind === "material" && s.heldBy === user.username && matQ(s) >= minQ && matQ(s) <= maxQ);
+    const windowFor = (materialName: string) => {
+      const req = (order.matReqs ?? []).find(m => m.materialName === materialName);
+      const minQ = req?.minQuality ?? order.minQuality ?? 1;
+      const maxQ = req?.maxQuality ?? order.maxQuality ?? QUALITY_STEPS;
+      return { minQ, maxQ };
+    };
+    const qLabel = (materialName: string) => {
+      const { minQ, maxQ } = windowFor(materialName);
+      return (minQ > 1 || maxQ < QUALITY_STEPS) ? ` at Q${minQ}–${maxQ}` : "";
+    };
+    // The crafter's own At-Base material stock (filtered per-material below).
+    const allMine = (await ctx.db.query("stock").withIndex("by_status", q => q.eq("status", "at_base")).collect())
+      .filter(s => s.kind === "material" && s.heldBy === user.username);
+    const matsFor = (materialName: string) => {
+      const { minQ, maxQ } = windowFor(materialName);
+      return allMine.filter(s => s.name === materialName && matQ(s) >= minQ && matQ(s) <= maxQ);
+    };
 
-    const qWindow = (order.minQuality != null || order.maxQuality != null)
-      ? ` at Q${order.minQuality ?? 1}–${order.maxQuality ?? QUALITY_STEPS}` : "";
     for (const r of item.recipe) {
-      const have = myMats.filter(s => s.name === r.materialName).reduce((sum, s) => sum + s.qty, 0);
-      if (have + 1e-9 < r.qty * count) throw new ConvexError(`Not enough ${r.materialName}${qWindow}: need ${r3(r.qty * count)}, you hold ${r3(have)}`);
+      const have = matsFor(r.materialName).reduce((sum, s) => sum + s.qty, 0);
+      if (have + 1e-9 < r.qty * count) throw new ConvexError(`Not enough ${r.materialName}${qLabel(r.materialName)}: need ${r3(r.qty * count)}, you hold ${r3(have)}`);
     }
 
     // Consume lowest-quality first; accumulate qty-weighted quality.
     let qtySum = 0, weighted = 0;
     for (const r of item.recipe) {
       let need = r.qty * count;
-      const rows = myMats.filter(s => s.name === r.materialName)
+      const rows = matsFor(r.materialName)
         .sort((a, b) => (a.qualityValue ?? a.qualityStep ?? 0) - (b.qualityValue ?? b.qualityStep ?? 0));
       for (const s of rows) {
         if (need <= 1e-9) break;

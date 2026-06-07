@@ -247,15 +247,44 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 .modal-box{background:#fff;padding:36px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;position:relative;}
 .modal-lg{max-width:700px;}
 /* ── CRAFT ORDER CARDS ───────────────────────────────────────────── */
-.co-cards{display:flex;flex-direction:column;gap:var(--space-3);}
-.co-card{border:1px solid var(--border-m);padding:var(--space-4);background:var(--bg);}
-.co-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-3);}
-.co-card-progress{display:flex;gap:var(--space-3);align-items:center;margin-bottom:var(--space-2);flex-wrap:wrap;}
-.co-card-frac{display:flex;align-items:baseline;gap:3px;}
-.co-card-bar{height:4px;background:var(--border-m);flex:0 0 100px;}
+.co-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:var(--space-4);}
+.co-card{border:1.5px solid var(--border);padding:var(--space-5);background:var(--bg);display:flex;flex-direction:column;gap:var(--space-4);}
+.co-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-3);}
+.co-card-title{font-size:var(--text-lg);font-weight:900;letter-spacing:-.5px;line-height:1.1;}
+.co-card-sub{font-size:var(--text-sm);color:var(--mid);margin-top:4px;}
+/* progress: big fraction left, bar + percent right */
+.co-card-progress{display:flex;flex-direction:column;gap:var(--space-2);}
+.co-card-frac{display:flex;align-items:baseline;gap:6px;}
+.co-card-frac .num{font-size:var(--text-2xl);font-weight:900;line-height:1;}
+.co-card-frac .den{font-size:var(--text-md);color:var(--mid);}
+.co-card-frac .lab{font-size:var(--text-sm);color:var(--mid);letter-spacing:.04em;text-transform:uppercase;font-weight:700;margin-left:4px;}
+.co-card-bar{height:6px;background:var(--border-m);width:100%;}
 .co-card-bar-fill{height:100%;background:var(--fg);}
+/* the headline capacity callout */
+.co-card-cap{display:flex;flex-direction:column;gap:2px;border-left:3px solid var(--fg);padding:var(--space-1) 0 var(--space-1) var(--space-3);}
+.co-card-cap .big{font-size:var(--text-md);font-weight:900;}
+.co-card-cap .small{font-size:var(--text-sm);color:var(--mid);}
+.co-card-cap.short{border-left-color:var(--red);}
+.co-card-cap.short .big{color:var(--red);}
+/* recipe rows */
+.co-recipe{display:flex;flex-direction:column;gap:0;}
+.co-recipe-row{display:grid;grid-template-columns:1fr auto;gap:var(--space-1) var(--space-3);padding:var(--space-2) 0;border-top:1px solid var(--border-m);}
+.co-recipe-row:first-of-type{border-top:none;}
+.co-recipe-name{font-size:var(--text-md);font-weight:700;}
+.co-recipe-need{font-size:var(--text-sm);color:var(--fg);text-align:right;white-space:nowrap;}
+.co-recipe-q{font-size:var(--text-sm);color:var(--mid);}
+.co-recipe-stock{font-size:var(--text-sm);text-align:right;white-space:nowrap;}
+.co-recipe-stock.ok{color:var(--mid);}
+.co-recipe-stock.low{color:var(--red);font-weight:700;}
 .co-card-meta{font-size:var(--text-sm);color:var(--mid);}
 .co-section-head{font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mid);margin-bottom:var(--space-2);}
+@media(max-width:640px){ .co-cards{grid-template-columns:1fr;} }
+/* create-order: per-material quality grid */
+.co-matreqs{margin-bottom:var(--space-5);}
+.co-matreq-head{display:grid;grid-template-columns:1fr 120px 120px;gap:var(--space-2);font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mid);padding-bottom:var(--space-2);}
+.co-matreq{display:grid;grid-template-columns:1fr 120px 120px;gap:var(--space-2);align-items:center;padding:var(--space-2) 0;border-top:1px solid var(--border-m);}
+.co-matreq-name{font-size:var(--text-md);font-weight:700;}
+.co-matreq-name .q{color:var(--mid);font-weight:400;font-size:var(--text-sm);}
 .modal-title{font-size:var(--text-lg);font-weight:900;letter-spacing:-.5px;margin-bottom:40px;}
 .search-row{display:flex;gap:var(--space-3);align-items:center;margin-bottom:36px;}
 .search-row input{max-width:260px;margin:0;}
@@ -1561,13 +1590,14 @@ function workViewsAllowed(u){
   // logistics included: they hold the materials and must drop them to crafters,
   // so they need to see the deliveries in progress.
   if(isLogistics(u)||isCrafter(u)||isDistributor(u)||isAdmin(u)) v.push('transfers');
-  if(isCrafter(u)||isAdmin(u)) v.push('crafting');
+  if(isCrafter(u)||isAdmin(u)) v.push('orders');     // craft orders (demand) — cards
+  if(isCrafter(u)||isAdmin(u)) v.push('crafting');   // crafter's workspace — craft + finished items
   if(isDistributor(u)||isAdmin(u)) v.push('distribution');
   return v;
 }
 function roleWorkDefault(u){
   const a=workViewsAllowed(u);
-  if(isCrafter(u)&&a.includes('crafting')) return 'crafting';
+  if(isCrafter(u)&&a.includes('orders')) return 'orders';
   if(isDistributor(u)&&a.includes('distribution')) return 'distribution';
   if(isLogistics(u)&&a.includes('pickup')) return 'pickup';
   return a[0]||'pickup';
@@ -1640,7 +1670,7 @@ function renderNav() {
   } else if(main==='task'){
     const wa=workViewsAllowed(u);
     const wItem=(v,label)=>wa.includes(v)?`<div class="nav-sub-item${woView===v?' active':''}" onclick="setWoView('${v}')">${label}</div>`:'';
-    sub=`${wItem('pickup','Pickup')}${wItem('transfers','Transfers')}${wItem('crafting','Crafting')}${wItem('distribution','Distribution')}`;
+    sub=`${wItem('pickup','Pickup')}${wItem('transfers','Transfers')}${wItem('orders','Orders')}${wItem('crafting','Crafting')}${wItem('distribution','Distribution')}`;
   } else if(main==='items'){
     const canReport=isGatherer(u)||isAdmin(u);
     sub=`
@@ -2205,7 +2235,7 @@ async function submitChangePassword(){
 // ─── ADMIN PAGE ───────────────────────────────────────────────────────────────
 // ─── WORKORDERS (pipeline spine) ───────────────────────────────────────────────
 function woStatusLabel(s){ return ({open:'Open',claimed:'Claimed',done:'Done',cancelled:'Cancelled'})[s]||s; }
-let woView='pickup';                       // subnav: pickup | transfers | crafting | distribution
+let woView='pickup';                       // subnav: pickup | transfers | orders | crafting | distribution
 const CRAFT_PRIO={urgent:0,high:1,normal:2,whenever:3};
 function priorityTag(p){ const c={urgent:'var(--red)',high:'#d97706',normal:'var(--fg)',whenever:'var(--mid)'}[p]||'var(--fg)'; return `<span style="font-size:var(--text-xs);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${c};border:1px solid ${c};padding:1px 6px;">${esc(p||'normal')}</span>`; }
 const sortArrow=(active,dir)=> active?(dir==='asc'?' &uarr;':' &darr;'):'';
@@ -2235,9 +2265,7 @@ let trF='active', trSortCol='from', trSortDir='asc';       // Transfers — 'fro
 let cfF='open';                                          // Crafting — order filter (Orders tab)
 let cfInvF='available', cfInvSortCol='name', cfInvSortDir='asc'; // Crafting — crafter inventory
 let dsF='instock', dsSortCol='name', dsSortDir='asc';    // Distribution
-let craftView='orders';                                  // Crafting — sub-tab: 'orders' | 'crafting'
-function setWoView(v){ woView=v; pkF='open'; trF='active'; trSortCol='from'; cfF='open'; cfInvF='available'; dsF='instock'; craftView='orders'; searchReset('wo'); renderNav(); renderPage(); }
-function setCraftView(v){ craftView=v; renderPage(); }
+function setWoView(v){ woView=v; pkF='open'; trF='active'; trSortCol='from'; cfF='open'; cfInvF='available'; dsF='instock'; searchReset('wo'); renderNav(); renderPage(); }
 function reWoBody(){ const l=document.getElementById('wo-list'); if(l) l.innerHTML=renderWoListActive(); const d=document.getElementById('wo-dist'); if(d) d.innerHTML=renderDistribution(); }
 function toggleWoSearch(){ searchToggle('wo', rerenderWo); }
 function woSearchInput(v){ searchType('wo', v, reWoBody); }
@@ -2274,31 +2302,47 @@ async function woDelete(id){ if(!await confirmModal('Delete this workorder perma
 
 // ── Craft orders (the crafter's task) ──
 function craftMatQ(s){ return s.qualityStep!=null?s.qualityStep:(s.qualityValue!=null?s.qualityValue:0); }
+// A recipe material's quality window for an order: per-material req → legacy
+// order-wide window → any. Returns {minQ,maxQ} in band steps (1..N).
+function matWindow(order, materialName){
+  const req=((order&&order.matReqs)||[]).find(m=>m.materialName===materialName);
+  const minQ = (req&&req.minQuality!=null) ? req.minQuality : ((order&&order.minQuality!=null)?order.minQuality:1);
+  const maxQ = (req&&req.maxQuality!=null) ? req.maxQuality : ((order&&order.maxQuality!=null)?order.maxQuality:QUALITY_BANDS.length);
+  return {minQ, maxQ};
+}
+function matWindowLabel(order, materialName){
+  const {minQ,maxQ}=matWindow(order,materialName);
+  if(minQ<=1 && maxQ>=QUALITY_BANDS.length) return 'any quality';
+  if(minQ===maxQ) return qBandLabel(minQ);
+  if(minQ<=1) return `up to ${qBandLabel(maxQ)}`;
+  if(maxQ>=QUALITY_BANDS.length) return `${qBandLabel(minQ)} and up`;
+  return `${qBandLabel(minQ)} – ${qBandLabel(maxQ)}`;
+}
+// Quantity of a material on hand within its window — org-wide, or for one holder.
+function matHave(order, materialName, heldBy){
+  const {minQ,maxQ}=matWindow(order,materialName);
+  return state.stock.filter(s=>s.kind==='material'&&s.status==='at_base'&&s.name===materialName
+      &&(heldBy?s.heldBy===heldBy:true)&&craftMatQ(s)>=minQ&&craftMatQ(s)<=maxQ)
+    .reduce((a,s)=>a+s.qty,0);
+}
 function craftAvail(item, order){
   if(!item||!item.recipe||!item.recipe.length) return 0;
-  const u=state.user;
-  const minQ=(order&&order.minQuality!=null)?order.minQuality:1, maxQ=(order&&order.maxQuality!=null)?order.maxQuality:QUALITY_BANDS.length;
-  const myMats=state.stock.filter(s=>s.kind==='material'&&s.status==='at_base'&&s.heldBy===u.username&&craftMatQ(s)>=minQ&&craftMatQ(s)<=maxQ);
-  return Math.floor(Math.min(...item.recipe.map(r=>{ const have=myMats.filter(s=>s.name===r.materialName).reduce((a,s)=>a+s.qty,0); return r.qty>0?(have+1e-9)/r.qty:Infinity; })));
+  return Math.floor(Math.min(...item.recipe.map(r=> r.qty>0 ? (matHave(order,r.materialName,state.user.username)+1e-9)/r.qty : Infinity )));
 }
 function craftOrgAvail(item, order){
   if(!item||!item.recipe||!item.recipe.length) return 0;
-  const minQ=(order&&order.minQuality!=null)?order.minQuality:1, maxQ=(order&&order.maxQuality!=null)?order.maxQuality:QUALITY_BANDS.length;
-  const allMats=state.stock.filter(s=>s.kind==='material'&&s.status==='at_base'&&craftMatQ(s)>=minQ&&craftMatQ(s)<=maxQ);
-  return Math.floor(Math.min(...item.recipe.map(r=>{ const have=allMats.filter(s=>s.name===r.materialName).reduce((a,s)=>a+s.qty,0); return r.qty>0?(have+1e-9)/r.qty:Infinity; })));
+  return Math.floor(Math.min(...item.recipe.map(r=> r.qty>0 ? (matHave(order,r.materialName)+1e-9)/r.qty : Infinity )));
 }
-function qualityRangeLabel(o){
-  if(o.minQuality!=null&&o.maxQuality!=null) return o.minQuality===o.maxQuality?qBandLabel(o.minQuality):`${qBandLabel(o.minQuality)} – ${qBandLabel(o.maxQuality)}`;
-  if(o.minQuality!=null) return `${qBandLabel(o.minQuality)} and up`;
-  if(o.maxQuality!=null) return `up to ${qBandLabel(o.maxQuality)}`;
-  return 'any quality';
-}
+const r3=(n)=>Math.round(n*1000)/1000;
 function craftersLabel(o){
   const names=(o.crafters||[]).map(c=>c.userName).join(', '); const n=(o.crafters||[]).length;
   if(o.maxCrafters!=null) return `${n}/${o.maxCrafters} crafter${o.maxCrafters===1?'':'s'}${names?' — '+esc(names):''}`;
   return names?`${n} on it — ${esc(names)}`:'no crafters yet';
 }
-// Orders tab — craft orders as cards visible to anyone with crafting access.
+// Orders tab — craft orders as cards. Visible to crafters & admins; gives a
+// crafter everything they need to decide to jump in: progress, what materials
+// (qty + required quality) the recipe needs, how much the org can currently
+// craft from matching at-base stock, and who's already on it.
 function renderCraftOrderCards(){
   const u=state.user;
   let orders=state.workorders.filter(w=>w.kind==='craft'&&w.status===cfF&&searchMatch('wo', w.itemName, w.priority));
@@ -2306,34 +2350,49 @@ function renderCraftOrderCards(){
   if(!orders.length) return `<div class="empty">No ${cfF==='open'?'open':'completed'} craft orders${searchGet('wo').text?' match your search':(cfF==='open'&&isAdmin(u)?' — add one above':'')}.</div>`;
   return `<div class="co-cards">${orders.map(o=>{
     const item=state.catalog.items.find(it=>it.name===o.itemName);
+    const recipe=item?item.recipe||[]:[];
     const done=o.qtyDone||0, needed=o.qtyNeeded||0;
     const remaining=Math.max(0,needed-done);
-    const pct=needed>0?Math.round(done/needed*100):0;
+    const pct=needed>0?Math.min(100,Math.round(done/needed*100)):0;
     const orgAvail=Math.min(craftOrgAvail(item,o),remaining);
-    const crafterNames=(o.crafters||[]).map(c=>esc(c.userName)).join(', ');
+    const youAvail=isCrafter(u)?Math.min(craftAvail(item,o),remaining):0;
     const crafterCount=(o.crafters||[]).length;
+    const recipeHtml = recipe.length ? recipe.map(r=>{
+      const orgHave=matHave(o,r.materialName);
+      const orgUnits=r.qty>0?Math.floor((orgHave+1e-9)/r.qty):Infinity;
+      const low=orgUnits<remaining;
+      return `<div class="co-recipe-row">
+        <div class="co-recipe-name">${esc(r.materialName)}</div>
+        <div class="co-recipe-need">×${r.qty} ${esc(r.unit||'SCU')} / unit</div>
+        <div class="co-recipe-q">${matWindowLabel(o,r.materialName)}</div>
+        <div class="co-recipe-stock ${low?'low':'ok'}">${r3(orgHave)} on hand${isFinite(orgUnits)?` &middot; ${orgUnits} unit${orgUnits===1?'':'s'}`:''}</div>
+      </div>`;
+    }).join('') : `<div style="font-size:var(--text-sm);color:var(--red);">No recipe on file for this item.</div>`;
     return `<div class="co-card">
       <div class="co-card-top">
-        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
-          ${priorityTag(o.priority)}
-          <span style="font-size:var(--text-md);font-weight:900;">${esc(o.itemName||'—')}</span>
-          ${o.status==='done'?`<span style="font-size:var(--text-sm);color:var(--mid);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">complete</span>`:''}
+        <div>
+          <div class="co-card-title">${esc(o.itemName||'—')}</div>
+          <div class="co-card-sub">${priorityTag(o.priority)}${o.status==='done'?' <span style="text-transform:uppercase;letter-spacing:.04em;font-weight:700;">· complete</span>':''}</div>
         </div>
         ${(isAdmin(u)||o.createdBy===u._id)?`<button class="btn-del" onclick="woDelete('${esc(o._id)}')" aria-label="Delete">&times;</button>`:''}
       </div>
+
       <div class="co-card-progress">
-        <div class="co-card-frac">
-          <span style="font-size:var(--text-xl);font-weight:900;line-height:1;">${done}</span>
-          <span style="font-size:var(--text-md);color:var(--mid);">/${needed}</span>
-          <span style="font-size:var(--text-sm);color:var(--mid);margin-left:4px;">crafted</span>
-        </div>
+        <div class="co-card-frac"><span class="num">${done}</span><span class="den">/ ${needed}</span><span class="lab">crafted</span></div>
         <div class="co-card-bar"><div class="co-card-bar-fill" style="width:${pct}%;"></div></div>
-        <span style="font-size:var(--text-sm);color:var(--fg);white-space:nowrap;">${orgAvail>0?`${orgAvail} more craftable with org inventory`:'not enough org materials'}</span>
       </div>
-      <div class="co-card-meta">
-        Materials: ${qualityRangeLabel(o)}${o.maxCrafters!=null?` &middot; max ${o.maxCrafters} crafter${o.maxCrafters===1?'':'s'}`:''}
-        &middot; ${crafterCount?`${crafterCount} on it — ${crafterNames}`:'no crafters yet'}
+
+      <div class="co-card-cap ${orgAvail>0?'':'short'}">
+        <span class="big">${orgAvail>0?`${orgAvail} unit${orgAvail===1?'':'s'} craftable now`:'Not enough matching materials'}</span>
+        <span class="small">from the org's at-base stock at the required quality${isCrafter(u)?` &middot; you can craft ${youAvail} solo`:''}</span>
       </div>
+
+      <div>
+        <div class="co-section-head">Materials needed</div>
+        <div class="co-recipe">${recipeHtml}</div>
+      </div>
+
+      <div class="co-card-meta">${craftersLabel(o)}</div>
     </div>`;
   }).join('')}</div>`;
 }
@@ -2365,68 +2424,71 @@ async function doSendOne(id){
 // ── Reworked craft modal ──────────────────────────────────────────────────────
 let _craftModal = {};
 
+// Step 3 — the crafter's own matching materials (shopping list) for `qty` units.
 function craftModalShopHtml(qty){
   const order=state.workorders.find(w=>w._id===_craftModal.orderId);
   if(!order) return '';
   const item=state.catalog.items.find(it=>it.name===order.itemName);
   if(!item||!item.recipe||!item.recipe.length) return '';
   const u=state.user;
-  const minQ=(order.minQuality!=null)?order.minQuality:1, maxQ=(order.maxQuality!=null)?order.maxQuality:QUALITY_BANDS.length;
-  const myMats=state.stock.filter(s=>s.kind==='material'&&s.status==='at_base'&&s.heldBy===u.username&&craftMatQ(s)>=minQ&&craftMatQ(s)<=maxQ);
-  const r3=(n)=>Math.round(n*1000)/1000;
   const rows=item.recipe.map(r=>{
-    const have=myMats.filter(s=>s.name===r.materialName).reduce((a,s)=>a+s.qty,0);
+    const have=matHave(order,r.materialName,u.username);
     const need=r3(r.qty*qty);
-    const left=r3(Math.max(0,have-need));
+    const left=r3(have-need);
     const ok=have+1e-9>=need;
-    return `<div style="display:flex;gap:var(--space-3);padding:var(--space-1) 0;border-bottom:1px solid var(--border-m);align-items:center;flex-wrap:wrap;">
-      <span style="flex:1;min-width:120px;font-size:var(--text-sm);font-weight:700;">${esc(r.materialName)}</span>
-      <span style="font-size:var(--text-sm);color:var(--mid);">${r3(have)} available</span>
-      <span style="font-size:var(--text-sm);font-weight:700;color:${ok?'var(--fg)':'var(--red)'};">−${need} &rarr; ${left} left</span>
+    return `<div class="co-recipe-row">
+      <div class="co-recipe-name">${esc(r.materialName)}</div>
+      <div class="co-recipe-need">you have ${r3(have)} ${esc(r.unit||'SCU')}</div>
+      <div class="co-recipe-q">${matWindowLabel(order,r.materialName)}</div>
+      <div class="co-recipe-stock ${ok?'ok':'low'}">&minus;${need} &rarr; ${ok?`${left} left`:`short ${r3(need-have)}`}</div>
     </div>`;
   }).join('');
-  return `<div style="margin-top:var(--space-3);">
-    <div class="co-section-head">Your matching materials</div>
-    ${rows}
+  return `<div>
+    <div class="co-section-head">Your matching materials (shopping list)</div>
+    <div class="co-recipe">${rows}</div>
   </div>`;
 }
 
+// Step 2 — what the recipe needs (qty + required quality per material) plus the
+// amount input, Max button and live shopping list.
 function craftModalDetailsHtml(){
   const order=state.workorders.find(w=>w._id===_craftModal.orderId);
   if(!order) return '';
   const item=state.catalog.items.find(it=>it.name===order.itemName);
-  if(!item||!item.recipe||!item.recipe.length) return `<div style="margin-top:var(--space-3);color:var(--red);font-size:var(--text-sm);">This item has no recipe on file.</div>`;
+  if(!item||!item.recipe||!item.recipe.length) return `<div style="color:var(--red);font-size:var(--text-sm);">This item has no recipe on file.</div>`;
   const remaining=Math.max(0,(order.qtyNeeded||0)-(order.qtyDone||0));
-  const qualLabel=qualityRangeLabel(order);
   const u=state.user;
   const joined=order.crafters||[]; const isMember=joined.some(c=>c.userId===u._id||c.userName===u.username);
   const full=order.maxCrafters!=null&&!isMember&&joined.length>=order.maxCrafters;
-  const recipeRows=item.recipe.map(r=>`<div style="display:flex;gap:var(--space-3);padding:var(--space-1) 0;border-bottom:1px solid var(--border-m);align-items:center;">
-    <span style="flex:1;font-size:var(--text-sm);font-weight:700;">${esc(r.materialName)}</span>
-    <span style="font-size:var(--text-sm);color:var(--fg);">×${r.qty} ${esc(r.unit||'SCU')}</span>
-    <span style="font-size:var(--text-sm);color:var(--mid);">${qualLabel}</span>
+  if(full) return `<div style="color:var(--red);font-size:var(--text-sm);">This order is full — no more crafters can join.</div>`;
+  const recipeRows=item.recipe.map(r=>`<div class="co-recipe-row">
+    <div class="co-recipe-name">${esc(r.materialName)}</div>
+    <div class="co-recipe-need">×${r.qty} ${esc(r.unit||'SCU')} / unit</div>
+    <div class="co-recipe-q">${matWindowLabel(order,r.materialName)}</div>
+    <div class="co-recipe-stock ok">org: ${r3(matHave(order,r.materialName))}</div>
   </div>`).join('');
-  if(full) return `<div style="margin-top:var(--space-3);color:var(--red);font-size:var(--text-sm);">This order is full — no more crafters can join.</div>`;
-  return `<div style="margin-top:var(--space-4);">
-    <div class="co-section-head">Materials needed per unit</div>
-    ${recipeRows}
+  return `<div>
+    <div class="co-section-head">Materials needed</div>
+    <div class="co-recipe">${recipeRows}</div>
   </div>
-  <div style="display:flex;gap:8px;align-items:center;margin:var(--space-4) 0 var(--space-2);">
-    <label class="lbl" style="margin:0;white-space:nowrap;">Amount</label>
-    <input id="cm-qty" type="number" min="1" max="${remaining}" value="1" style="width:80px;" oninput="craftModalUpdateQty()">
-    <button class="btn btn-outline btn-sm" onclick="craftModalMax()">Max</button>
-    <span style="font-size:var(--text-sm);color:var(--mid);">${remaining} remaining in order</span>
+  <div class="field" style="margin:var(--space-5) 0 var(--space-4);">
+    <label class="lbl">Amount to craft</label>
+    <div style="display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;">
+      <input id="cm-qty" type="number" min="1" max="${remaining}" value="1" style="width:90px;margin:0;" oninput="craftModalUpdateQty()">
+      <button class="btn btn-outline btn-sm" onclick="craftModalMax()">Max</button>
+      <span style="font-size:var(--text-sm);color:var(--mid);">${remaining} left in this order</span>
+    </div>
   </div>
   <div id="cm-shop">${craftModalShopHtml(1)}</div>`;
 }
 
+// Step 4 — where the finished items land. Defaults to base; the custom checkbox
+// reveals the standard location picker when crafting elsewhere.
 function craftModalLocHtml(){
-  if(!_craftModal.showLoc){
-    const base=state.catalog.locations.find(l=>l.isBase);
-    const baseName=base?base.name:'Base';
-    return `<div style="font-size:var(--text-sm);color:var(--mid);">Crafted items go to <strong style="color:var(--fg);">${esc(baseName)}</strong>. <button class="btn-ghost btn-sm" onclick="craftModalToggleLoc()">Not at base?</button></div>`;
-  }
-  return `<div>${locationPicker('cm',null)}</div>`;
+  const base=state.catalog.locations.find(l=>l.isBase);
+  const baseName=base?base.name:'Base';
+  return `<label class="chk-row"><input type="checkbox" id="cm-notbase"${_craftModal.showLoc?' checked':''} onchange="craftModalToggleLoc()"> <span>Not crafting at base? (default: ${esc(baseName)})</span></label>
+    ${_craftModal.showLoc?`<div class="grid2" style="margin-top:var(--space-3);">${locationPicker('cm',null)}</div>`:''}`;
 }
 
 function openCraftModal(){
@@ -2464,7 +2526,8 @@ function craftModalMax(){
   if(inp){ inp.value=avail>0?avail:1; craftModalUpdateQty(); }
 }
 function craftModalToggleLoc(){
-  _craftModal.showLoc=!_craftModal.showLoc;
+  const cb=document.getElementById('cm-notbase');
+  _craftModal.showLoc=cb?cb.checked:!_craftModal.showLoc;
   const el=document.getElementById('cm-loc-section'); if(el) el.innerHTML=craftModalLocHtml();
 }
 async function doCraftNew(){
@@ -2475,36 +2538,41 @@ async function doCraftNew(){
 }
 function openCraftOrderModal(){
   const items=[...state.catalog.items].sort((a,b)=>a.name.localeCompare(b.name));
-  const qOpts=label=>`<option value="">${label}</option>`+QUALITY_BANDS.map((b,i)=>`<option value="${i+1}">${b}</option>`).join('');
   showModal(`
     <div class="modal-title">New craft order</div>
     <div class="field"><label class="lbl">Item</label><select id="co-item" onchange="coRecipe()">${items.map(it=>`<option value="${esc(it.name)}">${esc(it.name)}</option>`).join('')}</select></div>
-    <div id="co-recipe" style="font-size:var(--text-sm);color:var(--mid);margin:-18px 0 var(--space-5);"></div>
     <div class="grid2">
       <div class="field"><label class="lbl">Quantity</label><input id="co-qty" type="number" min="1" value="1"></div>
       <div class="field"><label class="lbl">Priority</label><select id="co-prio"><option value="urgent">Urgent</option><option value="high">High</option><option value="normal" selected>Normal</option><option value="whenever">Whenever</option></select></div>
     </div>
-    <div class="grid2">
-      <div class="field"><label class="lbl">Max crafters</label><input id="co-max" type="number" min="1" placeholder="no limit"></div>
-      <div class="field"><label class="lbl">Material quality</label>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <select id="co-minq">${qOpts('min')}</select><span style="color:var(--mid);">–</span><select id="co-maxq">${qOpts('max')}</select>
-        </div>
-      </div>
+    <div class="field"><label class="lbl">Max crafters</label><input id="co-max" type="number" min="1" placeholder="no limit"></div>
+    <div class="field"><label class="lbl">Required material quality</label>
+      <div id="co-recipe"></div>
     </div>
     <div class="err-msg" id="co-err"></div>
     <div style="display:flex;gap:10px;margin-top:var(--space-2);">
       <button class="btn btn-black" onclick="saveCraftOrder()">Create</button>
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
-    </div>`);
+    </div>`, 'modal-lg');
   coRecipe();
 }
+// Pulls the selected item's recipe and renders a min/max quality picker per
+// material — that's the quality window crafters must respect when they craft.
 function coRecipe(){
   const el=document.getElementById('co-recipe'); if(!el) return;
   const name=(document.getElementById('co-item')||{value:''}).value;
   const item=state.catalog.items.find(it=>it.name===name);
-  const recipe=item?item.recipe:[];
-  el.innerHTML = recipe.length ? `Needs: ${recipe.map(r=>`${esc(r.materialName)} ×${r.qty}`).join(', ')}` : `<span style="color:var(--red);">No recipe on file for this item.</span>`;
+  const recipe=item?item.recipe||[]:[];
+  if(!recipe.length){ el.innerHTML=`<div style="color:var(--red);font-size:var(--text-sm);">No recipe on file for this item.</div>`; return; }
+  const qOpts=`<option value="">any</option>`+QUALITY_BANDS.map((b,i)=>`<option value="${i+1}">${b}</option>`).join('');
+  el.innerHTML=`<div class="co-matreqs">
+    <div class="co-matreq-head"><span>Material</span><span>Min</span><span>Max</span></div>
+    ${recipe.map((r,i)=>`<div class="co-matreq" data-mat="${esc(r.materialName)}">
+      <div class="co-matreq-name">${esc(r.materialName)} <span class="q">×${r.qty} ${esc(r.unit||'SCU')}</span></div>
+      <div><select class="co-minq">${qOpts}</select></div>
+      <div><select class="co-maxq">${qOpts}</select></div>
+    </div>`).join('')}
+  </div>`;
 }
 async function saveCraftOrder(){
   const V=x=>(document.getElementById(x)||{value:''}).value;
@@ -2513,9 +2581,16 @@ async function saveCraftOrder(){
   if(!(qtyNeeded>0)){ showErr('co-err','Quantity must be greater than 0'); return; }
   const args={sessionToken:state.sessionToken,itemName,qtyNeeded,priority};
   if(V('co-max')) args.maxCrafters=Number(V('co-max'));
-  if(V('co-minq')) args.minQuality=Number(V('co-minq'));
-  if(V('co-maxq')) args.maxQuality=Number(V('co-maxq'));
-  if(args.minQuality!=null&&args.maxQuality!=null&&args.minQuality>args.maxQuality){ showErr('co-err','Min quality can’t exceed max quality'); return; }
+  const matReqs=[];
+  for(const row of document.querySelectorAll('#co-recipe .co-matreq')){
+    const materialName=row.dataset.mat;
+    const min=row.querySelector('.co-minq').value, max=row.querySelector('.co-maxq').value;
+    const minQuality=min?Number(min):undefined, maxQuality=max?Number(max):undefined;
+    if(minQuality==null && maxQuality==null) continue;
+    if(minQuality!=null && maxQuality!=null && minQuality>maxQuality){ showErr('co-err',`${materialName}: min quality can’t exceed max quality`); return; }
+    matReqs.push({materialName, minQuality, maxQuality});
+  }
+  if(matReqs.length) args.matReqs=matReqs;
   try{ await convexMutation('workorders:createCraftOrder',args); toast('Craft order created'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('co-err',e.message); }
 }
 
@@ -2525,17 +2600,24 @@ function pageWorkorders(){
   const wa=workViewsAllowed(u);
   if(!wa.length){ currentPage='overview'; return pageOverview(); }
   if(!wa.includes(woView)) woView=wa[0];
+  if(woView==='orders'){
+    const craftOpen=state.workorders.filter(w=>w.kind==='craft'&&w.status==='open').length;
+    const lead=`${craftOpen} open craft order${craftOpen===1?'':'s'}`;
+    const btn=isAdmin(u)?`<button class="btn btn-black" onclick="openCraftOrderModal()">+ Craft Order</button>`:'';
+    return `
+      <div class="page-head">
+        <div class="page-head-left"><div class="page-lead">${lead}</div></div>
+        ${btn}
+      </div>
+      <div id="wo-content" style="margin-top:var(--space-6);">
+        <div id="wo-controls">${renderWoControls()}</div>
+        <div id="wo-list">${renderWoListActive()}</div>
+      </div>`;
+  }
   if(woView==='crafting'){
     const amCrafter=isCrafter(u);
-    let lead, btn='';
-    if(craftView==='crafting'&&amCrafter){
-      lead='Your crafted items';
-      btn=`<button class="btn btn-black" onclick="openCraftModal()">Craft</button>${isAdmin(u)?`<button class="btn btn-outline" style="margin-left:var(--space-2);" onclick="openCraftOrderModal()">+ Craft Order</button>`:''}`;
-    } else {
-      const craftOpen=state.workorders.filter(w=>w.kind==='craft'&&w.status==='open').length;
-      lead=`${craftOpen} open craft order${craftOpen===1?'':'s'}`;
-      btn=isAdmin(u)?`<button class="btn btn-black" onclick="openCraftOrderModal()">+ Craft Order</button>`:'';
-    }
+    const lead='Your crafted items';
+    const btn=amCrafter?`<button class="btn btn-black" onclick="openCraftModal()">Craft</button>`:'';
     return `
       <div class="page-head">
         <div class="page-head-left"><div class="page-lead">${lead}</div></div>
@@ -2577,23 +2659,16 @@ function renderWoControls(){
   let filters='';
   if(woView==='pickup')     filters=`${b('setPkF',pkF,'open','Open')}${b('setPkF',pkF,'claimed','Accepted')}${b('setPkF',pkF,'done','Done')}`;
   else if(woView==='transfers')  filters=`${b('setTrF',trF,'active','Active')}${b('setTrF',trF,'done','Done')}`;
-  else if(woView==='crafting'){
-    const amCrafter=isCrafter(u);
-    const tabs=`<div class="filter-tabs" style="margin-bottom:24px;padding-bottom:0;">
-      <button class="filter-tab${craftView==='orders'?' active':''}" onclick="setCraftView('orders')">Orders</button>
-      ${amCrafter?`<button class="filter-tab${craftView==='crafting'?' active':''}" onclick="setCraftView('crafting')">Crafting</button>`:''}
-    </div>`;
-    if(craftView==='crafting'&&amCrafter) filters=`${b('setCfInvF',cfInvF,'available','Finished')}${b('setCfInvF',cfInvF,'shipping','Shipping')}`;
-    else filters=`${b('setCfF',cfF,'open','Open')}${b('setCfF',cfF,'done','Done')}`;
-    return tabs+searchBar('wo', filters, 'Search…', 'toggleWoSearch()', 'woSearchInput(this.value)');
-  }
+  else if(woView==='orders')     filters=`${b('setCfF',cfF,'open','Open')}${b('setCfF',cfF,'done','Done')}`;
+  else if(woView==='crafting')   filters=`${b('setCfInvF',cfInvF,'available','Finished')}${b('setCfInvF',cfInvF,'shipping','Shipping')}`;
   else if(woView==='distribution') filters=`${b('setDsF',dsF,'available','Available')}${b('setDsF',dsF,'instock','In Stockpile')}${b('setDsF',dsF,'handedout','Handed Out')}`;
   return searchBar('wo', filters, 'Search…', 'toggleWoSearch()', 'woSearchInput(this.value)');
 }
 function renderWoListActive(){
   if(woView==='pickup') return renderPickupTable();
   if(woView==='transfers') return renderTransfers();
-  if(woView==='crafting'){ if(craftView==='crafting'&&isCrafter(state.user)) return renderCraftInventory(); return renderCraftOrderCards(); }
+  if(woView==='orders') return renderCraftOrderCards();
+  if(woView==='crafting') return renderCraftInventory();
   return '';
 }
 
