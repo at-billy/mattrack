@@ -4840,8 +4840,6 @@ init();
     sub.style.pointerEvents = hide ? 'none' : '';
   }
 
-  let ticking = false;
-
   function update(){
     const scrollY   = window.scrollY;
     const goingDown = scrollY > lastScrollY;
@@ -4872,13 +4870,14 @@ init();
     // Subnav: hide going down, only return when close to top
     if(goingDown && scrollY > 40)       applySubnav(true);
     else if(scrollY < SUBNAV_THRESHOLD) applySubnav(false);
-
-    ticking = false;
   }
 
-  window.addEventListener('scroll', () => {
-    if(!ticking){ requestAnimationFrame(update); ticking = true; }
-  }, { passive: true });
+  // Run on the scroll event directly (passive). update() only reads scrollY and
+  // writes a few inline styles — cheap enough per frame — and a passive handler
+  // already coalesces to ~frame rate. Avoids the earlier rAF-gate that could get
+  // permanently stuck (and freeze the nav/subnav on screen) if a frame was ever
+  // dropped or the callback threw.
+  window.addEventListener('scroll', update, { passive: true });
 
   window.addEventListener('resize', () => { setup(true); }, { passive: true });
 
