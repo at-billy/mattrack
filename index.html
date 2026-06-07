@@ -321,8 +321,10 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 .fp{margin-top:170px;}
 .fp-item{display:block;box-sizing:border-box;}   /* width / margin-left / margin-bottom set inline per item */
 /* A band sets items side by side at varied widths/offsets — not a grid. A band
-   may hold two items, or a card + a stacked pair of headlines (.fp-stack). */
-.fp-band{display:flex;align-items:flex-start;}
+   may hold two items, or a card + a stacked pair of headlines (.fp-stack). It
+   spans to the right edge and pushes its items apart (dynamic gap) so the full
+   screen width is used. */
+.fp-band{display:flex;align-items:flex-start;justify-content:space-between;}
 .fp-band>*{flex:0 1 auto;min-width:0;}
 .fp-stack{box-sizing:border-box;}
 .fp-colophon{width:100%!important;margin-left:0!important;margin-top:40px;}
@@ -1928,14 +1930,14 @@ function pageOverview() {
           renderHeadlineItem(heads[0].v, nextBox(), {w:tp.h1, l:0,     mb:tp.sgap}) +
           renderHeadlineItem(heads[1].v, nextBox(), {w:tp.h2, l:tp.ho, mb:0})
         }</div>`;
-        parts.push(`<div class="fp-band" style="gap:${tp.gap}px;margin-left:${tp.l}%;margin-bottom:${tp.mb}px;">${tp.side==='L'?cardHtml+stackHtml:stackHtml+cardHtml}</div>`);
+        parts.push(`<div class="fp-band" style="margin-left:${tp.l}%;margin-bottom:${tp.mb}px;">${tp.side==='L'?cardHtml+stackHtml:stackHtml+cardHtml}</div>`);
         k += 3; continue;
       }
       size = 2;          // not a valid trio → fall back to a pair
     }
     if(size === 2){
       const bp = FP_BAND[(bi++ + off) % FP_BAND.length];
-      parts.push(`<div class="fp-band" style="gap:${bp.gap}px;margin-left:${bp.l}%;margin-bottom:${bp.mb}px;">${
+      parts.push(`<div class="fp-band" style="margin-left:${bp.l}%;margin-bottom:${bp.mb}px;">${
         renderItem(seq[k], nextBox(), {w:bp.a, l:0, mb:0, mt:bp.oa}) +
         renderItem(seq[k+1], nextBox(), {w:bp.b, l:0, mb:0, mt:bp.ob})
       }</div>`);
@@ -1955,14 +1957,14 @@ function pageOverview() {
 // a dynamic editorial scatter, never a column grid. Seed rotates the starting
 // preset so the layout reshuffles per load.
 const FP_FLOW = [
-  {w:48, l:0,  mb:130},
-  {w:39, l:55, mb:96},
-  {w:44, l:15, mb:150},
-  {w:35, l:60, mb:84},
-  {w:52, l:3,  mb:120},
-  {w:38, l:49, mb:108},
-  {w:43, l:25, mb:96},
-  {w:46, l:47, mb:140},
+  {w:54, l:0,  mb:130},
+  {w:40, l:58, mb:96},   // hugs the right edge
+  {w:48, l:14, mb:150},
+  {w:36, l:62, mb:84},   // right edge
+  {w:60, l:2,  mb:120},
+  {w:42, l:55, mb:108},  // right
+  {w:46, l:30, mb:96},
+  {w:50, l:48, mb:140},  // right
 ];
 // Box/tone variety, cycled independently of placement.
 const FP_BOX = [
