@@ -16,7 +16,7 @@ body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background
 
 /* ── NAV WRAPPER ─────────────────────────────────────────────────── */
 /* transparent so only letter slivers show when items translate up   */
-#nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--bg);overflow:clip;}
+#nav{position:fixed;top:0;left:0;right:0;z-index:100;background:transparent;}
 
 /* ── NAV TOPBAR (user info) ──────────────────────────────────────── */
 #nav-topbar{display:flex;align-items:center;justify-content:flex-end;padding:7px 40px;gap:var(--space-3);font-size:var(--text-md);border-bottom:1px solid #e0e0e0;background:#fff;}
@@ -26,7 +26,6 @@ body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background
 #nav-primary{display:flex;justify-content:space-between;align-items:flex-end;padding:10px 40px 0;
   overflow:clip; /* clip — not hidden — avoids Firefox BFC that breaks flex space-between */
   column-gap:clamp(12px,1.5vw,30px); /* guaranteed minimum gap for Windows/Arial fallback */
-  position:relative;z-index:2;background:var(--bg); /* opaque + above subnav so the subnav tucks behind it on scroll */
 }
 .nav-main{font-size:clamp(40px,8vw,220px);font-weight:900;letter-spacing:-0.03em;line-height:1;padding-bottom:10px;cursor:pointer;color:#000;text-transform:uppercase;user-select:none;
   /* will-change:transform removed — in Firefox it causes flex items to lose their
@@ -38,7 +37,7 @@ body{margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background
 .nav-main-disabled{cursor:default;pointer-events:none;}
 
 /* ── SUB NAV ─────────────────────────────────────────────────────── */
-#nav-sub{display:flex;align-items:baseline;padding:4px 40px 0;gap:0;position:relative;z-index:1;will-change:transform;}
+#nav-sub{display:flex;align-items:baseline;padding:4px 40px 0;gap:0;will-change:transform,opacity;}
 .nav-sub-item{font-size:clamp(24px,3vw,46px);font-weight:900;letter-spacing:-.5px;text-transform:uppercase;cursor:pointer;color:#000;border-bottom:3px solid transparent;padding-bottom:4px;margin-right:52px;user-select:none;transition:opacity .15s;}
 .nav-sub-item:last-child{margin-right:0;}
 .nav-sub-item.active{border-bottom:3px solid #000;}
@@ -4829,17 +4828,20 @@ init();
     });
   }
 
-  // Subnav scrolls away WITH the page: translate it up 1:1 with scrollY until it
-  // tucks fully behind the opaque, higher-z primary bar. Pure function of scrollY
-  // — deterministic, no direction state, nothing that can get stuck or race a
-  // re-render. (Replaces the old opacity-fade that hid it while pinned.)
+  // Subnav scrolls away WITH the page: as you scroll down it slides up 1:1 with
+  // scrollY AND fades out over its own height, so it's gone before it reaches the
+  // (transparent) primary words — no opaque nav background needed. Pure function
+  // of scrollY: deterministic, no direction state, nothing to get stuck or race a
+  // re-render. (Replaces the old direction-based opacity fade that hid it pinned.)
   function applySubnav(){
     const sub = document.getElementById('nav-sub');
     if(!sub) return;
-    const travel = sub.offsetHeight;            // px needed to hide behind primary
-    const y = Math.min(Math.max(window.scrollY, 0), travel);
+    const range = Math.max(1, sub.offsetHeight);
+    const y = Math.min(Math.max(window.scrollY, 0), range);
+    const p = y / range;                        // 0 at top → 1 once scrolled away
     sub.style.transform     = `translateY(${-y}px)`;
-    sub.style.pointerEvents = (y >= travel) ? 'none' : '';
+    sub.style.opacity       = String(1 - p);
+    sub.style.pointerEvents = (p >= 1) ? 'none' : '';
   }
 
   function update(){
