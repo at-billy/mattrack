@@ -315,12 +315,12 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
    dotted/bordered, red/black card language. */
 /* Pipeline: 230px from the subnav (page adds 60px, so +170px margin here),
    then 230px before the first headline to match the headline gap rhythm. */
-/* Editorial board — masonry. Items keep their NATURAL size and pack into
-   columns freely (à la oma.com): no stretching, no forced row alignment.
-   Pipeline cards are interleaved among the headlines in the same flow. */
-.fp{column-count:3;column-gap:36px;margin-top:170px;}
-.fp-item{break-inside:avoid;margin-bottom:36px;display:inline-block;width:100%;vertical-align:top;}
-.fp-colophon{column-span:all;margin-top:24px;}
+/* Editorial flow — free-form, NOT a grid. Each item picks its own width and
+   horizontal offset (set inline) and flows down the page with generous,
+   asymmetric whitespace (à la oma.com). Pipeline cards flow in the same stream. */
+.fp{margin-top:170px;}
+.fp-item{display:block;box-sizing:border-box;}   /* width / margin-left / margin-bottom set inline per item */
+.fp-colophon{width:100%!important;margin-left:0!important;margin-top:40px;}
 .fp-item[role="button"]{cursor:pointer;}
 .fp-kicker{font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red);margin-bottom:8px;}
 .fp-head{font-size:clamp(23px,2.6vw,36px);font-weight:900;line-height:1.06;letter-spacing:-.5px;color:var(--fg);}
@@ -350,14 +350,15 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 /* Bottom half — plain white, text starts at top, spare space sits below */
 .fp-pl-body{flex:0 0 50%;padding:22px 24px;background:var(--bg);overflow:hidden;}
 
-@media(max-width:1100px){ .fp{column-count:2;} }
 @media(max-width:760px){
   /* On mobile cards stack full-width — natural height, halves equal via flex. */
   .fp-pl{height:auto;}
   .fp-pl-top{flex:1 1 0;min-height:160px;}
   .fp-pl-body{flex:1 1 0;overflow:visible;}
   .fp-pl-num{font-size:clamp(70px,18vw,110px);}
-  .fp{column-count:1;margin-top:60px;}
+  .fp{margin-top:60px;}
+  /* On mobile everything goes full width, no offsets. */
+  .fp .fp-item{width:100%!important;margin-left:0!important;margin-bottom:44px!important;}
 }
 
 /* ── OVERVIEW / LANDING ──────────────────────────────────────────── */
@@ -1898,34 +1899,66 @@ function pageOverview() {
     seq.splice(at, 0, {t:'c', v:c});
   });
 
-  const slotOffset = fpSeed % FP_SLOTS.length;
-  let hi = 0;
-  const body = seq.map(it => it.t==='c'
-    ? renderPipelineCard(it.v)
-    : renderHeadlineItem(it.v, FP_SLOTS[(hi++ + slotOffset) % FP_SLOTS.length])
-  ).join('');
-  const colo = colophon ? renderHeadlineItem(colophon, {tone:'fp-red', box:'fp-box fp-dots'}, 'fp-colophon') : '';
+  const off = fpSeed % FP_FLOW.length;
+  let i = 0;
+  const body = seq.map(it => {
+    const place = FP_FLOW[(i + off) % FP_FLOW.length];
+    const box = FP_BOX[(i + off) % FP_BOX.length];
+    i++;
+    return it.t==='c' ? renderPipelineCard(it.v, place) : renderHeadlineItem(it.v, box, place);
+  }).join('');
+  const colo = colophon ? renderHeadlineItem(colophon, {tone:'fp-red', box:'fp-box fp-dots'}, {w:100,l:0,mb:0}, 'fp-colophon') : '';
 
   return `<div class="fp">${body}${colo}</div>`;
 }
 
-// Render one editorial headline card at its natural size. `s` carries tone+box;
+// Free-flow placement presets: each item picks its own width (%), horizontal
+// offset (left %) and gap below (px). Sides/sizes alternate so the page reads as
+// a dynamic editorial scatter, never a column grid. Seed rotates the starting
+// preset so the layout reshuffles per load.
+const FP_FLOW = [
+  {w:48, l:0,  mb:130},
+  {w:39, l:55, mb:96},
+  {w:44, l:15, mb:150},
+  {w:35, l:60, mb:84},
+  {w:52, l:3,  mb:120},
+  {w:38, l:49, mb:108},
+  {w:43, l:25, mb:96},
+  {w:46, l:47, mb:140},
+];
+// Box/tone variety, cycled independently of placement.
+const FP_BOX = [
+  {tone:'',       box:'fp-box fp-bd'},
+  {tone:'fp-red', box:'fp-box fp-dots'},
+  {tone:'',       box:'fp-box fp-dots'},
+  {tone:'fp-red', box:'fp-box fp-bd-red'},
+  {tone:'fp-red', box:'fp-box fp-dots'},
+  {tone:'',       box:'fp-box fp-bd'},
+];
+function fpFlowStyle(place, isCard){
+  // Cards read best a touch narrower; keep them within bounds against the offset.
+  const w = isCard ? Math.min(place.w, 32) : place.w;
+  const l = Math.min(place.l, 100 - w);
+  return `width:${w}%;margin-left:${l}%;margin-bottom:${place.mb}px;`;
+}
+
+// Render one editorial headline at its natural size, freely placed via `place`.
 // `extraClass` adds e.g. the full-width colophon modifier.
-function renderHeadlineItem(h, s, extraClass){
+function renderHeadlineItem(h, s, place, extraClass){
   const footColor = s.tone==='fp-red' ? 'var(--red)' : 'var(--fg)';
   const go = h.credits ? '' : fpGoFor(h);
   const clickAttrs = go ? ` role="button" tabindex="0" aria-label="${esc(h.text)}" onclick="${go}"` : '';
-  return `<div class="fp-item ${s.tone} ${s.box}${extraClass?' '+extraClass:''}"${clickAttrs}>
+  return `<div class="fp-item ${s.tone} ${s.box}${extraClass?' '+extraClass:''}" style="${fpFlowStyle(place,false)}"${clickAttrs}>
     <div class="fp-kicker">${esc(h.kicker)}</div>
     <div class="fp-head">${esc(h.text)}</div>
     ${h.foot?`<div class="fp-foot" style="color:${footColor};">${go?'→ ':''}${esc(h.foot)}</div>`:''}
   </div>`;
 }
 
-// Render one pipeline-stage card (natural size — flows in the masonry columns).
-function renderPipelineCard(c){
+// Render one pipeline-stage card (natural size), freely placed via `place`.
+function renderPipelineCard(c, place){
   const click = c.go ? ` role="button" tabindex="0" aria-label="${esc(c.foot)}" onclick="${c.go}"` : '';
-  return `<div class="fp-item fp-red fp-bd-red fp-pl"${click}>
+  return `<div class="fp-item fp-red fp-bd-red fp-pl" style="${fpFlowStyle(place,true)}"${click}>
     <div class="fp-pl-top"><div class="fp-pl-num">${c.num}</div></div>
     <div class="fp-pl-body">
       <div class="fp-head">${esc(c.text)}</div>
