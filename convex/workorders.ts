@@ -341,8 +341,12 @@ export const createCraftOrder = mutation({
 // per the recipe, then produce the item. Output quality = qty-weighted average of
 // the consumed materials' quality values.
 export const craftItem = mutation({
-  args: { sessionToken: v.string(), orderId: v.id("workorders"), count: v.number() },
-  handler: async (ctx, { sessionToken, orderId, count }) => {
+  args: {
+    sessionToken: v.string(), orderId: v.id("workorders"), count: v.number(),
+    location: v.optional(v.string()), // override default base location
+    system: v.optional(v.string()),
+  },
+  handler: async (ctx, { sessionToken, orderId, count, location, system }) => {
     const user = await requireSession(ctx.db, sessionToken);
     assertRole(user, ["crafter", "admin"]);
     if (!(count > 0)) throw new ConvexError("Count must be greater than 0");
@@ -396,10 +400,12 @@ export const craftItem = mutation({
     const outQuality = qtySum > 0 ? Math.round(weighted / qtySum) : undefined;
 
     const base = (await ctx.db.query("locationCatalog").collect()).find(l => l.isBase);
+    const useLoc = location?.trim() || (base ? base.name : "Base");
+    const useSys = system?.trim() || (base ? base.system : undefined);
     await ctx.db.insert("stock", {
       kind: "item", name: item.name, category: item.category ?? "",
       qualityValue: outQuality, qty: count, unit: "UNIT",
-      location: base ? base.name : "Base", system: base ? base.system : undefined,
+      location: useLoc, system: useSys,
       heldBy: user.username, status: "crafted",
       addedBy: user._id, addedByName: user.username,
     });
