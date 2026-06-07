@@ -1904,27 +1904,28 @@ function pageOverview() {
   });
 
   const off = fpSeed % FP_FLOW.length;
+  const renderItem = (it, box, place) => it.t==='c' ? renderPipelineCard(it.v, place) : renderHeadlineItem(it.v, box, place);
   let i = 0;            // style cursor (placement/box variety)
   let bi = 0;           // band-preset cursor
   const parts = [];
   for(let k=0; k<seq.length; k++){
     const it = seq[k], nx = seq[k+1];
-    // Occasionally set two consecutive headlines side by side in one band (cards
-    // stay solo so a tall card never leaves a big gap beside a short headline).
-    const pairable = it.t==='h' && nx && nx.t==='h';
-    if(pairable && ((k + off) % 3 === 0)){
+    // Any two consecutive items can share a band — headlines and pipeline cards
+    // alike — at varied widths and a varied gap. Two-per-line is possible, never
+    // forced, and never aligns into equal grid cells.
+    if(nx && ((k + off) % 3 === 0)){
       const bp = FP_BAND[(bi++ + off) % FP_BAND.length];
       const sA = FP_BOX[(i++ + off) % FP_BOX.length];
       const sB = FP_BOX[(i++ + off) % FP_BOX.length];
       parts.push(`<div class="fp-band" style="gap:${bp.gap}px;margin-left:${bp.l}%;margin-bottom:${bp.mb}px;">${
-        renderHeadlineItem(it.v, sA, {w:bp.a, l:0, mb:0}) + renderHeadlineItem(nx.v, sB, {w:bp.b, l:0, mb:0})
+        renderItem(it, sA, {w:bp.a, l:0, mb:0}) + renderItem(nx, sB, {w:bp.b, l:0, mb:0})
       }</div>`);
       k++;               // consumed nx
     } else {
       const place = FP_FLOW[(i + off) % FP_FLOW.length];
       const box = FP_BOX[(i + off) % FP_BOX.length];
       i++;
-      parts.push(it.t==='c' ? renderPipelineCard(it.v, place) : renderHeadlineItem(it.v, box, place));
+      parts.push(renderItem(it, box, place));
     }
   }
   const colo = colophon ? renderHeadlineItem(colophon, {tone:'fp-red', box:'fp-box fp-dots'}, {w:100,l:0,mb:0}, 'fp-colophon') : '';
@@ -1955,13 +1956,16 @@ const FP_BOX = [
   {tone:'fp-red', box:'fp-box fp-dots'},
   {tone:'',       box:'fp-box fp-bd'},
 ];
-// Two-up band presets: widths of the left/right item (%), leading offset (l %)
-// and gap (px). Widths differ so a band never reads as two equal grid cells.
+// Two-up band presets: widths of the left/right item (%), leading offset (l %),
+// gap (px) and gap-below (mb). Widths and gaps all vary so a band never reads as
+// two equal grid cells, and the spacing between the pair feels organic.
 const FP_BAND = [
-  {a:40, b:34, l:0,  gap:44, mb:120},
-  {a:32, b:45, l:9,  gap:48, mb:108},
-  {a:47, b:29, l:3,  gap:40, mb:130},
-  {a:34, b:39, l:16, gap:44, mb:100},
+  {a:40, b:34, l:0,  gap:32,  mb:120},
+  {a:30, b:46, l:10, gap:64,  mb:108},
+  {a:47, b:28, l:3,  gap:46,  mb:132},
+  {a:33, b:38, l:18, gap:28,  mb:100},
+  {a:44, b:30, l:6,  gap:72,  mb:124},
+  {a:29, b:41, l:22, gap:40,  mb:112},
 ];
 function fpFlowStyle(place, isCard){
   // Cards read best a touch narrower; keep them within bounds against the offset.
