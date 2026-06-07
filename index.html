@@ -348,7 +348,25 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 /* Bottom half — plain white, text starts at top, spare space sits below */
 .fp-pl-body{flex:0 0 50%;padding:22px 24px;background:var(--bg);overflow:hidden;}
 
+/* ── TOPIC GROUPS (interleaved: one pipeline card + two related headlines) ──
+   Each group is a 12-col row: the tall pipeline card on one side, a stacked
+   pair of related headlines on the other. The card is ~2 headlines tall, so the
+   pair fills the same 520px height (two ~242px cards). Sides alternate L/R. */
+.fp-groups{display:flex;flex-direction:column;gap:160px;margin-top:170px;margin-bottom:230px;}
+.fp-group{display:grid;grid-template-columns:repeat(12,1fr);gap:36px;align-items:start;}
+.fp-group>.fp-pl{height:520px;}
+.fp-pair{height:520px;display:flex;flex-direction:column;gap:36px;min-width:0;}
+.fp-pair>.fp-item{flex:1;min-height:0;overflow:hidden;}
+
 @media(max-width:1100px){ .fp-pipe{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:900px){
+  .fp-group{grid-template-columns:1fr;gap:44px;}
+  .fp-group>*{grid-column:1 / -1 !important;}
+  .fp-groups{gap:60px;margin-top:60px;margin-bottom:60px;}
+  .fp-pair{height:auto;}
+  .fp-pair>.fp-item{overflow:visible;}
+  .fp-group>.fp-pl{height:auto;}
+}
 @media(max-width:760px){
   .fp-pipe{grid-template-columns:1fr;gap:var(--space-4);margin-top:60px;margin-bottom:60px;}
   /* On mobile the cards stack and don't need to match each other — revert to
@@ -1880,33 +1898,82 @@ function pageOverview() {
   const u = state.user;
   if(isRecruit(u)) return pageRecruitOverview(u);
 
-  // ── Pipeline frames: number-on-top, tagline-below, framed in the headline
-  // language (red border, red type). One per pipeline stage, read in order. ──
-  const pipe = `<div class="fp-pipe">${pipelineCards(u)}</div>`;
+  // ── Topic groups: each pipeline-stage card sits beside two related headlines
+  // (matched by topic), alternating sides. Leftover headlines flow in the normal
+  // editorial grid below. ──
+  const cards = pipelineCardData(u);
+  const headlines = buildHeadlines();                 // colophon is last
+  const colophon = (headlines[headlines.length-1]||{}).credits ? headlines.pop() : null;
+  const pool = headlines.slice();
+  // Pull up to n headlines for a topic: prefer ones whose foot matches the stage,
+  // then fall back to whatever's left so a pair is never half-empty.
+  const takeFor = (foot, n) => {
+    const picked = [];
+    for(let i=0; i<pool.length && picked.length<n; ){
+      if(pool[i].foot === foot) picked.push(pool.splice(i,1)[0]); else i++;
+    }
+    while(picked.length<n && pool.length) picked.push(pool.shift());
+    return picked;
+  };
+  // Box styles cycled across the paired headlines for visual variety.
+  const PAIR_BOX = [
+    {tone:'',       box:'fp-box fp-bd'},
+    {tone:'fp-red', box:'fp-box fp-dots'},
+    {tone:'',       box:'fp-box fp-dots'},
+    {tone:'fp-red', box:'fp-box fp-bd-red'},
+  ];
+  let pb = 0;
+  const groups = cards.map((c, gi) => {
+    const pair = takeFor(c.foot, 2);
+    const cardLeft = (gi % 2 === 0);
+    const cardCol = cardLeft ? '1 / span 5' : '8 / span 5';
+    const pairCol = cardLeft ? '6 / span 7' : '1 / span 7';
+    const cardHtml = renderPipelineCard(c, cardCol);
+    const pairHtml = `<div class="fp-pair" style="grid-column:${pairCol};">${
+      pair.map(h => renderHeadlineItem(h, PAIR_BOX[pb++ % PAIR_BOX.length])).join('')
+    }</div>`;
+    return `<div class="fp-group">${cardLeft ? cardHtml + pairHtml : pairHtml + cardHtml}</div>`;
+  }).join('');
 
-  // ── Editorial headlines below, same dotted/bordered card language. ──
-  const headlines = buildHeadlines();
+  // ── Leftover headlines + colophon in the standard editorial grid below. ──
   const slotOffset = fpSeed % FP_SLOTS.length;
-  const grid = `<div class="fp">${headlines.map((h,i)=>{
-    // Colophon is always a full-width solo box, never clickable.
-    const s = h.credits ? {tone:'fp-red', box:'fp-box fp-dots', col:'1 / span 12'} : FP_SLOTS[(i + slotOffset) % FP_SLOTS.length];
-    const footColor = s.tone==='fp-red' ? 'var(--red)' : 'var(--fg)';
-    const go = h.credits ? '' : fpGoFor(h);
-    const clickAttrs = go ? ` role="button" tabindex="0" aria-label="${esc(h.text)}" onclick="${go}"` : '';
-    return `<div class="fp-item ${s.tone} ${s.box}" style="grid-column:${s.col};"${clickAttrs}>
-      <div class="fp-kicker">${esc(h.kicker)}</div>
-      <div class="fp-head">${esc(h.text)}</div>
-      ${h.foot?`<div class="fp-foot" style="color:${footColor};">${go?'→ ':''}${esc(h.foot)}</div>`:''}
-    </div>`;
-  }).join('')}</div>`;
+  const leftover = pool.map((h,i)=>renderHeadlineItem(h, FP_SLOTS[(i+slotOffset)%FP_SLOTS.length], true)).join('');
+  const colo = colophon ? renderHeadlineItem(colophon, {tone:'fp-red', box:'fp-box fp-dots', col:'1 / span 12'}, true) : '';
+  const grid = (leftover || colo) ? `<div class="fp">${leftover}${colo}</div>` : '';
 
-  return pipe + grid;
+  return `<div class="fp-groups">${groups}</div>${grid}`;
 }
 
-// The four pipeline stages as framed cards: a big live number up top (where the
-// reference puts its image), the role + status tagline below. Each links to the
-// matching section when the viewer can act there.
-function pipelineCards(u){
+// Render one editorial headline card. `s` carries tone+box (and optional col);
+// pass useCol=true to place it via grid-column (standalone grid), false inside a
+// flex pair.
+function renderHeadlineItem(h, s, useCol){
+  const footColor = s.tone==='fp-red' ? 'var(--red)' : 'var(--fg)';
+  const go = h.credits ? '' : fpGoFor(h);
+  const clickAttrs = go ? ` role="button" tabindex="0" aria-label="${esc(h.text)}" onclick="${go}"` : '';
+  const colStyle = (useCol && s.col) ? `grid-column:${s.col};` : '';
+  return `<div class="fp-item ${s.tone} ${s.box}"${colStyle?` style="${colStyle}"`:''}${clickAttrs}>
+    <div class="fp-kicker">${esc(h.kicker)}</div>
+    <div class="fp-head">${esc(h.text)}</div>
+    ${h.foot?`<div class="fp-foot" style="color:${footColor};">${go?'→ ':''}${esc(h.foot)}</div>`:''}
+  </div>`;
+}
+
+// Render one pipeline-stage card at the given grid-column.
+function renderPipelineCard(c, col){
+  const click = c.go ? ` role="button" tabindex="0" aria-label="${esc(c.foot)}" onclick="${c.go}"` : '';
+  return `<div class="fp-item fp-red fp-bd-red fp-pl" style="grid-column:${col};"${click}>
+    <div class="fp-pl-top"><div class="fp-pl-num">${c.num}</div></div>
+    <div class="fp-pl-body">
+      <div class="fp-head">${esc(c.text)}</div>
+      ${c.go?`<div class="fp-foot" style="color:var(--red);">→ ${esc(c.foot)}</div>`:''}
+    </div>
+  </div>`;
+}
+
+// The four pipeline stages as data: a big live number, the role + status
+// tagline, the topic (foot) and where clicking jumps to.
+function pipelineCardData(u){
   const stock = state.stock||[], wos = state.workorders||[];
   const M = a=>a.filter(x=>x.kind==='material'), I = a=>a.filter(x=>x.kind==='item');
   const st = s=>stock.filter(x=>x.status===s);
@@ -1937,17 +2004,7 @@ function pipelineCards(u){
       text:`Distributors hold ${pl(isum(withDist),'item')} to hand out${isum(crafted)?`: ${pl(isum(crafted),'item')} just off the bench`:''}${moveFlow?` and ${pl(moveFlow,'move')} in motion`:''}`,
       go: wa.includes('distribution') ? "goWork('distribution')" : '' },
   ];
-
-  return cards.map(c=>{
-    const click = c.go ? ` role="button" tabindex="0" aria-label="${esc(c.foot)}" onclick="${c.go}"` : '';
-    return `<div class="fp-item fp-red fp-bd-red fp-pl"${click}>
-      <div class="fp-pl-top"><div class="fp-pl-num">${c.num}</div></div>
-      <div class="fp-pl-body">
-        <div class="fp-head">${esc(c.text)}</div>
-        ${c.go?`<div class="fp-foot" style="color:var(--red);">→ ${esc(c.foot)}</div>`:''}
-      </div>
-    </div>`;
-  }).join('');
+  return cards;
 }
 
 function pageRecruitOverview(u) {
