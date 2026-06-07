@@ -366,7 +366,7 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
   .fp{margin-top:60px;}
   /* On mobile everything goes full width, no offsets; bands stack. */
   .fp .fp-item{width:100%!important;margin-left:0!important;margin-top:0!important;margin-bottom:44px!important;}
-  .fp-band{flex-direction:column;margin-left:0!important;gap:0!important;}
+  .fp-band{flex-direction:column;margin-left:0!important;margin-right:0!important;gap:0!important;}
   .fp-stack{width:100%!important;margin-top:0!important;}
 }
 
@@ -1930,14 +1930,14 @@ function pageOverview() {
           renderHeadlineItem(heads[0].v, nextBox(), {w:tp.h1, l:0,     mb:tp.sgap}) +
           renderHeadlineItem(heads[1].v, nextBox(), {w:tp.h2, l:tp.ho, mb:0})
         }</div>`;
-        parts.push(`<div class="fp-band" style="margin-left:${tp.l}%;margin-bottom:${tp.mb}px;">${tp.side==='L'?cardHtml+stackHtml:stackHtml+cardHtml}</div>`);
+        parts.push(`<div class="fp-band" style="margin-left:${tp.l}%;margin-right:${tp.r}%;margin-bottom:${tp.mb}px;">${tp.side==='L'?cardHtml+stackHtml:stackHtml+cardHtml}</div>`);
         k += 3; continue;
       }
       size = 2;          // not a valid trio → fall back to a pair
     }
     if(size === 2){
       const bp = FP_BAND[(bi++ + off) % FP_BAND.length];
-      parts.push(`<div class="fp-band" style="margin-left:${bp.l}%;margin-bottom:${bp.mb}px;">${
+      parts.push(`<div class="fp-band" style="margin-left:${bp.l}%;margin-right:${bp.r}%;margin-bottom:${bp.mb}px;">${
         renderItem(seq[k], nextBox(), {w:bp.a, l:0, mb:0, mt:bp.oa}) +
         renderItem(seq[k+1], nextBox(), {w:bp.b, l:0, mb:0, mt:bp.ob})
       }</div>`);
@@ -1979,12 +1979,12 @@ const FP_BOX = [
 // gap (px), gap-below (mb), and a per-item vertical offset (oa/ob, px) so the two
 // never line up at the top. Everything varies — no band reads as a grid cell.
 const FP_BAND = [
-  {a:38, b:31, l:0,  gap:96,  mb:140, oa:0,   ob:84},
-  {a:29, b:42, l:9,  gap:140, mb:120, oa:56,  ob:0},
-  {a:44, b:27, l:4,  gap:84,  mb:150, oa:0,   ob:120},
-  {a:31, b:36, l:15, gap:170, mb:116, oa:104, ob:14},
-  {a:41, b:28, l:6,  gap:110, mb:138, oa:24,  ob:150},
-  {a:27, b:39, l:20, gap:76,  mb:124, oa:72,  ob:0},
+  {a:36, b:30, l:0,  r:9,  mb:140, oa:0,   ob:84},
+  {a:28, b:40, l:9,  r:0,  mb:120, oa:56,  ob:0},
+  {a:42, b:26, l:4,  r:15, mb:150, oa:0,   ob:120},
+  {a:30, b:34, l:14, r:5,  mb:116, oa:104, ob:14},
+  {a:38, b:27, l:5,  r:20, mb:138, oa:24,  ob:150},
+  {a:26, b:38, l:19, r:2,  mb:124, oa:72,  ob:0},
 ];
 // Band-size pattern (cycled): mostly 2s and 3s for a denser board, the odd 1 for
 // breathing room. A 3 only forms when its trio is one card + two headlines.
@@ -1993,10 +1993,10 @@ const FP_PAT = [2, 3, 2, 2, 3, 1, 3, 2, 2, 3];
 // stacked headlines at h1/h2 % of the column, second offset ho %, vertical gap
 // sgap; gap = horizontal gap, co/so = card/stack vertical offsets, side = card L/R.
 const FP_TRI = [
-  {cw:30, sw:50, l:2,  gap:96,  mb:150, co:30, so:0,  sgap:150, h1:100, h2:82,  ho:16, side:'L'},
-  {cw:32, sw:47, l:8,  gap:130, mb:140, co:0,  so:60, sgap:120, h1:84,  h2:100, ho:0,  side:'R'},
-  {cw:29, sw:52, l:4,  gap:104, mb:150, co:50, so:0,  sgap:170, h1:92,  h2:76,  ho:22, side:'L'},
-  {cw:31, sw:48, l:10, gap:88,  mb:138, co:18, so:40, sgap:130, h1:78,  h2:96,  ho:8,  side:'R'},
+  {cw:28, sw:48, l:2,  r:12, mb:150, co:30, so:0,  sgap:150, h1:100, h2:82,  ho:16, side:'L'},
+  {cw:30, sw:46, l:8,  r:3,  mb:140, co:0,  so:60, sgap:120, h1:84,  h2:100, ho:0,  side:'R'},
+  {cw:27, sw:50, l:4,  r:9,  mb:150, co:50, so:0,  sgap:170, h1:92,  h2:76,  ho:22, side:'L'},
+  {cw:30, sw:46, l:11, r:5,  mb:138, co:18, so:40, sgap:130, h1:78,  h2:96,  ho:8,  side:'R'},
 ];
 function fpFlowStyle(place, isCard){
   // Cards read best a touch narrower; keep them within bounds against the offset.
