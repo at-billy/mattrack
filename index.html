@@ -320,6 +320,9 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
    asymmetric whitespace (à la oma.com). Pipeline cards flow in the same stream. */
 .fp{margin-top:170px;}
 .fp-item{display:block;box-sizing:border-box;}   /* width / margin-left / margin-bottom set inline per item */
+/* A band sets two items side by side (varied widths, top-aligned) — not a grid. */
+.fp-band{display:flex;align-items:flex-start;}
+.fp-band>.fp-item{flex:0 1 auto;}
 .fp-colophon{width:100%!important;margin-left:0!important;margin-top:40px;}
 .fp-item[role="button"]{cursor:pointer;}
 .fp-kicker{font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red);margin-bottom:8px;}
@@ -357,8 +360,9 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
   .fp-pl-body{flex:1 1 0;overflow:visible;}
   .fp-pl-num{font-size:clamp(70px,18vw,110px);}
   .fp{margin-top:60px;}
-  /* On mobile everything goes full width, no offsets. */
+  /* On mobile everything goes full width, no offsets; bands stack. */
   .fp .fp-item{width:100%!important;margin-left:0!important;margin-bottom:44px!important;}
+  .fp-band{flex-direction:column;margin-left:0!important;gap:0!important;}
 }
 
 /* ── OVERVIEW / LANDING ──────────────────────────────────────────── */
@@ -1900,16 +1904,32 @@ function pageOverview() {
   });
 
   const off = fpSeed % FP_FLOW.length;
-  let i = 0;
-  const body = seq.map(it => {
-    const place = FP_FLOW[(i + off) % FP_FLOW.length];
-    const box = FP_BOX[(i + off) % FP_BOX.length];
-    i++;
-    return it.t==='c' ? renderPipelineCard(it.v, place) : renderHeadlineItem(it.v, box, place);
-  }).join('');
+  let i = 0;            // style cursor (placement/box variety)
+  let bi = 0;           // band-preset cursor
+  const parts = [];
+  for(let k=0; k<seq.length; k++){
+    const it = seq[k], nx = seq[k+1];
+    // Occasionally set two consecutive headlines side by side in one band (cards
+    // stay solo so a tall card never leaves a big gap beside a short headline).
+    const pairable = it.t==='h' && nx && nx.t==='h';
+    if(pairable && ((k + off) % 3 === 0)){
+      const bp = FP_BAND[(bi++ + off) % FP_BAND.length];
+      const sA = FP_BOX[(i++ + off) % FP_BOX.length];
+      const sB = FP_BOX[(i++ + off) % FP_BOX.length];
+      parts.push(`<div class="fp-band" style="gap:${bp.gap}px;margin-left:${bp.l}%;margin-bottom:${bp.mb}px;">${
+        renderHeadlineItem(it.v, sA, {w:bp.a, l:0, mb:0}) + renderHeadlineItem(nx.v, sB, {w:bp.b, l:0, mb:0})
+      }</div>`);
+      k++;               // consumed nx
+    } else {
+      const place = FP_FLOW[(i + off) % FP_FLOW.length];
+      const box = FP_BOX[(i + off) % FP_BOX.length];
+      i++;
+      parts.push(it.t==='c' ? renderPipelineCard(it.v, place) : renderHeadlineItem(it.v, box, place));
+    }
+  }
   const colo = colophon ? renderHeadlineItem(colophon, {tone:'fp-red', box:'fp-box fp-dots'}, {w:100,l:0,mb:0}, 'fp-colophon') : '';
 
-  return `<div class="fp">${body}${colo}</div>`;
+  return `<div class="fp">${parts.join('')}${colo}</div>`;
 }
 
 // Free-flow placement presets: each item picks its own width (%), horizontal
@@ -1934,6 +1954,14 @@ const FP_BOX = [
   {tone:'fp-red', box:'fp-box fp-bd-red'},
   {tone:'fp-red', box:'fp-box fp-dots'},
   {tone:'',       box:'fp-box fp-bd'},
+];
+// Two-up band presets: widths of the left/right item (%), leading offset (l %)
+// and gap (px). Widths differ so a band never reads as two equal grid cells.
+const FP_BAND = [
+  {a:40, b:34, l:0,  gap:44, mb:120},
+  {a:32, b:45, l:9,  gap:48, mb:108},
+  {a:47, b:29, l:3,  gap:40, mb:130},
+  {a:34, b:39, l:16, gap:44, mb:100},
 ];
 function fpFlowStyle(place, isCard){
   // Cards read best a touch narrower; keep them within bounds against the offset.
