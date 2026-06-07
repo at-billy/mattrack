@@ -315,10 +315,12 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
    dotted/bordered, red/black card language. */
 /* Pipeline: 230px from the subnav (page adds 60px, so +170px margin here),
    then 230px before the first headline to match the headline gap rhythm. */
-.fp-pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-5);margin-top:170px;margin-bottom:230px;}
-/* Editorial headline grid: 230px vertical gap, exactly as navytrack had it. */
-.fp{display:grid;grid-template-columns:repeat(12,1fr);gap:230px 36px;align-items:start;}
-.fp-item{min-width:0;justify-self:start;max-width:100%;}
+/* Editorial board — masonry. Items keep their NATURAL size and pack into
+   columns freely (à la oma.com): no stretching, no forced row alignment.
+   Pipeline cards are interleaved among the headlines in the same flow. */
+.fp{column-count:3;column-gap:36px;margin-top:170px;}
+.fp-item{break-inside:avoid;margin-bottom:36px;display:inline-block;width:100%;vertical-align:top;}
+.fp-colophon{column-span:all;margin-top:24px;}
 .fp-item[role="button"]{cursor:pointer;}
 .fp-kicker{font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--red);margin-bottom:8px;}
 .fp-head{font-size:clamp(23px,2.6vw,36px);font-weight:900;line-height:1.06;letter-spacing:-.5px;color:var(--fg);}
@@ -348,35 +350,14 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 /* Bottom half — plain white, text starts at top, spare space sits below */
 .fp-pl-body{flex:0 0 50%;padding:22px 24px;background:var(--bg);overflow:hidden;}
 
-/* ── TOPIC GROUPS (interleaved: one pipeline card + two related headlines) ──
-   Each group is a 12-col row: the tall pipeline card on one side, a stacked
-   pair of related headlines on the other. The card is ~2 headlines tall, so the
-   pair fills the same 520px height (two ~242px cards). Sides alternate L/R. */
-.fp-groups{display:flex;flex-direction:column;gap:160px;margin-top:170px;margin-bottom:230px;}
-.fp-group{display:grid;grid-template-columns:repeat(12,1fr);gap:36px;align-items:start;}
-.fp-group>.fp-pl{height:520px;}
-.fp-pair{height:520px;display:flex;flex-direction:column;gap:36px;min-width:0;}
-.fp-pair>.fp-item{flex:1;min-height:0;overflow:hidden;}
-
-@media(max-width:1100px){ .fp-pipe{grid-template-columns:repeat(2,1fr);} }
-@media(max-width:900px){
-  .fp-group{grid-template-columns:1fr;gap:44px;}
-  .fp-group>*{grid-column:1 / -1 !important;}
-  .fp-groups{gap:60px;margin-top:60px;margin-bottom:60px;}
-  .fp-pair{height:auto;}
-  .fp-pair>.fp-item{overflow:visible;}
-  .fp-group>.fp-pl{height:auto;}
-}
+@media(max-width:1100px){ .fp{column-count:2;} }
 @media(max-width:760px){
-  .fp-pipe{grid-template-columns:1fr;gap:var(--space-4);margin-top:60px;margin-bottom:60px;}
-  /* On mobile the cards stack and don't need to match each other — revert to
-     natural height but keep the halves equal via flex. */
+  /* On mobile cards stack full-width — natural height, halves equal via flex. */
   .fp-pl{height:auto;}
   .fp-pl-top{flex:1 1 0;min-height:160px;}
   .fp-pl-body{flex:1 1 0;overflow:visible;}
   .fp-pl-num{font-size:clamp(70px,18vw,110px);}
-  .fp{grid-template-columns:1fr;gap:44px 0;}
-  .fp-item{grid-column:1 / -1 !important;}
+  .fp{column-count:1;margin-top:60px;}
 }
 
 /* ── OVERVIEW / LANDING ──────────────────────────────────────────── */
@@ -1898,71 +1879,53 @@ function pageOverview() {
   const u = state.user;
   if(isRecruit(u)) return pageRecruitOverview(u);
 
-  // ── Topic groups: each pipeline-stage card sits beside two related headlines
-  // (matched by topic), alternating sides. Leftover headlines flow in the normal
-  // editorial grid below. ──
+  // ── Editorial board (masonry): headlines at their natural size, with the four
+  // pipeline-stage cards interleaved into the same column flow. Each card lands
+  // near its related headlines (matched by topic), but nothing is forced to a
+  // shared row/height — items pack freely like oma.com. ──
   const cards = pipelineCardData(u);
   const headlines = buildHeadlines();                 // colophon is last
   const colophon = (headlines[headlines.length-1]||{}).credits ? headlines.pop() : null;
-  const pool = headlines.slice();
-  // Pull up to n headlines for a topic: prefer ones whose foot matches the stage,
-  // then fall back to whatever's left so a pair is never half-empty.
-  const takeFor = (foot, n) => {
-    const picked = [];
-    for(let i=0; i<pool.length && picked.length<n; ){
-      if(pool[i].foot === foot) picked.push(pool.splice(i,1)[0]); else i++;
-    }
-    while(picked.length<n && pool.length) picked.push(pool.shift());
-    return picked;
-  };
-  // Box styles cycled across the paired headlines for visual variety.
-  const PAIR_BOX = [
-    {tone:'',       box:'fp-box fp-bd'},
-    {tone:'fp-red', box:'fp-box fp-dots'},
-    {tone:'',       box:'fp-box fp-dots'},
-    {tone:'fp-red', box:'fp-box fp-bd-red'},
-  ];
-  let pb = 0;
-  const groups = cards.map((c, gi) => {
-    const pair = takeFor(c.foot, 2);
-    const cardLeft = (gi % 2 === 0);
-    const cardCol = cardLeft ? '1 / span 5' : '8 / span 5';
-    const pairCol = cardLeft ? '6 / span 7' : '1 / span 7';
-    const cardHtml = renderPipelineCard(c, cardCol);
-    const pairHtml = `<div class="fp-pair" style="grid-column:${pairCol};">${
-      pair.map(h => renderHeadlineItem(h, PAIR_BOX[pb++ % PAIR_BOX.length])).join('')
-    }</div>`;
-    return `<div class="fp-group">${cardLeft ? cardHtml + pairHtml : pairHtml + cardHtml}</div>`;
-  }).join('');
 
-  // ── Leftover headlines + colophon in the standard editorial grid below. ──
+  // Interleave: drop each card in just before the first headline that shares its
+  // topic (foot), so related items sit near each other; any unplaced card is
+  // appended. Falls back to spreading if no topic match.
+  const seq = headlines.map(h => ({t:'h', v:h}));
+  cards.forEach((c, idx) => {
+    let at = seq.findIndex((it,i) => it.t==='h' && it.v.foot===c.foot && !it._used);
+    if(at === -1) at = Math.min(seq.length, Math.round((idx+1) * seq.length / (cards.length+1)));
+    else seq[at]._used = true;
+    seq.splice(at, 0, {t:'c', v:c});
+  });
+
   const slotOffset = fpSeed % FP_SLOTS.length;
-  const leftover = pool.map((h,i)=>renderHeadlineItem(h, FP_SLOTS[(i+slotOffset)%FP_SLOTS.length], true)).join('');
-  const colo = colophon ? renderHeadlineItem(colophon, {tone:'fp-red', box:'fp-box fp-dots', col:'1 / span 12'}, true) : '';
-  const grid = (leftover || colo) ? `<div class="fp">${leftover}${colo}</div>` : '';
+  let hi = 0;
+  const body = seq.map(it => it.t==='c'
+    ? renderPipelineCard(it.v)
+    : renderHeadlineItem(it.v, FP_SLOTS[(hi++ + slotOffset) % FP_SLOTS.length])
+  ).join('');
+  const colo = colophon ? renderHeadlineItem(colophon, {tone:'fp-red', box:'fp-box fp-dots'}, 'fp-colophon') : '';
 
-  return `<div class="fp-groups">${groups}</div>${grid}`;
+  return `<div class="fp">${body}${colo}</div>`;
 }
 
-// Render one editorial headline card. `s` carries tone+box (and optional col);
-// pass useCol=true to place it via grid-column (standalone grid), false inside a
-// flex pair.
-function renderHeadlineItem(h, s, useCol){
+// Render one editorial headline card at its natural size. `s` carries tone+box;
+// `extraClass` adds e.g. the full-width colophon modifier.
+function renderHeadlineItem(h, s, extraClass){
   const footColor = s.tone==='fp-red' ? 'var(--red)' : 'var(--fg)';
   const go = h.credits ? '' : fpGoFor(h);
   const clickAttrs = go ? ` role="button" tabindex="0" aria-label="${esc(h.text)}" onclick="${go}"` : '';
-  const colStyle = (useCol && s.col) ? `grid-column:${s.col};` : '';
-  return `<div class="fp-item ${s.tone} ${s.box}"${colStyle?` style="${colStyle}"`:''}${clickAttrs}>
+  return `<div class="fp-item ${s.tone} ${s.box}${extraClass?' '+extraClass:''}"${clickAttrs}>
     <div class="fp-kicker">${esc(h.kicker)}</div>
     <div class="fp-head">${esc(h.text)}</div>
     ${h.foot?`<div class="fp-foot" style="color:${footColor};">${go?'→ ':''}${esc(h.foot)}</div>`:''}
   </div>`;
 }
 
-// Render one pipeline-stage card at the given grid-column.
-function renderPipelineCard(c, col){
+// Render one pipeline-stage card (natural size — flows in the masonry columns).
+function renderPipelineCard(c){
   const click = c.go ? ` role="button" tabindex="0" aria-label="${esc(c.foot)}" onclick="${c.go}"` : '';
-  return `<div class="fp-item fp-red fp-bd-red fp-pl" style="grid-column:${col};"${click}>
+  return `<div class="fp-item fp-red fp-bd-red fp-pl"${click}>
     <div class="fp-pl-top"><div class="fp-pl-num">${c.num}</div></div>
     <div class="fp-pl-body">
       <div class="fp-head">${esc(c.text)}</div>
