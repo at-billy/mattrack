@@ -361,7 +361,7 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
   .fp-pl-num{font-size:clamp(70px,18vw,110px);}
   .fp{margin-top:60px;}
   /* On mobile everything goes full width, no offsets; bands stack. */
-  .fp .fp-item{width:100%!important;margin-left:0!important;margin-bottom:44px!important;}
+  .fp .fp-item{width:100%!important;margin-left:0!important;margin-top:0!important;margin-bottom:44px!important;}
   .fp-band{flex-direction:column;margin-left:0!important;gap:0!important;}
 }
 
@@ -1918,7 +1918,7 @@ function pageOverview() {
       const sA = FP_BOX[(i++ + off) % FP_BOX.length];
       const sB = FP_BOX[(i++ + off) % FP_BOX.length];
       parts.push(`<div class="fp-band" style="gap:${bp.gap}px;margin-left:${bp.l}%;margin-bottom:${bp.mb}px;">${
-        renderItem(it, sA, {w:bp.a, l:0, mb:0}) + renderItem(nx, sB, {w:bp.b, l:0, mb:0})
+        renderItem(it, sA, {w:bp.a, l:0, mb:0, mt:bp.oa}) + renderItem(nx, sB, {w:bp.b, l:0, mb:0, mt:bp.ob})
       }</div>`);
       k++;               // consumed nx
     } else {
@@ -1956,22 +1956,22 @@ const FP_BOX = [
   {tone:'fp-red', box:'fp-box fp-dots'},
   {tone:'',       box:'fp-box fp-bd'},
 ];
-// Two-up band presets: widths of the left/right item (%), leading offset (l %),
-// gap (px) and gap-below (mb). Widths and gaps all vary so a band never reads as
-// two equal grid cells, and the spacing between the pair feels organic.
+// Two-up band presets: left/right widths (%), leading offset (l %), horizontal
+// gap (px), gap-below (mb), and a per-item vertical offset (oa/ob, px) so the two
+// never line up at the top. Everything varies — no band reads as a grid cell.
 const FP_BAND = [
-  {a:40, b:34, l:0,  gap:32,  mb:120},
-  {a:30, b:46, l:10, gap:64,  mb:108},
-  {a:47, b:28, l:3,  gap:46,  mb:132},
-  {a:33, b:38, l:18, gap:28,  mb:100},
-  {a:44, b:30, l:6,  gap:72,  mb:124},
-  {a:29, b:41, l:22, gap:40,  mb:112},
+  {a:38, b:31, l:0,  gap:96,  mb:140, oa:0,   ob:84},
+  {a:29, b:42, l:9,  gap:140, mb:120, oa:56,  ob:0},
+  {a:44, b:27, l:4,  gap:84,  mb:150, oa:0,   ob:120},
+  {a:31, b:36, l:15, gap:170, mb:116, oa:104, ob:14},
+  {a:41, b:28, l:6,  gap:110, mb:138, oa:24,  ob:150},
+  {a:27, b:39, l:20, gap:76,  mb:124, oa:72,  ob:0},
 ];
 function fpFlowStyle(place, isCard){
   // Cards read best a touch narrower; keep them within bounds against the offset.
   const w = isCard ? Math.min(place.w, 32) : place.w;
   const l = Math.min(place.l, 100 - w);
-  return `width:${w}%;margin-left:${l}%;margin-bottom:${place.mb}px;`;
+  return `width:${w}%;margin-left:${l}%;margin-bottom:${place.mb}px;${place.mt?`margin-top:${place.mt}px;`:''}`;
 }
 
 // Render one editorial headline at its natural size, freely placed via `place`.
