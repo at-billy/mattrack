@@ -1934,17 +1934,26 @@ function pageOverview() {
   if(isRecruit(u)) return pageRecruitOverview(u);
 
   // ── Live pipeline figures (shared by the cover lines + metadata table) ──
+  // Gatherer figures come from the open PICKUP workorders (a report makes a
+  // pickup, not stock — there is no "reported" stock), so they update the moment
+  // someone reports a haul. The rest read off the real stock statuses.
   const stock = state.stock||[], wos = state.workorders||[];
   const M = a=>a.filter(x=>x.kind==='material'), I = a=>a.filter(x=>x.kind==='item');
   const st = s=>stock.filter(x=>x.status===s);
   const isum = a=>Math.round(a.reduce((s,x)=>s+(x.qty||0),0));
   const qsum = a=>Math.round(a.reduce((s,x)=>s+(x.qty||0),0)*10)/10;
   const pl = (n,w)=>`${n} ${w}${n!==1?'s':''}`;
-  const reported = M(st('reported')), inTransit = M(st('in_transit'));
+
+  const openPickupWOs = wos.filter(w=>w.kind==='pickup' && w.status==='open');
+  const openPickups = openPickupWOs.length;
+  const reportLines = openPickupWOs.reduce((s,w)=>s+((w.report||w.items||[]).length||0),0);
+  const fieldUnits = qsum(openPickupWOs.flatMap(w=>(w.report||[]).map(r=>({qty:r.approxQty||0}))));
+  const openMoves = wos.filter(w=>(w.kind==='move') && w.status!=='done').length;
+  const inTransit = M(st('in_transit'));
   const crafted = I(st('crafted')), withDist = I(st('with_distributor'));
-  const openPickups = wos.filter(w=>w.kind==='pickup' && w.status==='open').length;
   const craftOpen = wos.filter(w=>w.kind==='craft' && w.status==='open');
   const urgent = craftOpen.filter(o=>o.priority==='urgent').length;
+  const logiLoads = openPickups + openMoves + inTransit.length;   // queued + in hand
   const craftableNow = craftOpen.reduce((s,o)=>{
     const item = state.catalog.items.find(it=>it.name===o.itemName);
     const rem = Math.max(0,(o.qtyNeeded||0)-(o.qtyDone||0));
@@ -1952,23 +1961,23 @@ function pageOverview() {
   },0);
 
   // 1) Book cover — four status lines, one per stage, alternating yellow / white,
-  // top to bottom. Same content the old front page led with, bound to live data.
+  // top to bottom. Each is the live headline figure for that role.
   const cover = `<section class="fpb-cover-wrap"><div class="fpb-cover">
-    <div class="fpb-line y">gatherers have ${pl(reported.length,'lot')} reported.</div>
-    <div class="fpb-line w">logistics is moving ${pl(inTransit.length,'lot')}.</div>
+    <div class="fpb-line y">gatherers have ${pl(reportLines,'lot')} reported.</div>
+    <div class="fpb-line w">logistics is handling ${pl(logiLoads,'load')}.</div>
     <div class="fpb-line y">crafters have ${pl(craftOpen.length,'order')} open.</div>
     <div class="fpb-line w">distributors are sitting on ${pl(isum(withDist),'item')}.</div>
   </div></section>`;
 
   // 2-4) Title, punchline, expandable about, and the metadata table — every value
-  // is live, phrased the way the old front page put it.
+  // is live and updates as the pipeline moves.
   const rows = [
-    ['Gatherers',    `${qsum(reported)} units out in the field, ${pl(openPickups,'pickup')} waiting on a lift`],
+    ['Gatherers',    `${fieldUnits} units out in the field, ${pl(openPickups,'pickup')} waiting on a lift`],
     ['Logistics',    `${qsum(inTransit)} units on the way to base`],
-    ['Logistics',    `${isum(crafted)} finished items waiting to ship out`],
+    ['Logistics',    `${pl(openMoves,'load')} of finished goods to move out`],
     ['Crafters',     `${craftableNow} items we could build from what's at base`],
     ['Crafters',     `${pl(urgent,'order')} marked urgent`],
-    ['Distributors', `${isum(withDist)} items stockpiled, ready to hand out`],
+    ['Distributors', `${isum(crafted)} items crafted, ready to distribute`],
   ];
   const info = `<section class="fpb-info">
     <h1>the org's material pipeline</h1>
