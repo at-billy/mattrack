@@ -3738,8 +3738,35 @@ function pageAdmin() {
       <div class="page-head-left">
         <div class="page-lead">Manage members, roles &amp; requests</div>
       </div>
+      <button class="btn btn-outline" style="border-color:var(--red);color:var(--red);" onclick="openWipeModal()">Wipe</button>
     </div>
     <div id="admin-wrap">${renderAdminContent()}</div>`;
+}
+
+// Destructive demo reset, password-gated (see convex/admin.ts for what it clears).
+function openWipeModal(){
+  showModal(`
+    <div class="modal-title">Wipe database</div>
+    <div style="font-size:var(--text-md);line-height:1.6;margin-bottom:var(--space-5);">
+      This permanently deletes all stock, work orders, transfers in progress, the activity log, and finished lotteries.
+      It keeps the catalog, every location (base included), all users with their roles and logins, and any draft lotteries.
+      <br><br><strong>This can't be undone.</strong>
+    </div>
+    <div class="field"><label class="lbl">Confirm with your password</label><input id="wipe-pw" type="password" autocomplete="current-password"></div>
+    <div class="err-msg" id="wipe-err"></div>
+    <div style="display:flex;gap:10px;margin-top:var(--space-2);">
+      <button class="btn btn-red" onclick="doWipe()">Wipe everything</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>`);
+}
+async function doWipe(){
+  const pw=(document.getElementById('wipe-pw')||{value:''}).value;
+  if(!pw){ showErr('wipe-err','Enter your password'); return; }
+  try{
+    const out=await convexMutation('admin:wipeForDemo',{sessionToken:state.sessionToken,password:pw});
+    toast(`Wiped — stock ${out.stock}, work orders ${out.workorders}, log ${out.archive}`);
+    closeModal(); await refreshAll(); renderPage();
+  }catch(e){ showErr('wipe-err', e.message||'Wipe failed'); }
 }
 
 function renderAdminContent() {
