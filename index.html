@@ -284,7 +284,7 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 .co-matreq-head{display:grid;grid-template-columns:1fr 120px 120px;gap:var(--space-2);font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg);padding-bottom:var(--space-2);}
 .co-matreq{display:grid;grid-template-columns:1fr 120px 120px;gap:var(--space-2);align-items:center;padding:var(--space-2) 0;border-top:1px solid var(--border);}
 .co-matreq-name{font-size:var(--text-md);font-weight:700;}
-.co-matreq-name .q{color:var(--fg);font-weight:400;font-size:var(--text-sm);}
+.co-matreq-name .co-q{color:var(--fg);font-weight:400;font-size:var(--text-sm);}
 .modal-title{font-size:var(--text-lg);font-weight:900;letter-spacing:-.5px;margin-bottom:40px;}
 .search-row{display:flex;gap:var(--space-3);align-items:center;margin-bottom:36px;}
 .search-row input{max-width:260px;margin:0;}
@@ -2749,7 +2749,7 @@ function coRecipe(){
   el.innerHTML=`<div class="co-matreqs">
     <div class="co-matreq-head"><span>Material</span><span>Min</span><span>Max</span></div>
     ${recipe.map((r,i)=>`<div class="co-matreq" data-mat="${esc(r.materialName)}">
-      <div class="co-matreq-name">${esc(r.materialName)} <span class="q">×${r.qty} ${esc(r.unit||'SCU')}</span></div>
+      <div class="co-matreq-name">${esc(r.materialName)} <span class="co-q">×${r.qty} ${esc(r.unit||'SCU')}</span></div>
       <div><select class="co-minq">${qOpts}</select></div>
       <div><select class="co-maxq">${qOpts}</select></div>
     </div>`).join('')}
