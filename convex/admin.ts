@@ -150,3 +150,55 @@ export const seedDemo = internalMutation({
     return { seededUsers: demoUsers.length, orders: items.length, craftedMoves: craftedIds.length, items: items.map(i => i.name) };
   },
 });
+
+// Top up the admin account so they can personally walk crafting + distribution
+// in a live demo: grants every functional role, and (once) gives the admin their
+// own at-base materials for the open orders, a few crafted items to Send, and a
+// stockpile to Hand Out. Run via `npx convex run admin:seedAdminDemo`.
+export const seedAdminDemo = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const admin = (await ctx.db.query("users").collect()).find(u => (u.roles || []).includes("admin"));
+    if (!admin) throw new ConvexError("No admin user found");
+    const me = admin.username;
+
+    // Every functional role, so all nav sections + actions are available.
+    const roles = Array.from(new Set([...(admin.roles || []), "crafter", "distributor", "logistics", "gatherer"]));
+    await ctx.db.patch(admin._id, { roles });
+
+    const base = (await ctx.db.query("locationCatalog").collect()).find(l => l.isBase);
+    const baseName = base ? base.name : "Levski";
+    const baseSys = base ? base.system : undefined;
+    const mats = await ctx.db.query("materialCatalog").collect();
+    const matByName: Record<string, any> = {}; for (const m of mats) matByName[m.name] = m;
+    const itemsCat = await ctx.db.query("itemCatalog").collect();
+    const itemByName: Record<string, any> = {}; for (const it of itemsCat) itemByName[it.name] = it;
+    const qOf = (m: any) => { const qs = (m && m.qualities) || []; if (!qs.length) return { step: undefined, value: undefined }; const mid = qs[Math.floor(qs.length / 2)]; return { step: mid.step, value: mid.value }; };
+    const addStock = (o: any) => ctx.db.insert("stock", Object.assign({ addedBy: admin._id, addedByName: me }, o));
+
+    // Idempotent: skip inventory if the admin already holds at-base stock.
+    const mineAtBase = (await ctx.db.query("stock").withIndex("by_status", q => q.eq("status", "at_base")).collect()).filter(s => s.heldBy === me);
+    if (mineAtBase.length > 0) return { rolesNow: roles, seededInventory: false };
+
+    const craftOrders = (await ctx.db.query("workorders").withIndex("by_kind", q => q.eq("kind", "craft")).collect()).filter(w => w.status === "open");
+
+    // 1) Admin's own at-base materials for every open order's recipe → can Craft.
+    const seeded = new Set<string>();
+    for (const o of craftOrders) {
+      const it = itemByName[o.itemName || ""]; if (!it) continue;
+      for (const r of (it.recipe || [])) {
+        if (seeded.has(r.materialName)) continue; seeded.add(r.materialName);
+        const m = matByName[r.materialName]; const q = qOf(m);
+        await addStock({ kind: "material", name: r.materialName, category: (m && m.category) || "", qualityStep: q.step, qualityValue: q.value, qty: Math.max(60, r.qty * 10), unit: (m && m.unit) || "SCU", location: baseName, system: baseSys, heldBy: me, status: "at_base" });
+      }
+    }
+    // 2) A couple finished items the admin holds → can Send to logistics.
+    const someItem = (craftOrders[0] && craftOrders[0].itemName) || (itemsCat[0] && itemsCat[0].name) || "Item";
+    const someCat = (itemByName[someItem] && itemByName[someItem].category) || "";
+    await addStock({ kind: "item", name: someItem, category: someCat, qualityValue: 740, qty: 4, unit: "UNIT", location: baseName, system: baseSys, heldBy: me, status: "crafted" });
+    // 3) Admin's own distributor stockpile → can Hand Out.
+    await addStock({ kind: "item", name: someItem, category: someCat, qualityValue: 780, qty: 6, unit: "UNIT", location: baseName, system: baseSys, heldBy: me, status: "with_distributor" });
+
+    return { rolesNow: roles, seededInventory: true };
+  },
+});
