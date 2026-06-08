@@ -7,7 +7,7 @@
 <title>MATTRACK</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-:root{--red:#cc0000;--mid:#888;--fg:#000;--bg:#fff;--bg2:#f5f5f5;--border:#000;--border-l:#e0e0e0;--border-m:#e8e8e8;}
+:root{--red:#cc0000;--mid:#888;--fg:#000;--bg:#fff;--bg2:#f5f5f5;--border:#000;--border-l:#e0e0e0;--border-m:#e8e8e8;--color-accent-yellow:#f5c518;}
 /* Type scale (P3-2). Base components reference these; mobile @media steps stay literal px. */
 :root{--text-xs:13px;--text-sm:15px;--text-md:18px;--text-lg:24px;--text-xl:38px;--text-2xl:52px;}
 /* Spacing scale (P3-2). Applied to structural layout spacing; micro insets stay literal. */
@@ -368,6 +368,48 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
   .fp .fp-item{width:100%!important;margin-left:0!important;margin-top:0!important;margin-bottom:44px!important;}
   .fp-band{flex-direction:column;margin-left:0!important;margin-right:0!important;gap:0!important;}
   .fp-stack{width:100%!important;margin-top:0!important;}
+}
+
+/* ── FRONT PAGE — book / status (implemented from oma mockup) ───────
+   Centred book-cover block, centred info + metadata table, then a free-
+   positioned press-card constellation. Raw mockup values wired to tokens;
+   px sizes kept to preserve the exact composition. */
+.fpb-cover-wrap{display:flex;justify-content:center;padding:80px 0 64px;}
+.fpb-cover{width:480px;max-width:90vw;aspect-ratio:3/4.2;background:var(--red);padding:var(--space-7) 44px;display:flex;flex-direction:column;justify-content:space-between;}
+.fpb-line{font-size:50px;font-weight:700;line-height:.95;letter-spacing:-1px;}
+.fpb-line.y{color:var(--color-accent-yellow);}
+.fpb-line.w{color:var(--fg);}
+.fpb-info{max-width:1180px;margin:0 auto;text-align:center;padding:40px 0 0;}
+.fpb-info h1{font-size:56px;font-weight:700;letter-spacing:-1px;line-height:1.02;}
+.fpb-sub{font-size:24px;font-weight:700;margin-top:28px;}
+.fpb-readmore{display:inline-block;margin-top:var(--space-7);font-size:20px;font-weight:700;color:var(--fg);text-decoration:underline;text-underline-offset:4px;background:none;border:none;cursor:pointer;font-family:inherit;}
+.fpb-about{max-width:680px;margin:24px auto 0;font-size:var(--text-md);line-height:1.7;color:var(--fg);display:none;text-align:left;}
+.fpb-about.open{display:block;}
+.fpb-meta{width:100%;margin-top:64px;border-collapse:collapse;text-align:left;}
+.fpb-meta tr{border-top:1px solid var(--border-m);}
+.fpb-meta tr:last-child{border-bottom:1px solid var(--border-m);}
+.fpb-meta th,.fpb-meta td{padding:20px var(--space-2);font-size:18px;vertical-align:middle;}
+.fpb-meta th{width:170px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.fpb-meta td{font-weight:400;}
+.fpb-press{margin-top:160px;position:relative;}
+.fpb-year{font-size:40px;font-weight:700;margin-bottom:var(--space-5);}
+.fpb-stage{position:relative;max-width:1000px;margin:0 auto;min-height:1950px;}
+.fpb-card{position:absolute;width:fit-content;max-width:480px;padding:34px 40px 44px;}
+.fpb-card .date{font-size:20px;font-weight:700;margin-bottom:var(--space-3);}
+.fpb-card .headline{font-size:38px;font-weight:700;line-height:1.0;letter-spacing:-.5px;}
+.fpb-card .source{display:block;margin-top:4px;}
+.fpb-card[role="button"]{cursor:pointer;}
+.fpb-c1{top:20px;left:22%;}
+.fpb-c2{top:430px;right:0;}
+.fpb-c3{top:840px;left:0;}
+.fpb-c4{top:1080px;right:0;}
+.fpb-c5{top:1420px;left:0;}
+.fpb-c6{top:1680px;right:0;}
+@media(max-width:820px){
+  .fpb-info h1{font-size:38px;}
+  .fpb-line{font-size:40px;}
+  .fpb-stage{min-height:auto;}
+  .fpb-card{position:static;max-width:100%;margin:0 0 32px;top:auto!important;left:auto!important;right:auto!important;}
 }
 
 /* ── OVERVIEW / LANDING ──────────────────────────────────────────── */
@@ -1889,67 +1931,70 @@ function pageOverview() {
   const u = state.user;
   if(isRecruit(u)) return pageRecruitOverview(u);
 
-  // ── Editorial board (masonry): headlines at their natural size, with the four
-  // pipeline-stage cards interleaved into the same column flow. Each card lands
-  // near its related headlines (matched by topic), but nothing is forced to a
-  // shared row/height — items pack freely like oma.com. ──
-  const cards = pipelineCardData(u);
-  const headlines = buildHeadlines();                 // colophon is last
-  const colophon = (headlines[headlines.length-1]||{}).credits ? headlines.pop() : null;
+  // ── Live pipeline figures (shared by the cover lines + metadata table) ──
+  const stock = state.stock||[], wos = state.workorders||[];
+  const M = a=>a.filter(x=>x.kind==='material'), I = a=>a.filter(x=>x.kind==='item');
+  const st = s=>stock.filter(x=>x.status===s);
+  const isum = a=>Math.round(a.reduce((s,x)=>s+(x.qty||0),0));
+  const qsum = a=>Math.round(a.reduce((s,x)=>s+(x.qty||0),0)*10)/10;
+  const pl = (n,w)=>`${n} ${w}${n!==1?'s':''}`;
+  const reported = M(st('reported')), inTransit = M(st('in_transit'));
+  const crafted = I(st('crafted')), withDist = I(st('with_distributor'));
+  const openPickups = wos.filter(w=>w.kind==='pickup' && w.status==='open').length;
+  const craftOpen = wos.filter(w=>w.kind==='craft' && w.status==='open');
+  const urgent = craftOpen.filter(o=>o.priority==='urgent').length;
+  const craftableNow = craftOpen.reduce((s,o)=>{
+    const item = state.catalog.items.find(it=>it.name===o.itemName);
+    const rem = Math.max(0,(o.qtyNeeded||0)-(o.qtyDone||0));
+    return s + Math.min(craftOrgAvail(item,o), rem);
+  },0);
 
-  // Interleave: drop each card in just before the first headline that shares its
-  // topic (foot), so related items sit near each other; any unplaced card is
-  // appended. Falls back to spreading if no topic match.
-  const seq = headlines.map(h => ({t:'h', v:h}));
-  cards.forEach((c, idx) => {
-    let at = seq.findIndex((it,i) => it.t==='h' && it.v.foot===c.foot && !it._used);
-    if(at === -1) at = Math.min(seq.length, Math.round((idx+1) * seq.length / (cards.length+1)));
-    else seq[at]._used = true;
-    seq.splice(at, 0, {t:'c', v:c});
-  });
+  // 1) Book cover — four status lines, alternating yellow / white, top to bottom.
+  const cover = `<section class="fpb-cover-wrap"><div class="fpb-cover">
+    <div class="fpb-line y">Gatherers have ${pl(reported.length,'lot')} reported.</div>
+    <div class="fpb-line w">Logistics has ${pl(inTransit.length,'lot')} in transit.</div>
+    <div class="fpb-line y">Crafters have ${pl(craftOpen.length,'open order')}.</div>
+    <div class="fpb-line w">Distributors have ${pl(isum(withDist),'item')} stockpiled.</div>
+  </div></section>`;
 
-  const off = fpSeed % FP_FLOW.length;
-  let i = 0, fi = 0, bi = 0, ti = 0;            // cursors: box / solo-placement / duo / trio
-  let pi = off % FP_PAT.length;                  // band-size pattern cursor
-  const nextBox = () => FP_BOX[(i++ + off) % FP_BOX.length];
-  const renderItem = (it, box, place) => it.t==='c' ? renderPipelineCard(it.v, place) : renderHeadlineItem(it.v, box, place);
-  const parts = [];
-  let k = 0;
-  while(k < seq.length){
-    let size = Math.min(FP_PAT[pi++ % FP_PAT.length], seq.length - k);
-    // 3-up only when the trio is exactly one card + two headlines — the card's
-    // height makes room for two headlines stacked beside it.
-    if(size === 3){
-      const win = seq.slice(k, k+3);
-      if(win.filter(x=>x.t==='c').length === 1){
-        const tp = FP_TRI[(ti++ + off) % FP_TRI.length];
-        const card = win.find(x=>x.t==='c');
-        const heads = win.filter(x=>x.t!=='c');
-        const cardHtml = renderPipelineCard(card.v, {w:tp.cw, l:0, mb:0, mt:tp.co});
-        const stackHtml = `<div class="fp-stack" style="width:${tp.sw}%;${tp.so?`margin-top:${tp.so}px;`:''}">${
-          renderHeadlineItem(heads[0].v, nextBox(), {w:tp.h1, l:0,     mb:tp.sgap}) +
-          renderHeadlineItem(heads[1].v, nextBox(), {w:tp.h2, l:tp.ho, mb:0})
-        }</div>`;
-        parts.push(`<div class="fp-band" style="margin-left:${tp.l}%;margin-right:${tp.r}%;margin-bottom:${tp.mb}px;">${tp.side==='L'?cardHtml+stackHtml:stackHtml+cardHtml}</div>`);
-        k += 3; continue;
-      }
-      size = 2;          // not a valid trio → fall back to a pair
-    }
-    if(size === 2){
-      const bp = FP_BAND[(bi++ + off) % FP_BAND.length];
-      parts.push(`<div class="fp-band" style="margin-left:${bp.l}%;margin-right:${bp.r}%;margin-bottom:${bp.mb}px;">${
-        renderItem(seq[k], nextBox(), {w:bp.a, l:0, mb:0, mt:bp.oa}) +
-        renderItem(seq[k+1], nextBox(), {w:bp.b, l:0, mb:0, mt:bp.ob})
-      }</div>`);
-      k += 2; continue;
-    }
-    // solo
-    parts.push(renderItem(seq[k], nextBox(), FP_FLOW[(fi++ + off) % FP_FLOW.length]));
-    k += 1;
-  }
-  const colo = colophon ? renderHeadlineItem(colophon, {tone:'fp-red', box:'fp-box fp-dots'}, {w:100,l:0,mb:0}, 'fp-colophon') : '';
+  // 2-4) Title, punchline, expandable about, and the metadata table.
+  const rows = [
+    ['Gatherers',    `${qsum(reported)} units in the field and ${pl(openPickups,'pickup')} waiting`],
+    ['Logistics',    `${qsum(inTransit)} units inbound to base`],
+    ['Logistics',    `${isum(crafted)} units ready to ship out`],
+    ['Crafters',     `${craftableNow} items ready to be crafted from the stock`],
+    ['Crafters',     `${pl(urgent,'order')} tagged as urgent`],
+    ['Distributors', `${isum(crafted)} items crafted and ready to distribute`],
+  ];
+  const info = `<section class="fpb-info">
+    <h1>The org's material pipeline</h1>
+    <p class="fpb-sub">Every haul, craft and hand-out — tracked end to end.</p>
+    <button class="fpb-readmore" onclick="fpbToggleAbout(this)">Read more</button>
+    <p class="fpb-about" id="fpb-about">Mattrack tracks the org's material pipeline from field to finished goods: gatherers report hauls, logistics carries them to base, crafters turn raw materials into items, and distributors hand them out. Every transfer is a two-party meet-and-confirm, so the ledger always reflects who actually holds what — and the figures above update live as the pipeline moves.</p>
+    <table class="fpb-meta"><tbody>${rows.map(r=>`<tr><th>${r[0]}</th><td>${esc(r[1])}</td></tr>`).join('')}</tbody></table>
+  </section>`;
 
-  return `<div class="fp">${parts.join('')}${colo}</div>`;
+  // 5) Press — six live headlines as a free-positioned constellation. Every
+  // headline carries the dotted fill (.fp-dots).
+  const heads = buildHeadlines().filter(h=>!h.credits).slice(0,6);
+  const press = `<section class="fpb-press">
+    <div class="fpb-year">News</div>
+    <div class="fpb-stage">${heads.map((h,idx)=>{
+      const go = fpGoFor(h);
+      const click = go ? ` role="button" tabindex="0" aria-label="${esc(h.text)}" onclick="${go}"` : '';
+      return `<article class="fpb-card fp-dots fpb-c${idx+1}"${click}>
+        <div class="date">${esc(h.kicker)}</div>
+        <div class="headline">${esc(h.text)}${h.foot?`<span class="source">→ ${esc(h.foot)}</span>`:''}</div>
+      </article>`;
+    }).join('')}</div>
+  </section>`;
+
+  return cover + info + press;
+}
+function fpbToggleAbout(btn){
+  const el = document.getElementById('fpb-about'); if(!el) return;
+  const open = el.classList.toggle('open');
+  btn.textContent = open ? 'Read less' : 'Read more';
 }
 
 // Free-flow placement presets: each item picks its own width (%), horizontal
