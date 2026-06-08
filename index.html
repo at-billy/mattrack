@@ -134,7 +134,7 @@ select.cs-native{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 .cs-searchwrap{position:sticky;top:0;background:var(--bg);border-bottom:1.5px solid var(--border);}
 .cs-search{width:100%;box-sizing:border-box;border:none;background:var(--bg);color:var(--fg);font-size:var(--text-md);font-family:inherit;padding:10px var(--space-3);outline:none;}
 .cs-search::placeholder{color:var(--mid);}
-.cs-empty,.cs-more{padding:10px var(--space-3);font-size:var(--text-sm);color:var(--mid);}
+.cs-empty,.cs-more{padding:10px var(--space-3);font-size:var(--text-sm);color:var(--fg);}
 .cs-trigger:disabled,.cs-trigger[disabled]{opacity:.55;cursor:default;}
 body.dark .cs-panel{box-shadow:0 6px 24px rgba(0,0,0,.6);}
 .field{margin-bottom:28px;}
@@ -251,40 +251,40 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 .co-card{border:1.5px solid var(--border);padding:var(--space-5);background:var(--bg);display:flex;flex-direction:column;gap:var(--space-4);}
 .co-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-3);}
 .co-card-title{font-size:var(--text-lg);font-weight:900;letter-spacing:-.5px;line-height:1.1;}
-.co-card-sub{font-size:var(--text-sm);color:var(--mid);margin-top:4px;}
+.co-card-sub{font-size:var(--text-sm);color:var(--fg);margin-top:4px;}
 /* progress: big fraction left, bar + percent right */
 .co-card-progress{display:flex;flex-direction:column;gap:var(--space-2);}
 .co-card-frac{display:flex;align-items:baseline;gap:6px;}
 .co-card-frac .num{font-size:var(--text-2xl);font-weight:900;line-height:1;}
-.co-card-frac .den{font-size:var(--text-md);color:var(--mid);}
-.co-card-frac .lab{font-size:var(--text-sm);color:var(--mid);letter-spacing:.04em;text-transform:uppercase;font-weight:700;margin-left:4px;}
+.co-card-frac .den{font-size:var(--text-md);color:var(--fg);}
+.co-card-frac .lab{font-size:var(--text-sm);color:var(--fg);letter-spacing:.04em;text-transform:uppercase;font-weight:700;margin-left:4px;}
 .co-card-bar{height:6px;background:var(--border-m);width:100%;}
 .co-card-bar-fill{height:100%;background:var(--fg);}
 /* the headline capacity callout */
 .co-card-cap{display:flex;flex-direction:column;gap:2px;border-left:3px solid var(--fg);padding:var(--space-1) 0 var(--space-1) var(--space-3);}
 .co-card-cap .big{font-size:var(--text-md);font-weight:900;}
-.co-card-cap .small{font-size:var(--text-sm);color:var(--mid);}
+.co-card-cap .small{font-size:var(--text-sm);color:var(--fg);}
 .co-card-cap.short{border-left-color:var(--red);}
 .co-card-cap.short .big{color:var(--red);}
 /* recipe rows */
 .co-recipe{display:flex;flex-direction:column;gap:0;}
-.co-recipe-row{display:grid;grid-template-columns:1fr auto;gap:var(--space-1) var(--space-3);padding:var(--space-2) 0;border-top:1px solid var(--border-m);}
+.co-recipe-row{display:grid;grid-template-columns:1fr auto;gap:var(--space-1) var(--space-3);padding:var(--space-2) 0;border-top:1px solid var(--border);}
 .co-recipe-row:first-of-type{border-top:none;}
 .co-recipe-name{font-size:var(--text-md);font-weight:700;}
 .co-recipe-need{font-size:var(--text-sm);color:var(--fg);text-align:right;white-space:nowrap;}
-.co-recipe-q{font-size:var(--text-sm);color:var(--mid);}
+.co-recipe-q{font-size:var(--text-sm);color:var(--fg);}
 .co-recipe-stock{font-size:var(--text-sm);text-align:right;white-space:nowrap;}
-.co-recipe-stock.ok{color:var(--mid);}
+.co-recipe-stock.ok{color:var(--fg);}
 .co-recipe-stock.low{color:var(--red);font-weight:700;}
-.co-card-meta{font-size:var(--text-sm);color:var(--mid);}
-.co-section-head{font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mid);margin-bottom:var(--space-2);}
+.co-card-meta{font-size:var(--text-sm);color:var(--fg);}
+.co-section-head{font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--fg);margin-bottom:var(--space-2);}
 @media(max-width:640px){ .co-cards{grid-template-columns:1fr;} }
 /* create-order: per-material quality grid */
 .co-matreqs{margin-bottom:var(--space-5);}
-.co-matreq-head{display:grid;grid-template-columns:1fr 120px 120px;gap:var(--space-2);font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mid);padding-bottom:var(--space-2);}
-.co-matreq{display:grid;grid-template-columns:1fr 120px 120px;gap:var(--space-2);align-items:center;padding:var(--space-2) 0;border-top:1px solid var(--border-m);}
+.co-matreq-head{display:grid;grid-template-columns:1fr 120px 120px;gap:var(--space-2);font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--fg);padding-bottom:var(--space-2);}
+.co-matreq{display:grid;grid-template-columns:1fr 120px 120px;gap:var(--space-2);align-items:center;padding:var(--space-2) 0;border-top:1px solid var(--border);}
 .co-matreq-name{font-size:var(--text-md);font-weight:700;}
-.co-matreq-name .q{color:var(--mid);font-weight:400;font-size:var(--text-sm);}
+.co-matreq-name .q{color:var(--fg);font-weight:400;font-size:var(--text-sm);}
 .modal-title{font-size:var(--text-lg);font-weight:900;letter-spacing:-.5px;margin-bottom:40px;}
 .search-row{display:flex;gap:var(--space-3);align-items:center;margin-bottom:36px;}
 .search-row input{max-width:260px;margin:0;}
@@ -337,7 +337,7 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 .fp-box{padding:22px 24px;background-color:var(--bg);}
 .fp-dots{background-color:var(--bg);background-image:radial-gradient(var(--fg) 0.8px, transparent 0.8px),radial-gradient(var(--fg) 0.8px, transparent 0.8px);background-size:8px 8px;background-position:0 0,4px 4px;}
 /* On dotted boxes, give each glyph a soft background-colour halo. */
-.fp-dots .fp-head,.fp-dots .fp-kicker,.fp-dots .fp-foot{text-shadow:.5px 0 0 var(--bg),-.5px 0 0 var(--bg),0 .5px 0 var(--bg),0 -.5px 0 var(--bg),.5px .5px 0 var(--bg),-.5px -.5px 0 var(--bg),.5px -.5px 0 var(--bg),-.5px .5px 0 var(--bg),1px 0 0 var(--bg),-1px 0 0 var(--bg),0 1px 0 var(--bg),0 -1px 0 var(--bg),1px .5px 0 var(--bg),1px -.5px 0 var(--bg),-1px .5px 0 var(--bg),-1px -.5px 0 var(--bg),.5px 1px 0 var(--bg),-.5px 1px 0 var(--bg),.5px -1px 0 var(--bg),-.5px -1px 0 var(--bg),1px 1px 0 var(--bg),-1px -1px 0 var(--bg),1px -1px 0 var(--bg),-1px 1px 0 var(--bg);}
+.fp-dots .fp-head,.fp-dots .fp-kicker,.fp-dots .fp-foot,.fp-dots .headline,.fp-dots .date,.fp-dots .source{text-shadow:.5px 0 0 var(--bg),-.5px 0 0 var(--bg),0 .5px 0 var(--bg),0 -.5px 0 var(--bg),.5px .5px 0 var(--bg),-.5px -.5px 0 var(--bg),.5px -.5px 0 var(--bg),-.5px .5px 0 var(--bg),1px 0 0 var(--bg),-1px 0 0 var(--bg),0 1px 0 var(--bg),0 -1px 0 var(--bg),1px .5px 0 var(--bg),1px -.5px 0 var(--bg),-1px .5px 0 var(--bg),-1px -.5px 0 var(--bg),.5px 1px 0 var(--bg),-.5px 1px 0 var(--bg),.5px -1px 0 var(--bg),-.5px -1px 0 var(--bg),1px 1px 0 var(--bg),-1px -1px 0 var(--bg),1px -1px 0 var(--bg),-1px 1px 0 var(--bg);}
 .fp-bd,.fp-bd-red{border:3px solid currentColor;}
 
 /* ── PIPELINE FRAMES ─────────────────────────────────────────────
@@ -386,8 +386,8 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 .fpb-about{max-width:680px;margin:24px auto 0;font-size:var(--text-md);line-height:1.7;color:var(--fg);display:none;text-align:left;}
 .fpb-about.open{display:block;}
 .fpb-meta{width:100%;margin-top:64px;border-collapse:collapse;text-align:left;}
-.fpb-meta tr{border-top:1px solid var(--border-m);}
-.fpb-meta tr:last-child{border-bottom:1px solid var(--border-m);}
+.fpb-meta tr{border-top:1px solid var(--border);}
+.fpb-meta tr:last-child{border-bottom:1px solid var(--border);}
 .fpb-meta th,.fpb-meta td{padding:20px var(--space-2);font-size:18px;vertical-align:middle;}
 .fpb-meta th{width:170px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
 .fpb-meta td{font-weight:400;}
@@ -521,11 +521,11 @@ body.dark .ov-greeting-sub{color:#e0e0e0;}
 .lottery-status.drawn{background:#f59e0b;color:#fff;}
 .lottery-status.closed{background:#555;color:#fff;}
 body.dark .lottery-status.draft{background:#2a2a2a;color:#aaa;}
-.pkg-card{border:1.5px solid var(--border-l);padding:20px;margin-bottom:var(--space-3);}
+.pkg-card{border:1.5px solid var(--border);padding:20px;margin-bottom:var(--space-3);}
 .pkg-card.picked{border-color:#22c55e;opacity:.8;}
 .pkg-card.mine{border-color:#22c55e;background:#f0fdf4;}
 body.dark .pkg-card.mine{background:#052e16;}
-.pkg-item-row{display:flex;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px solid var(--border-m);}
+.pkg-item-row{display:flex;align-items:baseline;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);}
 .pkg-item-row:last-child{border-bottom:none;}
 .comp-type-badge{display:inline-block;padding:1px 6px;font-size:var(--text-md);font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#000;color:#fff;}
 body.dark .comp-type-badge{background:#e0e0e0;color:#111;}
@@ -2382,7 +2382,7 @@ function pageMember() {
       </table>
     </div>`:`<div class="empty">No activity recorded yet.</div>`}
 
-    <div style="margin-top:48px;max-width:420px;border-top:1px solid var(--border-m);padding-top:32px;">
+    <div style="margin-top:48px;max-width:420px;border-top:1px solid var(--border);padding-top:32px;">
       <div style="font-size:var(--text-md);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;color:var(--fg);">Change Password</div>
       <div class="field"><label class="lbl">Current password</label>
         <input type="password" id="cp-current" autocomplete="current-password"></div>
@@ -2595,7 +2595,7 @@ function renderCraftInventory(){
     <td data-label="Qty" style="font-weight:700;">${s.qty} <span style="font-weight:400;color:var(--fg);font-size:var(--text-sm);">${esc(s.unit)}</span></td>
     <td data-label="Quality" style="font-size:var(--text-sm);color:var(--fg);">${s.qualityValue!=null?`Q ${s.qualityValue}`:'—'}</td>
     <td data-label="Location" style="font-size:var(--text-md);">${esc(s.location||'—')}${s.system?` <span class="sys-badge">${esc(s.system)}</span>`:''}</td>
-    <td data-label="" style="white-space:nowrap;">${cfInvF==='shipping'?`<span style="font-size:var(--text-sm);color:var(--mid);text-transform:uppercase;letter-spacing:.04em;">With logistics</span>`:(canSend?`<button class="btn btn-black btn-sm" onclick="doSendOne('${esc(s._id)}')">Send</button>`:'')}</td>
+    <td data-label="" style="white-space:nowrap;">${cfInvF==='shipping'?`<span style="font-size:var(--text-sm);color:var(--fg);text-transform:uppercase;letter-spacing:.04em;">With logistics</span>`:(canSend?`<button class="btn btn-black btn-sm" onclick="doSendOne('${esc(s._id)}')">Send</button>`:'')}</td>
   </tr>`).join('')}</tbody></table>`;
 }
 async function doSendOne(id){
@@ -2657,7 +2657,7 @@ function craftModalDetailsHtml(){
     <div style="display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;">
       <input id="cm-qty" type="number" min="1" max="${remaining}" value="1" style="width:90px;margin:0;" oninput="craftModalUpdateQty()">
       <button class="btn btn-outline btn-sm" onclick="craftModalMax()">Max</button>
-      <span style="font-size:var(--text-sm);color:var(--mid);">${remaining} left in this order</span>
+      <span style="font-size:var(--text-sm);color:var(--fg);">${remaining} left in this order</span>
     </div>
   </div>
   <div id="cm-shop">${craftModalShopHtml(1)}</div>`;
@@ -2868,7 +2868,7 @@ function renderPickupTable(){
     const canAccept=w.status==='open'&&canAct;
     const canFinish=w.status==='claimed'&&mine; // only the claimer confirms receipt
     const canDelete=w.status==='done'&&(isAdmin(u)||w.createdBy===u._id);
-    const reportHtml=(w.report||[]).map(r=>`${esc(r.what)} <span style="color:var(--mid);">(${esc(r.type)}, ~${r.approxQty} ${esc(r.unit||'')})</span>`).join('<br>')
+    const reportHtml=(w.report||[]).map(r=>`${esc(r.what)} <span style="color:var(--fg);">(${esc(r.type)}, ~${r.approxQty} ${esc(r.unit||'')})</span>`).join('<br>')
       || (w.items||[]).map(it=>`${esc(it.name)}${it.qualityStep?` · ${qBandLabel(it.qualityStep)}`:''} ×${it.qty} ${esc(it.unit)}`).join('<br>') || '—';
     return `<tr>
       <td data-label="Location" style="font-weight:700;">${esc(w.location||'—')}${w.system?` <span class="sys-badge">${esc(w.system)}</span>`:''}${w.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(w.note)}</div>`:''}</td>
@@ -2934,7 +2934,7 @@ function renderTransfers(){
       if(canDelete) acts+=`<button class="btn-del" onclick="woDelete('${esc(w._id)}')" aria-label="Delete">&times;</button>`;
     }
     return `<tr>
-      <td data-label="What" style="font-weight:700;">${f.what}<div style="font-size:var(--text-xs);font-weight:400;color:var(--mid);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;">${f.type}${f.destLocation?` → ${esc(f.destLocation)}`:''}</div></td>
+      <td data-label="What" style="font-weight:700;">${f.what}<div style="font-size:var(--text-xs);font-weight:400;color:var(--fg);text-transform:uppercase;letter-spacing:.06em;margin-top:2px;">${f.type}${f.destLocation?` → ${esc(f.destLocation)}`:''}</div></td>
       <td data-label="From">${esc(f.from)}</td>
       <td data-label="To">${esc(f.to)}</td>
       <td data-label="Stage" style="font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${esc(f.stage)}</td>
@@ -3022,7 +3022,7 @@ function renderReportBody(){
 }
 function renderReportList(rows){
   return `<table class="cards"><thead><tr><th>Location</th><th>What you reported</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(w=>{
-    const lines=(w.report||[]).map(r=>`${esc(r.what)} <span style="color:var(--mid);">· ${esc(r.type)} · ~${r.approxQty} ${esc(r.unit||'')}</span>`).join('<br>')||'—';
+    const lines=(w.report||[]).map(r=>`${esc(r.what)} <span style="color:var(--fg);">· ${esc(r.type)} · ~${r.approxQty} ${esc(r.unit||'')}</span>`).join('<br>')||'—';
     const statusLabel = w.status==='open'?'Waiting for pickup':w.status==='claimed'?`Logi on the way${w.claimedByName?' — '+esc(w.claimedByName):''}`:'Collected';
     return `<tr>
       <td data-label="Location" style="font-weight:700;">${esc(w.location||'—')}${w.system?` <span class="sys-badge">${esc(w.system)}</span>`:''}</td>
@@ -3762,7 +3762,7 @@ function renderAdminContent() {
         const issued = r.status==='issued';
         const exp = r.expiresAt ? new Date(r.expiresAt) : null;
         const expired = exp && Date.now() > r.expiresAt;
-        return `<div style="display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--border-m);flex-wrap:wrap;">
+        return `<div style="display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">
           <div style="min-width:180px;">
             <div style="font-weight:700;font-size:var(--text-md);">${esc(r.username)}</div>
             <div style="font-size:var(--text-sm);color:var(--fg);margin-top:2px;">
@@ -3806,7 +3806,7 @@ function renderAdminContent() {
       ${members.map(m=>{
         const isMe=m._id===u._id;
         const removed=m.roles.includes('removed');
-        return `<div style="display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-bottom:1px solid var(--border-m);flex-wrap:wrap;">
+        return `<div style="display:flex;align-items:flex-start;gap:16px;padding:14px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">
           <div style="min-width:160px;">
             <div style="font-weight:700;font-size:var(--text-md);">${esc(m.username)}${isMe?' <span style="color:var(--fg);font-size:var(--text-md);">(you)</span>':''}</div>
             <div style="margin-top:4px;">${m.roles.length?m.roles.map(r=>roleTagHtml(r)).join(' '):roleTagHtml('pending')}</div>
@@ -3832,7 +3832,7 @@ function renderAdminContent() {
         <span class="caret${adminShowRemoved?' open':''}" aria-hidden="true"></span> Removed members (${removedMembers.length})
       </div>
       ${adminShowRemoved?`<div style="margin-top:12px;">${removedMembers.map(m=>`
-        <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--border-m);opacity:.75;">
+        <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--border);opacity:.75;">
           <div style="min-width:160px;">
             <div style="font-weight:700;font-size:var(--text-md);">${esc(m.username)}</div>
             <div style="margin-top:4px;"><span style="color:#ef4444;font-size:var(--text-sm);">Removed</span></div>
@@ -4205,7 +4205,7 @@ function renderLotteryDraftDetail(l) {
         </div>
         ${l.items.length===0?`<div style="font-size:var(--text-md);color:var(--fg);padding:20px 0;">No items added yet. Add from the catalog →</div>`:''}
         ${l.items.map(item=>`
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border-m);">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
             <div style="flex:1;">
               <span class="comp-type-badge" style="font-size:var(--text-xs);">${esc(item.typeName)}</span>
               <span style="margin-left:6px;font-weight:700;font-size:var(--text-md);" class="comp-grade-${item.grade.toLowerCase()}">${esc(item.name)}</span>
@@ -4219,7 +4219,7 @@ function renderLotteryDraftDetail(l) {
           </div>`).join('')}
 
         ${l.items.length>0?`
-        <div style="margin-top:24px;padding:20px;background:var(--bg2);border:1.5px solid var(--border-l);">
+        <div style="margin-top:24px;padding:20px;background:var(--bg2);border:1.5px solid var(--border);">
           <div style="font-size:var(--text-md);font-weight:700;margin-bottom:12px;letter-spacing:.08em;text-transform:uppercase;">Generate Packages</div>
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <label style="font-size:var(--text-md);">Number of packages:</label>
@@ -4270,7 +4270,7 @@ function renderLotteryDraftDetail(l) {
             oninput="lotteryCompSearch=this.value;document.getElementById('comp-catalog-list').innerHTML=renderCompCatalogList('${esc(l._id)}');">
         </div>
 
-        <div id="comp-catalog-list" style="max-height:460px;overflow-y:auto;border:1px solid var(--border-l);">
+        <div id="comp-catalog-list" style="max-height:460px;overflow-y:auto;border:1px solid var(--border);">
           ${renderCompCatalogList(l._id)}
         </div>
       </div>
@@ -4298,7 +4298,7 @@ function renderCompCatalogList(lotteryId) {
   if(!filtered.length) return `<div style="padding:20px;font-size:var(--text-md);color:var(--fg);">No components match.</div>`;
   return filtered.map(c=>{
     const itemId=`${c.type}_${c.name.replace(/\s+/g,'_')}_${c.grade}_${c.size}_${c.tier}`;
-    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border-m);">
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);">
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
           <span style="font-size:var(--text-md);font-weight:700;color:var(--fg);" class="comp-grade-${c.grade.toLowerCase()}">${esc(c.name)}</span>
@@ -4360,7 +4360,7 @@ function renderLotteryOpenDetail(l) {
 function renderExtNameRow(l, pkgs, name) {
   const entered=pkgs.filter(p=>(p.interested||[]).some(i=>i.id==='ext_'+name));
   const notEntered=pkgs.filter(p=>!(p.interested||[]).some(i=>i.id==='ext_'+name));
-  return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border-m);flex-wrap:wrap;">
+  return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;">
     <span style="font-size:var(--text-md);font-weight:700;min-width:160px;">${esc(name)}</span>
     <span style="font-size:var(--text-md);color:var(--fg);">${entered.length?'Entered: '+entered.map(p=>'Pkg '+p.pkgId.replace('pkg_','')).join(', '):'Not entered yet'}</span>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
@@ -4422,7 +4422,7 @@ function renderLotteryDrawnDetail(l) {
       ${pkgs.map(pkg=>renderPackageCard(pkg,l,true)).join('')}
     </div>
     ${noWinners.length?`
-    <div style="margin-top:8px;padding:16px 20px;background:var(--bg2);border:1.5px solid var(--border-l);">
+    <div style="margin-top:8px;padding:16px 20px;background:var(--bg2);border:1.5px solid var(--border);">
       <div style="font-size:var(--text-md);font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">No Package Assigned</div>
       ${noWinners.map(p=>`<div style="font-size:var(--text-md);padding:4px 0;">${esc(p.name)} — no package won</div>`).join('')}
     </div>`:''}`;
