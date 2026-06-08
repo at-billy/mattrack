@@ -399,6 +399,8 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 .fpb-card .headline{font-size:38px;font-weight:700;line-height:1.0;letter-spacing:-.5px;}
 .fpb-card .source{display:block;margin-top:4px;}
 .fpb-card[role="button"]{cursor:pointer;}
+/* colophon: the fine print, dropped in flow as the last headline under the stage */
+.fpb-colophon{position:static;margin:80px auto 0;}
 .fpb-c1{top:20px;left:22%;}
 .fpb-c2{top:430px;right:0;}
 .fpb-c3{top:840px;left:0;}
@@ -1801,7 +1803,7 @@ function fpActivityHeadline(e){
     case 'item_crafted':        return {kicker:dt, text:`${e.userName} crafted ${d.count}× ${d.item}${d.quality!=null?` (Q${d.quality})`:''}`, foot:'Distribution'};
     case 'items_taken':         return {kicker:dt, text:`${d.to||e.userName} stocked ${pl(d.count,'item')}${d.from?` from ${d.from}`:''}`, foot:'Distribution'};
     case 'item_handed_out':     return {kicker:dt, text:`${d.qty}× ${d.item||d.name} handed to ${d.recipient||d.handedOutTo}`, foot:'Log'};
-    case 'catalog_imported':    return {kicker:dt, text:`Catalog seeded — ${d.items||0} items, ${d.materials||0} materials`, foot:'Admin'};
+    case 'catalog_imported':    return {kicker:dt, text:`Catalog seeded with ${d.items||0} items and ${d.materials||0} materials`, foot:'Admin'};
     case 'user_joined':         return {kicker:'New recruit', text:`${e.userName} signed up to the wing`, foot:'Roster'};
     case 'member_restored':     return {kicker:dt, text:`${d.targetUsername} is back on the roster`, foot:'Roster'};
     case 'role_approved':       return {kicker:dt, text:`${d.targetUsername} is now ${d.role}`, foot:'Roster'};
@@ -1834,7 +1836,7 @@ function buildHeadlines(){
   const matsMoving=M(reported).length+M(inTransit).length+M(atBase).length;
   const itemsMade=isum(I(crafted))+isum(I(withDist));
   if(!stock.length && !wos.length){
-    push('The Pipeline', `Quiet on every front — gather something to set it running`, 'Stock');
+    push('The Pipeline', `Quiet on every front. Gather something to get it running`, 'Stock');
   } else {
     push('The Pipeline', `${plural(matsMoving,'material lot')} in motion, ${plural(itemsMade,'item')} finished and waiting`, 'Stock');
   }
@@ -1874,7 +1876,7 @@ function buildHeadlines(){
 
   // ── Roster ──
   const byRole=r=>members.filter(m=>m.roles.includes(r)).length;
-  push('The Roster', `${plural(members.length,'member')} strong — ${byRole('gatherer')} gather, ${byRole('crafter')} craft, ${byRole('distributor')} distribute`, 'Roster');
+  push('The Roster', `${plural(members.length,'member')} strong: ${byRole('gatherer')} gather, ${byRole('crafter')} craft, ${byRole('distributor')} distribute`, 'Roster');
   const pending=state.allUsers.filter(isRecruit).length;
   if(pending && isAdmin(state.user)) push('Awaiting Approval', `${plural(pending,'recruit')} waiting to be let in`, 'Admin');
 
@@ -1949,36 +1951,41 @@ function pageOverview() {
     return s + Math.min(craftOrgAvail(item,o), rem);
   },0);
 
-  // 1) Book cover — four status lines, alternating yellow / white, top to bottom.
+  // 1) Book cover — four status lines, one per stage, alternating yellow / white,
+  // top to bottom. Same content the old front page led with, bound to live data.
   const cover = `<section class="fpb-cover-wrap"><div class="fpb-cover">
-    <div class="fpb-line y">Gatherers have ${pl(reported.length,'lot')} reported.</div>
-    <div class="fpb-line w">Logistics has ${pl(inTransit.length,'lot')} in transit.</div>
-    <div class="fpb-line y">Crafters have ${pl(craftOpen.length,'open order')}.</div>
-    <div class="fpb-line w">Distributors have ${pl(isum(withDist),'item')} stockpiled.</div>
+    <div class="fpb-line y">gatherers have ${pl(reported.length,'lot')} reported.</div>
+    <div class="fpb-line w">logistics is moving ${pl(inTransit.length,'lot')}.</div>
+    <div class="fpb-line y">crafters have ${pl(craftOpen.length,'order')} open.</div>
+    <div class="fpb-line w">distributors are sitting on ${pl(isum(withDist),'item')}.</div>
   </div></section>`;
 
-  // 2-4) Title, punchline, expandable about, and the metadata table.
+  // 2-4) Title, punchline, expandable about, and the metadata table — every value
+  // is live, phrased the way the old front page put it.
   const rows = [
-    ['Gatherers',    `${qsum(reported)} units in the field and ${pl(openPickups,'pickup')} waiting`],
-    ['Logistics',    `${qsum(inTransit)} units inbound to base`],
-    ['Logistics',    `${isum(crafted)} units ready to ship out`],
-    ['Crafters',     `${craftableNow} items ready to be crafted from the stock`],
-    ['Crafters',     `${pl(urgent,'order')} tagged as urgent`],
-    ['Distributors', `${isum(crafted)} items crafted and ready to distribute`],
+    ['Gatherers',    `${qsum(reported)} units out in the field, ${pl(openPickups,'pickup')} waiting on a lift`],
+    ['Logistics',    `${qsum(inTransit)} units on the way to base`],
+    ['Logistics',    `${isum(crafted)} finished items waiting to ship out`],
+    ['Crafters',     `${craftableNow} items we could build from what's at base`],
+    ['Crafters',     `${pl(urgent,'order')} marked urgent`],
+    ['Distributors', `${isum(withDist)} items stockpiled, ready to hand out`],
   ];
   const info = `<section class="fpb-info">
-    <h1>The org's material pipeline</h1>
-    <p class="fpb-sub">Every haul, craft and hand-out — tracked end to end.</p>
+    <h1>the org's material pipeline</h1>
+    <p class="fpb-sub">everything we haul, build and hand out, logged as it happens.</p>
     <button class="fpb-readmore" onclick="fpbToggleAbout(this)">Read more</button>
-    <p class="fpb-about" id="fpb-about">Mattrack tracks the org's material pipeline from field to finished goods: gatherers report hauls, logistics carries them to base, crafters turn raw materials into items, and distributors hand them out. Every transfer is a two-party meet-and-confirm, so the ledger always reflects who actually holds what — and the figures above update live as the pipeline moves.</p>
+    <p class="fpb-about" id="fpb-about">mattrack follows the org's materials from the field to finished gear. gatherers report what they pulled, logistics hauls it to base, crafters turn it into items, and distributors hand it out. every handover happens in person and both people confirm it, so the numbers here always show who's actually holding what. they update live as stuff moves.</p>
     <table class="fpb-meta"><tbody>${rows.map(r=>`<tr><th>${r[0]}</th><td>${esc(r[1])}</td></tr>`).join('')}</tbody></table>
   </section>`;
 
-  // 5) Press — six live headlines as a free-positioned constellation. Every
-  // headline carries the dotted fill (.fp-dots).
-  const heads = buildHeadlines().filter(h=>!h.credits).slice(0,6);
+  // 5) Press — live headlines as a free-positioned constellation, with the
+  // colophon brought back as the final headline below them. Every headline
+  // carries the dotted fill (.fp-dots).
+  const all = buildHeadlines();
+  const colophon = all.find(h=>h.credits);
+  const heads = all.filter(h=>!h.credits).slice(0,6);
   const press = `<section class="fpb-press">
-    <div class="fpb-year">News</div>
+    <div class="fpb-year">news</div>
     <div class="fpb-stage">${heads.map((h,idx)=>{
       const go = fpGoFor(h);
       const click = go ? ` role="button" tabindex="0" aria-label="${esc(h.text)}" onclick="${go}"` : '';
@@ -1987,6 +1994,10 @@ function pageOverview() {
         <div class="headline">${esc(h.text)}${h.foot?`<span class="source">→ ${esc(h.foot)}</span>`:''}</div>
       </article>`;
     }).join('')}</div>
+    ${colophon?`<article class="fpb-card fp-dots fpb-colophon">
+      <div class="date">${esc(colophon.kicker)}</div>
+      <div class="headline">${esc(colophon.text)}${colophon.foot?`<span class="source">${esc(colophon.foot)}</span>`:''}</div>
+    </article>`:''}
   </section>`;
 
   return cover + info + press;
