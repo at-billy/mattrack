@@ -1188,22 +1188,28 @@ async function refreshAll(silent=false) {
   try {
     const tok = state.sessionToken;
     const EMPTY_CAT = { materials: [], items: [], locations: [] };
-    const [archive, allUsers, lotteries, passwordResets, catalog, stock, workorders] = await Promise.all([
+    // The catalog (~1,500 rows) is large and effectively static — it only changes
+    // on the Catalog admin page. Fetch it on first load or while on that page;
+    // everywhere else the reactive subscription keeps it live, so re-downloading
+    // the whole catalog after every pipeline action is pure waste.
+    const wantCatalog = !state._catalogLoaded || currentPage === 'catalog';
+    const [archive, allUsers, lotteries, passwordResets, stock, workorders, catalog] = await Promise.all([
       convexQuery('archive:getAll',{sessionToken:tok}).catch(()=>[]),
       convexQuery('users:getAllUsers',{sessionToken:tok}).catch(()=>[]),
       convexQuery('lotteries:getAll',{sessionToken:tok}).catch(()=>[]),
       convexQuery('passwordResets:list',{sessionToken:tok}).catch(()=>[]),
-      convexQuery('catalog:getAll',{sessionToken:tok}).catch(()=>EMPTY_CAT),
       convexQuery('stock:getAll',{sessionToken:tok}).catch(()=>[]),
       convexQuery('workorders:getAll',{sessionToken:tok}).catch(()=>[]),
+      wantCatalog ? convexQuery('catalog:getAll',{sessionToken:tok}).catch(()=>null) : Promise.resolve(null),
     ]);
     state.archive       = archive       || [];
     state.allUsers      = allUsers      || [];
     state.lotteries     = lotteries     || [];
     state.passwordResets = passwordResets || [];
-    state.catalog       = catalog       || EMPTY_CAT;
     state.stock         = stock         || [];
     state.workorders    = workorders    || [];
+    if (catalog) { state.catalog = catalog; if ((catalog.items||[]).length) state._catalogLoaded = true; }
+    else if (!state.catalog) state.catalog = EMPTY_CAT;
     // Sync logged-in user's roles from server
     if(state.user) {
       const fresh=state.allUsers.find(u=>u._id===state.user._id);
@@ -1251,6 +1257,7 @@ function initReactive() {
       const ref = api[mod][fn];
       const unsub = convexClient.onUpdate(ref, { sessionToken: tok }, (rows) => {
         state[key] = rows || [];
+        if (key === 'catalog' && rows && (rows.items||[]).length) state._catalogLoaded = true;
         if (state.user) {
           const fresh = state.allUsers.find(u => u._id === state.user._id);
           if (fresh) state.user = fresh;
@@ -1271,6 +1278,7 @@ function startFallbackPoll() {
 }
 
 function stopData() {
+  state._catalogLoaded = false; // re-fetch the catalog fresh on next sign-in
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
   for (const unsub of convexSubs) { try { unsub(); } catch (e) {} }
   convexSubs = [];
