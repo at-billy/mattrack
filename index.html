@@ -1676,6 +1676,14 @@ function hasAdmin() {
   if (!state.allUsers.length) return true;
   return state.allUsers.some(u=>(u.roles||[]).includes('admin'));
 }
+// Mirror of the backend rule: self-claim admin only on a genuinely fresh install
+// (no admin yet AND you're the sole active account). Prevents showing a button
+// that the server would reject once other members exist.
+function canBootstrapAdmin() {
+  if (!state.allUsers.length) return false;
+  if (state.allUsers.some(u=>(u.roles||[]).includes('admin'))) return false;
+  return state.allUsers.filter(u=>!(u.roles||[]).includes('removed')).length <= 1;
+}
 // "pending": signed up but holds no approved functional role yet. (Name kept for
 // minimal churn; semantically this is the pending/unapproved gate.)
 function isRecruit(u) {
@@ -2146,12 +2154,14 @@ function pageRecruitOverview(u) {
           <span style="display:inline-block;background:var(--red);color:#fff;font-size:var(--text-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;">Pending approval</span>
         </div>
       </div>
-      ${noAdmin?`<button class="btn btn-outline" style="border-color:var(--red);color:var(--fg);" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
+      ${canBootstrapAdmin()?`<button class="btn btn-outline" style="border-color:var(--red);color:var(--fg);" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
     </div>
     <div style="max-width:600px;">
-      ${noAdmin?`<div style="border:2px solid var(--red);padding:16px 18px;margin-bottom:28px;font-size:var(--text-md);line-height:1.6;">
+      ${canBootstrapAdmin()?`<div style="border:2px solid var(--red);padding:16px 18px;margin-bottom:28px;font-size:var(--text-md);line-height:1.6;">
         <strong>First account on a fresh install.</strong> No admin exists yet — click <strong>Claim Admin</strong> above to make this account the administrator and set things up.
-      </div>`:''}
+      </div>`:(noAdmin?`<div style="border:2px solid var(--red);padding:16px 18px;margin-bottom:28px;font-size:var(--text-md);line-height:1.6;">
+        <strong>No admin currently set.</strong> An admin must be restored by someone with server access — self-claim is locked once members exist.
+      </div>`:'')}
       <div style="font-size:var(--text-lg);font-weight:900;letter-spacing:-.5px;margin-bottom:16px;">WELCOME</div>
       <div style="font-size:var(--text-md);color:var(--fg);line-height:1.7;margin-bottom:28px;">
         Mattrack tracks the org's material pipeline — gathering, logistics, crafting and distribution.
@@ -2335,7 +2345,6 @@ function fmtArchiveDetails(e){
 // ─── MEMBER PAGE ──────────────────────────────────────────────────────────────
 function pageMember() {
   const u = state.user;
-  const noAdmin = !hasAdmin();
   const myLog = state.archive.filter(e => e.userId === u._id && !LOTTERY_LOG_TYPES.has(e.type));
   const myStockAdded = myLog.filter(e=>e.type==='stock_added').length;
   const myCrafted    = myLog.filter(e=>e.type==='item_crafted').length;
@@ -2351,7 +2360,7 @@ function pageMember() {
           ${activeRoles.map(r=>roleTagHtml(r)).join('')}
         </div>
       </div>
-      ${noAdmin?`<button class="btn btn-outline" style="border-color:var(--red);color:var(--fg);font-size:var(--text-md);" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
+      ${canBootstrapAdmin()?`<button class="btn btn-outline" style="border-color:var(--red);color:var(--fg);font-size:var(--text-md);" onclick="claimBootstrapAdmin()">Claim Admin</button>`:''}
     </div>
 
     <div class="ov-stats" style="margin-bottom:40px;">
@@ -4790,6 +4799,7 @@ async function claimBootstrapAdmin() {
     goTo('admin');
   } catch(e){
     if(e.message.includes('ADMIN_EXISTS')) toast('An admin already exists — cannot claim.');
+    else if(e.message.includes('BOOTSTRAP_LOCKED')) toast('Self-claim is locked once members exist — restore an admin via server access.');
     else notifyError(e);
   }
 }

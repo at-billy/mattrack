@@ -92,8 +92,14 @@ export const claimBootstrapAdmin = mutation({
   handler: async (ctx, { sessionToken }) => {
     const user = await requireSession(ctx.db, sessionToken);
     const allUsers = await ctx.db.query("users").collect();
-    const hasAdmin = allUsers.some(u => u.roles.includes("admin"));
-    if (hasAdmin) throw new ConvexError("ADMIN_EXISTS");
+    if (allUsers.some(u => u.roles.includes("admin"))) throw new ConvexError("ADMIN_EXISTS");
+    // Bootstrap is for a genuinely fresh install only: the claimer must be the
+    // sole active account. Once others have joined, a zero-admin state can't be
+    // self-claimed by just any logged-in user — recovery is via grantAdmin or
+    // a server-side (CLI) action instead. This blocks privilege escalation if
+    // the admin count ever drops to zero with members present.
+    const active = allUsers.filter(u => !u.roles.includes("removed"));
+    if (active.length > 1) throw new ConvexError("BOOTSTRAP_LOCKED");
     const newRoles = [...user.roles];
     if (!newRoles.includes("admin")) newRoles.push("admin");
     await ctx.db.patch(user._id, { roles: newRoles });
