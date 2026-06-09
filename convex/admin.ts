@@ -4,6 +4,16 @@ import { requireSession, assertRole } from "./_helpers";
 import { verifyPassword, hashPassword } from "./_password";
 import { assertNotLocked, recordFailure, clearThrottle } from "./_throttle";
 
+// The made-up demo members the seeders create (password "demo1234"). Listed once
+// so the seeder and the teardown agree on exactly who is demo data.
+const DEMO_USERS = [
+  { username: "kade", roles: ["gatherer"] },
+  { username: "nira", roles: ["crafter"] },
+  { username: "tovo", roles: ["crafter", "gatherer"] },
+  { username: "vex",  roles: ["logistics"] },
+  { username: "rin",  roles: ["distributor"] },
+];
+
 // Destructive reset for demos/presentations. Clears all transactional data —
 // stock, work orders (incl. transfers in progress), the activity log, password
 // reset requests, and finished lotteries (open/drawn/closed). KEEPS the catalog
@@ -46,20 +56,16 @@ export const wipeForDemo = mutation({
 // entries, so the app looks in real use for a client demo. Safe to re-run after
 // a wipe; it skips the transactional seed if stock already exists.
 export const seedDemo = internalMutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { confirm: v.optional(v.string()) },
+  handler: async (ctx, { confirm }) => {
+    // Explicit opt-in so this can never run by accident on the live deployment.
+    if (confirm !== "seed") throw new ConvexError('Refusing to seed demo data — pass confirm:"seed" to run');
     const admin = (await ctx.db.query("users").collect()).find(u => (u.roles || []).includes("admin"));
     if (!admin) throw new ConvexError("No admin user found to attribute demo data to");
 
     // ── Demo members (idempotent) — password "demo1234" ──
     const demoPw = await hashPassword("demo1234");
-    const demoUsers = [
-      { username: "kade", roles: ["gatherer"] },
-      { username: "nira", roles: ["crafter"] },
-      { username: "tovo", roles: ["crafter", "gatherer"] },
-      { username: "vex",  roles: ["logistics"] },
-      { username: "rin",  roles: ["distributor"] },
-    ];
+    const demoUsers = DEMO_USERS;
     const idByName: Record<string, any> = { [admin.username]: admin._id };
     for (const du of demoUsers) {
       const existing = await ctx.db.query("users").withIndex("by_username", q => q.eq("username", du.username)).first();
@@ -160,8 +166,9 @@ export const seedDemo = internalMutation({
 // own at-base materials for the open orders, a few crafted items to Send, and a
 // stockpile to Hand Out. Run via `npx convex run admin:seedAdminDemo`.
 export const seedAdminDemo = internalMutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { confirm: v.optional(v.string()) },
+  handler: async (ctx, { confirm }) => {
+    if (confirm !== "seed") throw new ConvexError('Refusing to seed admin demo inventory — pass confirm:"seed" to run');
     const admin = (await ctx.db.query("users").collect()).find(u => (u.roles || []).includes("admin"));
     if (!admin) throw new ConvexError("No admin user found");
     const me = admin.username;
@@ -204,5 +211,31 @@ export const seedAdminDemo = internalMutation({
     await addStock({ kind: "item", name: someItem, category: someCat, qualityValue: 780, qty: 6, unit: "UNIT", location: baseName, system: baseSys, heldBy: me, status: "with_distributor" });
 
     return { rolesNow: roles, seededInventory: true };
+  },
+});
+
+// Launch teardown: removes the made-up demo members (and their sessions + auth
+// throttle rows) so the demo's weak "demo1234" logins don't survive into
+// production. Run Wipe first to clear demo stock/work orders/log, then run this:
+// `npx convex run admin:clearDemo '{"confirm":"remove-demo"}'`. Real accounts
+// (admin etc.) are never touched. Does not alter the admin's roles.
+export const clearDemo = internalMutation({
+  args: { confirm: v.string() },
+  handler: async (ctx, { confirm }) => {
+    if (confirm !== "remove-demo") throw new ConvexError('Refusing to remove demo accounts — pass confirm:"remove-demo" to run');
+    let users = 0, sessions = 0, throttles = 0;
+    const allSessions = await ctx.db.query("sessions").collect();
+    for (const du of DEMO_USERS) {
+      const u = await ctx.db.query("users").withIndex("by_username", q => q.eq("username", du.username)).first();
+      if (!u) continue;
+      for (const s of allSessions) if (s.userId === u._id) { await ctx.db.delete(s._id); sessions++; }
+      for (const key of [`login:${du.username.toLowerCase()}`, `pw:${u._id}`, `wipe:${u._id}`]) {
+        const t = await ctx.db.query("authThrottle").withIndex("by_key", q => q.eq("key", key)).first();
+        if (t) { await ctx.db.delete(t._id); throttles++; }
+      }
+      await ctx.db.delete(u._id);
+      users++;
+    }
+    return { removedUsers: users, removedSessions: sessions, clearedThrottles: throttles };
   },
 });
