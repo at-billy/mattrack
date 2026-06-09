@@ -2690,12 +2690,12 @@ function renderWoListActive(){
 // ── Pickup table (gatherer → logistics) ──
 function renderPickupTable(){
   const u=state.user;
-  const val=(w,c)=>{ switch(c){ case 'status':return ({open:0,claimed:1,done:2})[w.status]??9; case 'accepted':return w.claimedByName||''; case 'by':return w.createdByName||''; case 'items':return (w.report||w.items||[]).length; default:return w.location||''; } };
+  const val=(w,c)=>{ switch(c){ case 'status':return ({open:0,claimed:1,done:2})[w.status]??9; case 'accepted':return w.claimedByName||''; case 'holder':return w.giverName||w.createdByName||''; case 'by':return w.createdByName||''; case 'items':return (w.report||w.items||[]).length; default:return w.location||''; } };
   let rows=state.workorders.filter(w=>w.kind==='pickup'&&w.status===pkF
       &&searchMatch('wo', w.location, w.createdByName, w.claimedByName, (w.report||[]).map(r=>r.what+' '+r.type).join(' ')))
     .sort((a,b)=>cmpVals(val(a,pkSortCol),val(b,pkSortCol),pkSortDir));
   if(!rows.length) return `<div class="empty">No ${pkF==='open'?'open':pkF==='claimed'?'accepted':'completed'} pickups${searchGet('wo').text?' match your search':''}.</div>`;
-  const cols=[['location','Location'],['items','Reported'],['status','Status'],['accepted','Accepted by'],['by','By']];
+  const cols=[['location','Location'],['items','Reported'],['holder','Holder'],['status','Status'],['accepted','Accepted by'],['by','By']];
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setPkSort',pkSortCol,pkSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(w=>{
     const canAct=hasRole(u,'logistics'); // admin sees pickups but can't act as logistics
     const mine=w.claimedById===u._id;
@@ -2707,6 +2707,7 @@ function renderPickupTable(){
     return `<tr>
       <td data-label="Location" style="font-weight:700;">${esc(w.location||'—')}${w.system?` <span class="sys-badge">${esc(w.system)}</span>`:''}${w.note?`<div style="font-size:var(--text-sm);font-weight:400;color:var(--fg);">${esc(w.note)}</div>`:''}</td>
       <td data-label="Reported" style="font-size:var(--text-sm);color:var(--fg);">${reportHtml}</td>
+      <td data-label="Holder" style="font-weight:700;">${esc(w.giverName||w.createdByName||'—')}</td>
       <td data-label="Status" style="font-size:var(--text-sm);font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${woStatusLabel(w.status)}</td>
       <td data-label="Accepted by">${esc(w.claimedByName||'—')}</td>
       <td data-label="By" style="color:var(--fg);">${esc(w.createdByName)}</td>
@@ -2869,10 +2870,20 @@ function renderReportList(rows){
 let _rpLines=0;
 function openReportModal(){
   _rpLines=0;
+  const me=state.user?state.user.username:'';
+  const others=(state.allUsers||[]).filter(u=>!(u.roles||[]).includes('removed')&&u.username!==me).map(u=>u.username).sort((a,b)=>a.localeCompare(b));
   showModal(`
     <div class="modal-title">Report materials</div>
     <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:var(--space-3);">Just the rough picture — what you've got and where. Logistics enters the exact amounts and quality when they collect it.</p>
     <div class="grid2">${locationPicker('rp', null)}</div>
+    <div class="field" style="margin-top:var(--space-4);"><label class="lbl">Who has the mats?</label>
+      <select id="rp-holder" onchange="rpHolderChanged()">
+        <option value="__me">${esc(me)} (you)</option>
+        ${others.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}
+        <option value="__other">Someone else…</option>
+      </select>
+      <input id="rp-holder-other" type="text" placeholder="name" style="display:none;margin-top:8px;">
+    </div>
     <div style="margin:14px 0 6px;font-size:var(--text-xs);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--fg);">What you have</div>
     <div id="rp-lines"></div>
     <button class="btn btn-outline btn-sm" style="margin-top:6px;" onclick="addReportLine()">+ Add line</button>
@@ -2882,6 +2893,13 @@ function openReportModal(){
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     </div>`);
   addReportLine();
+}
+function rpHolderChanged(){
+  const sel=document.getElementById('rp-holder'); const other=document.getElementById('rp-holder-other');
+  if(!sel||!other) return;
+  const isOther = sel.value==='__other';
+  other.style.display = isOther ? '' : 'none';
+  if(isOther){ try{ other.focus(); }catch(e){} } else { other.value=''; }
 }
 function addReportLine(){
   _rpLines++;
@@ -2900,6 +2918,11 @@ function addReportLine(){
 async function submitReport(){
   const location=pickedLocation('rp'); const system=pickedLocationSystem('rp');
   if(!location){ showErr('rp-err','Pick where it is'); return; }
+  const holderSel=(document.getElementById('rp-holder')||{value:'__me'}).value;
+  let heldBy;
+  if(holderSel==='__me') heldBy=undefined;                       // backend defaults to the reporter
+  else if(holderSel==='__other'){ heldBy=(document.getElementById('rp-holder-other')||{value:''}).value.trim(); if(!heldBy){ showErr('rp-err','Type who has the mats, or pick a member'); return; } }
+  else heldBy=holderSel;
   const lines=[...document.querySelectorAll('#rp-lines .rp-line')].map(r=>({
     type:r.querySelector('.rp-type').value,
     what:r.querySelector('.rp-what').value.trim(),
@@ -2908,7 +2931,7 @@ async function submitReport(){
   })).filter(l=>l.what);
   if(!lines.length){ showErr('rp-err','Add at least one line with a description'); return; }
   if(lines.some(l=>!(l.approxQty>0))){ showErr('rp-err','Give a rough amount for each line'); return; }
-  try{ await convexMutation('workorders:reportGather',{sessionToken:state.sessionToken,location,system,lines}); toast('Reported — logistics notified'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('rp-err',e.message); }
+  try{ await convexMutation('workorders:reportGather',{sessionToken:state.sessionToken,location,system,heldBy,lines}); toast('Reported — logistics notified'); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('rp-err',e.message); }
 }
 
 // ── Logistics: receive a pickup + enter the confirmed manifest ──
@@ -2920,7 +2943,7 @@ function openManifestModal(id){
   const reportHtml=(wo.report||[]).map(r=>`<div style="font-size:var(--text-sm);color:var(--fg);">• ${esc(r.what)} — ${esc(r.type)}, ~${r.approxQty} ${esc(r.unit||'')}</div>`).join('')||'<div class="empty">No report lines.</div>';
   showModal(`
     <div class="modal-title">Receive &amp; manifest</div>
-    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:var(--space-2);">${esc(wo.createdByName)} reported at <strong>${esc(wo.location||'—')}</strong>:</p>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:var(--space-2);">${esc(wo.createdByName)} reported at <strong>${esc(wo.location||'—')}</strong>${(wo.giverName&&wo.giverName!==wo.createdByName)?`, held by <strong>${esc(wo.giverName)}</strong>`:''}:</p>
     <div style="border-left:2px solid var(--border);padding-left:10px;margin-bottom:14px;">${reportHtml}</div>
     <div style="font-size:var(--text-xs);font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--fg);margin-bottom:6px;">Confirmed manifest — exact material, quality &amp; quantity</div>
     <div id="mn-lines"></div>

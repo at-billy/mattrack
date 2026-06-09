@@ -204,13 +204,18 @@ export const reportGather = mutation({
     sessionToken: v.string(),
     location: v.string(),
     system: v.optional(v.string()),
+    heldBy: v.optional(v.string()),
     lines: v.array(v.object({ type: v.string(), what: v.string(), approxQty: v.number(), unit: v.optional(v.string()), note: v.optional(v.string()) })),
   },
-  handler: async (ctx, { sessionToken, location, system, lines }) => {
+  handler: async (ctx, { sessionToken, location, system, heldBy, lines }) => {
     const user = await requireSession(ctx.db, sessionToken);
     assertRole(user, ["gatherer", "admin"]);
     if (!location.trim()) throw new ConvexError("Where is it? Pick a location");
     if (!lines.length) throw new ConvexError("Add at least one line");
+    // Who physically holds the mats (logistics' contact for collection). Defaults
+    // to the reporter; can be another member or a free-typed name when the haul
+    // was consolidated with someone else.
+    const holder = (heldBy && heldBy.trim()) ? heldBy.trim().slice(0, 120) : user.username;
     const report = lines.map(l => {
       if (!GATHER_TYPES.includes(l.type)) throw new ConvexError("Type must be Mineable, Salvage or Loot");
       if (!l.what.trim()) throw new ConvexError("Say what it is");
@@ -221,9 +226,10 @@ export const reportGather = mutation({
       kind: "pickup", status: "open",
       location: location.trim(), system: system?.trim() || undefined,
       report,
+      giverName: holder,
       createdBy: user._id, createdByName: user.username,
     });
-    await ctx.db.insert("archive", { type: "gather_reported", userId: user._id, userName: user.username, details: { count: report.length, location: location.trim() } });
+    await ctx.db.insert("archive", { type: "gather_reported", userId: user._id, userName: user.username, details: { count: report.length, location: location.trim(), heldBy: holder } });
     return id;
   },
 });
