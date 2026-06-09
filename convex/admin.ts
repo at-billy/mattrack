@@ -2,6 +2,7 @@ import { mutation, internalMutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { requireSession, assertRole } from "./_helpers";
 import { verifyPassword, hashPassword } from "./_password";
+import { assertNotLocked, recordFailure, clearThrottle } from "./_throttle";
 
 // Destructive reset for demos/presentations. Clears all transactional data —
 // stock, work orders (incl. transfers in progress), the activity log, password
@@ -13,8 +14,11 @@ export const wipeForDemo = mutation({
   handler: async (ctx, { sessionToken, password }) => {
     const user = await requireSession(ctx.db, sessionToken);
     assertRole(user, ["admin"]);
+    const key = "wipe:" + user._id;
+    const throttle = await assertNotLocked(ctx.db, key);
     const ok = await verifyPassword(password, user.passwordHash);
-    if (!ok) throw new ConvexError("Password is incorrect");
+    if (!ok) { await recordFailure(ctx.db, key, throttle); throw new ConvexError("Password is incorrect"); }
+    await clearThrottle(ctx.db, key, throttle);
 
     const clear = async (table: "stock" | "workorders" | "archive" | "passwordResets") => {
       const rows = await ctx.db.query(table).collect();

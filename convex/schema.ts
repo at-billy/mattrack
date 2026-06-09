@@ -15,6 +15,15 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_token", ["token"]),
 
+  // Brute-force throttle for password checks (login, change-password, wipe).
+  // Keyed by a string like "login:<username>"; cleared on success.
+  authThrottle: defineTable({
+    key: v.string(),
+    fails: v.number(),
+    lockedUntil: v.optional(v.number()),
+    lastFailAt: v.optional(v.number()),
+  }).index("by_key", ["key"]),
+
   lotteries: defineTable({
     title: v.string(),
     status: v.string(), // "draft" | "open" | "drawn" | "closed"

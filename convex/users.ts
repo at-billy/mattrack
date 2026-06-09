@@ -3,17 +3,21 @@ import { v, ConvexError } from "convex/values";
 import { requireSession } from "./_helpers";
 import { hashPassword, verifyPassword, isLegacyHash } from "./_password";
 import { REQUESTABLE_ROLES, GRANTABLE_ROLES, assertIn } from "./_constants";
+import { assertNotLocked, recordFailure, clearThrottle } from "./_throttle";
 
 export const authenticate = mutation({
   args: { username: v.string(), password: v.string() },
   handler: async (ctx, { username, password }) => {
+    const key = "login:" + username.trim().toLowerCase();
+    const throttle = await assertNotLocked(ctx.db, key); // throws TOO_MANY_ATTEMPTS:<secs> when locked
     const user = await ctx.db
       .query("users")
       .withIndex("by_username", q => q.eq("username", username.trim()))
       .first();
-    if (!user || user.roles.includes("removed")) return null;
+    if (!user || user.roles.includes("removed")) { await recordFailure(ctx.db, key, throttle); return null; }
     const ok = await verifyPassword(password, user.passwordHash);
-    if (!ok) return null;
+    if (!ok) { await recordFailure(ctx.db, key, throttle); return null; }
+    await clearThrottle(ctx.db, key, throttle);
     // Transparent upgrade: legacy SHA-256 records are re-hashed with PBKDF2 on first login.
     if (isLegacyHash(user.passwordHash)) {
       const upgraded = await hashPassword(password);
@@ -178,8 +182,11 @@ export const changePassword = mutation({
   args: { sessionToken: v.string(), currentPassword: v.string(), newPassword: v.string() },
   handler: async (ctx, { sessionToken, currentPassword, newPassword }) => {
     const user = await requireSession(ctx.db, sessionToken);
+    const key = "pw:" + user._id;
+    const throttle = await assertNotLocked(ctx.db, key);
     const ok = await verifyPassword(currentPassword, user.passwordHash);
-    if (!ok) throw new ConvexError("CURRENT_PASSWORD_WRONG");
+    if (!ok) { await recordFailure(ctx.db, key, throttle); throw new ConvexError("CURRENT_PASSWORD_WRONG"); }
+    await clearThrottle(ctx.db, key, throttle);
     if (newPassword.length < 6) throw new ConvexError("PASSWORD_TOO_SHORT");
     await ctx.db.patch(user._id, { passwordHash: await hashPassword(newPassword) });
     // Security: invalidate this user's OTHER sessions on a password change.

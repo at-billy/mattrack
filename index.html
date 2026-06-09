@@ -1154,6 +1154,8 @@ function handleSessionError(e) {
 function friendlyError(e) {
   const msg = typeof e === 'string' ? e : (e && (e.message || ''));
   if (!msg) return 'Something went wrong. Please try again.';
+  const tm = msg.match(/TOO_MANY_ATTEMPTS:(\d+)/);
+  if (tm) { const s=+tm[1]; const wait = s<90 ? `${s} seconds` : `${Math.ceil(s/60)} minute${Math.ceil(s/60)>1?'s':''}`; return `Too many attempts. Try again in ${wait}.`; }
   if (isSessionError(msg)) return 'Session expired — please sign in again';
   if (/Request ID:.*Server Error/i.test(msg)) return 'Something went wrong. Please try again.';
   return msg; // ConvexError messages are already user-friendly
@@ -1581,7 +1583,7 @@ async function doSignIn() {
     if(!res){showErr('si-err','Invalid username or password');return;}
     state.user=res; state.sessionToken=res.token;
     localStorage.setItem('mattrack_token',res.token); showApp();
-  } catch(e){showErr('si-err',e.message);}
+  } catch(e){showErr('si-err',friendlyError(e));}
 }
 
 async function doSignUp() {
@@ -3767,7 +3769,7 @@ async function doWipe(){
     const out=await convexMutation('admin:wipeForDemo',{sessionToken:state.sessionToken,password:pw});
     toast(`Wiped — stock ${out.stock}, work orders ${out.workorders}, log ${out.archive}`);
     closeModal(); await refreshAll(); renderPage();
-  }catch(e){ showErr('wipe-err', e.message||'Wipe failed'); }
+  }catch(e){ showErr('wipe-err', friendlyError(e)); }
 }
 
 function renderAdminContent() {
