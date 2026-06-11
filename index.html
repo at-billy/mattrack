@@ -163,7 +163,11 @@ tbody tr:hover{background:#f9f9f9;}
 .imp-tbl tr.imp-skip{opacity:.45;}
 .imp-bad{border-color:var(--red)!important;}
 .imp-sum{font-size:var(--text-md);color:var(--fg);margin:var(--space-3) 0;line-height:1.5;}
-.imp-tbl td.imp-name{white-space:normal;min-width:160px;}
+.imp-tbl td.imp-name{white-space:normal;min-width:210px;}
+/* name + inline flag on one line so unknown rows don't grow taller */
+.imp-namecell{display:flex;align-items:center;gap:var(--space-2);}
+.imp-namecell input{flex:1;min-width:0;}
+.imp-flag{color:var(--red);font-size:var(--text-xs);font-weight:700;white-space:nowrap;flex-shrink:0;}
 /* custom file picker - match the outline-button design language */
 .imp-file{display:flex;align-items:center;gap:var(--space-3);}
 .imp-file-name{font-size:var(--text-sm);color:var(--fg);}
@@ -3505,7 +3509,7 @@ function impReviewInner(){
     else if(c.valid){ ready++; } else { attention++; }
     const cls=!c.included?' class="imp-skip"':'';
     return `<tr${cls}>
-      <td class="imp-name"><input type="text" value="${esc(c.name)}" onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}"></td>
+      <td class="imp-name"><div class="imp-namecell"><input type="text" value="${esc(c.name)}" onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}">${(c.included&&!c.matched)?`<span class="imp-flag">not in databank</span>`:''}</div></td>
       <td><input type="number" step="any" value="${esc(c.qty===c.qty?c.qty:'')}" onchange="impCell(${i},'qty',this.value)" style="width:80px;min-width:0;"></td>
       ${isMat?`<td><select onchange="impCell(${i},'band',this.value)" ${(c.included&&c.band==='')?'class="imp-bad"':''}>${bandOpts(c.band)}</select></td>`:''}
       <td><select onchange="impCell(${i},'holder',this.value)" class="${(c.included&&!c.holder)?'imp-bad':''}">${holderOpts(c)}</select></td>
