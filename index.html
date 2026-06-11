@@ -170,10 +170,6 @@ tbody tr:hover{background:#f9f9f9;}
 .imp-bad{border-color:var(--red)!important;}
 .imp-sum{font-size:var(--text-md);color:var(--fg);margin:var(--space-3) 0;line-height:1.5;}
 .imp-tbl td.imp-name{white-space:normal;min-width:210px;}
-/* name + inline flag on one line so unknown rows don't grow taller */
-.imp-namecell{display:flex;align-items:center;gap:var(--space-2);}
-.imp-namecell input{flex:1;min-width:0;}
-.imp-flag{color:var(--red);font-size:var(--text-xs);font-weight:700;white-space:nowrap;flex-shrink:0;}
 /* custom file picker - match the outline-button design language */
 .imp-file{display:flex;align-items:center;gap:var(--space-3);}
 .imp-file-name{font-size:var(--text-sm);color:var(--fg);}
@@ -3314,6 +3310,7 @@ function pageStock(){
 let _imp = null;
 function openImportModal(){
   _imp = { phase:1, headers:[], rows:[], map:{}, overrides:{}, removed:new Set() };
+  _impCache=new Map();
   impShow();
 }
 function impShow(){ showModal(_imp.phase===1?impUploadHtml():impReviewHtml(), _imp.phase===1?'modal-lg':'modal-xl'); const f=document.getElementById('imp-file'); if(f) f.onchange=impFileChosen; }
@@ -3392,17 +3389,24 @@ function impFuzzy(query, list, nameOf){
 }
 function impMatList(){ return state.catalog.materials||[]; }
 function impItemList(){ return state.catalog.items||[]; }
+// Resolution is memoised (cleared when the modal opens): with 1491 items the
+// fuzzy match isn't free, and impCompute runs it for every row on every redraw.
+let _impCache=new Map();
 // Auto-detect a name across BOTH catalogs. Exact matches win over fuzzy, and a
 // material wins over an item on a tie (material names are short and distinct).
-function impResolveName(name){ const q=impNorm(name); if(!q) return null;
-  const me=impMatList().find(x=>impNorm(x.name)===q); if(me) return {obj:me,kind:'material',exact:true,via:'exact'};
-  const ie=impItemList().find(x=>impNorm(x.name)===q); if(ie) return {obj:ie,kind:'item',exact:true,via:'exact'};
-  const mf=impFuzzy(name, impMatList(), x=>x.name); if(mf) return {obj:mf.obj,kind:'material',exact:false,via:mf.via};
-  const itf=impFuzzy(name, impItemList(), x=>x.name); if(itf) return {obj:itf.obj,kind:'item',exact:false,via:itf.via};
-  return null; }
+function impResolveName(name){ const key='a '+String(name||''); if(_impCache.has(key)) return _impCache.get(key);
+  const q=impNorm(name); let r=null;
+  if(q){
+    const me=impMatList().find(x=>impNorm(x.name)===q); if(me) r={obj:me,kind:'material',exact:true,via:'exact'};
+    if(!r){ const ie=impItemList().find(x=>impNorm(x.name)===q); if(ie) r={obj:ie,kind:'item',exact:true,via:'exact'}; }
+    if(!r){ const mf=impFuzzy(name, impMatList(), x=>x.name); if(mf) r={obj:mf.obj,kind:'material',exact:false,via:mf.via}; }
+    if(!r){ const itf=impFuzzy(name, impItemList(), x=>x.name); if(itf) r={obj:itf.obj,kind:'item',exact:false,via:itf.via}; }
+  }
+  _impCache.set(key,r); return r; }
 // Match within one chosen catalog (used when the row's Type is set by hand).
-function impNameInKind(name, kind){ const hit=impFuzzy(name, kind==='item'?impItemList():impMatList(), x=>x.name);
-  return hit?{obj:hit.obj,kind,exact:hit.exact,via:hit.via}:null; }
+function impNameInKind(name, kind){ const key=kind+' '+String(name||''); if(_impCache.has(key)) return _impCache.get(key);
+  const hit=impFuzzy(name, kind==='item'?impItemList():impMatList(), x=>x.name);
+  const r=hit?{obj:hit.obj,kind,exact:hit.exact,via:hit.via}:null; _impCache.set(key,r); return r; }
 function impMembers(){ return (state.allUsers||[]).filter(u=>!(u.roles||[]).includes('removed')); }
 function impHolderResolve(name){ const raw=String(name||'').trim();
   if(!raw) return {value:'', member:false, guess:false};
@@ -3535,15 +3539,19 @@ function impReviewInner(){
     return o; };
   // per-row Type drives how each row lands (material at base + quality, item crafted)
   const typeOpts=c=>['material','item'].map(k=>`<option value="${k}"${c.kind===k?' selected':''}>${k}</option>`).join('');
-  // material names get the databank preset picker (like location); items stay a
-  // free-text field (the item catalog is far too long for a per-row dropdown) with
-  // fuzzy match + the "not in databank" flag.
-  const matOpts=c=>{ const cur=c.matched?c.name:''; let o=`<option value="">(pick)</option>`;
-    o+=impMatList().map(m=>`<option value="${esc(m.name)}"${cur===m.name?' selected':''}>${esc(m.name)}</option>`).join('');
-    return o; };
-  const nameCell=(c,i)=> (c.isMat && c.matched)
+  // The first option is the current state: the matched name, or an unmatched raw
+  // name labelled so the row stays identifiable (and red, since it can't import).
+  const head=c=> c.matched
+    ? `<option value="">(pick)</option>`
+    : `<option value="" selected>${c.included&&c.rawName?`${esc(c.rawName)} (not in databank)`:'(pick)'}</option>`;
+  // Both names are databank preset pickers with search. Materials list inline (39
+  // entries); items are sourced from JS (data-cs-source) so the native <select>
+  // stays tiny despite ~1500 items, but still searches the whole catalog.
+  const matOpts=c=>{ const cur=c.matched?c.name:''; return head(c)+impMatList().map(m=>`<option value="${esc(m.name)}"${cur===m.name?' selected':''}>${esc(m.name)}</option>`).join(''); };
+  const itemNative=c=> head(c)+(c.matched?`<option value="${esc(c.name)}" selected>${esc(c.name)}</option>`:'');
+  const nameCell=(c,i)=> c.isMat
     ? `<td class="imp-name"><select onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}">${matOpts(c)}</select></td>`
-    : `<td class="imp-name"><div class="imp-namecell"><input type="text" value="${esc(c.name)}" onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}">${(c.included&&!c.matched)?`<span class="imp-flag">not in databank</span>`:''}</div></td>`;
+    : `<td class="imp-name"><select data-cs-source="items" onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}">${itemNative(c)}</select></td>`;
   let ready=0, attention=0, skipped=0, readyMat=0, readyItem=0;
   const body=_imp.rows.map((_,i)=>{
     if(_imp.removed.has(i)) return '';
@@ -5161,7 +5169,8 @@ async function claimBootstrapAdmin() {
     else if(er.bottom > pr.bottom) p.scrollTop += (er.bottom - pr.bottom);
   }
   function moveActive(delta){ const els=visEls(); if(!els.length) return; let i=(open.active<0?-1:open.active)+delta; if(i<0)i=0; if(i>=els.length)i=els.length-1; setActiveEl(els[i]); }
-  function chooseActive(){ const els=visEls(); if(open && open.active>=0 && els[open.active]) choose(Number(els[open.active].dataset.idx)); else closeOpen(true); }
+  function chooseActive(){ const els=visEls(); if(open && open.active>=0 && els[open.active]){ const el=els[open.active];
+    if(open.source) chooseVal(el.dataset.val); else choose(Number(el.dataset.idx)); } else closeOpen(true); }
 
   function choose(i){
     if(!open) return;
@@ -5169,33 +5178,64 @@ async function claimBootstrapAdmin() {
     if(i>=0 && i<sel.options.length){ sel.selectedIndex=i; sel.dispatchEvent(new Event('change',{bubbles:true})); }
     closeOpen(true);
   }
+  // For a data-cs-source select the full list lives in JS, not the DOM, so the
+  // native <select> stays tiny. On pick, make sure the chosen value exists as a
+  // native option (add it if needed) then set + fire change.
+  function chooseVal(value){
+    if(!open) return; const sel=open.sel;
+    let opt=[...sel.options].find(o=>o.value===value);
+    if(!opt){ opt=document.createElement('option'); opt.value=value; opt.textContent=value; sel.appendChild(opt); }
+    sel.value=value; sel.dispatchEvent(new Event('change',{bubbles:true}));
+    closeOpen(true);
+  }
+  // Build the searchable option list for a sourced select (kept out of the DOM).
+  function csBuildSource(name){
+    if(name==='items') return ((typeof state!=='undefined'&&state.catalog&&state.catalog.items)||[]).map(it=>({value:it.name,label:it.name}));
+    return null;
+  }
 
   function renderOptions(query){
     if(!open) return;
     const sel=open.sel, list=open.listWrap, q=(query||'').trim().toLowerCase();
     list.innerHTML=''; let shown=0, more=0;
-    for(let i=0;i<sel.options.length;i++){
-      const o=sel.options[i]; const txt=o.textContent||'';
-      if(q && !txt.toLowerCase().includes(q)) continue;
-      if(shown>=CS_RENDER_CAP){ more++; continue; }
-      const el=document.createElement('div');
-      el.className='cs-option'; el.setAttribute('role','option'); el.dataset.idx=String(i);
-      el.setAttribute('aria-selected', o.selected?'true':'false'); el.textContent=txt;
-      el.addEventListener('mousedown',(e)=>{ e.preventDefault(); choose(i); });
-      el.addEventListener('mousemove',()=>setActiveEl(el));
-      list.appendChild(el); shown++;
+    if(open.source){
+      const cur=sel.value;
+      for(const opt of open.source){
+        const txt=opt.label;
+        if(q && !txt.toLowerCase().includes(q)) continue;
+        if(shown>=CS_RENDER_CAP){ more++; continue; }
+        const el=document.createElement('div');
+        el.className='cs-option'; el.setAttribute('role','option'); el.dataset.val=opt.value;
+        el.setAttribute('aria-selected', opt.value===cur?'true':'false'); el.textContent=txt;
+        el.addEventListener('mousedown',(e)=>{ e.preventDefault(); chooseVal(opt.value); });
+        el.addEventListener('mousemove',()=>setActiveEl(el));
+        list.appendChild(el); shown++;
+      }
+    } else {
+      for(let i=0;i<sel.options.length;i++){
+        const o=sel.options[i]; const txt=o.textContent||'';
+        if(q && !txt.toLowerCase().includes(q)) continue;
+        if(shown>=CS_RENDER_CAP){ more++; continue; }
+        const el=document.createElement('div');
+        el.className='cs-option'; el.setAttribute('role','option'); el.dataset.idx=String(i);
+        el.setAttribute('aria-selected', o.selected?'true':'false'); el.textContent=txt;
+        el.addEventListener('mousedown',(e)=>{ e.preventDefault(); choose(i); });
+        el.addEventListener('mousemove',()=>setActiveEl(el));
+        list.appendChild(el); shown++;
+      }
     }
     if(!shown){ const e=document.createElement('div'); e.className='cs-empty'; e.textContent='No matches'; list.appendChild(e); }
-    else if(more){ const e=document.createElement('div'); e.className='cs-more'; e.textContent=`+${more} more — keep typing`; list.appendChild(e); }
+    else if(more){ const e=document.createElement('div'); e.className='cs-more'; e.textContent=`+${more} more, keep typing`; list.appendChild(e); }
     const selEl=list.querySelector('.cs-option[aria-selected="true"]');
     setActiveEl(selEl || list.querySelector('.cs-option'));
   }
 
   function openPanel(sel, wrap, trigger){
     closeOpen(false);
+    const source = sel.dataset.csSource ? csBuildSource(sel.dataset.csSource) : null;
     const panel=document.createElement('div');
     panel.className='cs-panel'; panel.setAttribute('role','listbox');
-    const searchable = sel.options.length > CS_SEARCH_MIN;
+    const searchable = !!source || sel.options.length > CS_SEARCH_MIN;
     let searchInput=null;
     if(searchable){
       const sw=document.createElement('div'); sw.className='cs-searchwrap';
@@ -5208,7 +5248,7 @@ async function claimBootstrapAdmin() {
     document.body.appendChild(panel);
     wrap.classList.add('open'); trigger.setAttribute('aria-expanded','true');
     const rep=()=>reposition(trigger,panel);
-    open={ sel, wrap, trigger, panel, listWrap, searchInput, active:-1, reposition:rep };
+    open={ sel, wrap, trigger, panel, listWrap, searchInput, source, active:-1, reposition:rep };
     renderOptions(''); rep();
     window.addEventListener('scroll', rep, true); window.addEventListener('resize', rep);
     if(searchInput){
