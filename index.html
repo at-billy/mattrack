@@ -154,6 +154,9 @@ select.cs-native{position:absolute;width:1px;height:1px;opacity:0;pointer-events
 body.dark .cs-panel{box-shadow:0 6px 24px rgba(0,0,0,.6);}
 .field{margin-bottom:28px;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);}
+/* Reserve a 2-line label band so a wrapping label (e.g. "FRCoin (each)") still
+   lines its input up with a single-line label's input in the same row. */
+.lbl-2line .lbl{min-height:2.5em;}
 .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-5);}
 .panel{border:1.5px solid #000;padding:40px;}
 .collapsible{display:none;}
@@ -3201,8 +3204,11 @@ function openHandoutModal(id){
       <div class="field"><label class="lbl">Quantity</label><input id="ho-qty" type="number" min="1" step="${qtyStep(s.kind)}" max="${s.qty}" value="${s.qty}" oninput="handoutTotalHint()"></div>
       <div class="field"><label class="lbl">For</label><select id="ho-ctx" onchange="handoutCtxChanged()"><option value="request">A request</option><option value="event">An event</option></select></div>
     </div>
-    <div class="grid2">
-      <div class="field"><label class="lbl">FRCoin (each)</label><input id="ho-frc" type="number" min="0" step="1" value="0" oninput="this.dataset.touched='1';handoutTotalHint()"></div>
+    <div class="grid2 lbl-2line">
+      <div class="field" style="margin-bottom:var(--space-3);"><label class="lbl">FRCoin (each)</label>
+        <input id="ho-frc" type="number" min="0" step="1" value="0" oninput="this.dataset.touched='1';handoutTotalHint()">
+        <div id="ho-total" style="font-size:var(--text-sm);color:var(--fg);font-weight:700;margin-top:8px;">Free handout.</div>
+      </div>
       <div class="field"><label class="lbl">Recipient</label>
         <select id="ho-rcpt-sel" onchange="handoutRcptChanged()">
           <option value="">— pick a member —</option>
@@ -3212,7 +3218,6 @@ function openHandoutModal(id){
         <input id="ho-rcpt-other" type="text" placeholder="name not on the roster" style="display:none;margin-top:8px;">
       </div>
     </div>
-    <div id="ho-total" style="font-size:var(--text-sm);color:var(--fg);font-weight:700;margin:-14px 0 var(--space-4);">Free handout.</div>
     <div class="field"><label class="lbl">Note (optional)</label><input id="ho-note" type="text" placeholder="event name, details…"></div>
     <div class="err-msg" id="ho-err"></div>
     <div style="display:flex;gap:10px;margin-top:var(--space-2);">
