@@ -154,7 +154,9 @@ tbody tr:hover{background:#f9f9f9;}
 /* ── Spreadsheet import tool ─────────────────────────────────────── */
 .imp-map{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--space-3);margin:var(--space-4) 0;}
 .imp-map .lbl{margin-bottom:4px;}
-.imp-wrap{max-height:50vh;overflow:auto;border:1px solid var(--border-m);}
+.imp-wrap{max-height:50vh;overflow:auto;overscroll-behavior:contain;border:1px solid var(--border-m);}
+.imp-x{padding:4px 9px;line-height:1;}
+.imp-tbl td.imp-xcell{width:1%;text-align:center;}
 .imp-tbl{width:100%;border-collapse:collapse;font-size:var(--text-md);}
 .imp-tbl th,.imp-tbl td{padding:7px 8px;border-bottom:1px solid var(--border-m);text-align:left;vertical-align:middle;white-space:nowrap;}
 .imp-tbl th{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;background:var(--bg);}
@@ -276,7 +278,8 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 .rn-close{position:absolute;top:8px;right:10px;background:none;border:none;font-size:var(--text-lg);line-height:1;cursor:pointer;color:var(--fg);padding:2px 6px;}
 #modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:var(--space-5);}
 #modal-overlay.open{display:flex;}
-.modal-box{background:#fff;padding:36px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;position:relative;}
+.modal-box{background:#fff;padding:36px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;overscroll-behavior:contain;position:relative;}
+body.modal-open{overflow:hidden;}
 .modal-lg{max-width:700px;}
 .modal-xl{max-width:1040px;}
 /* ── CRAFT ORDER CARDS ───────────────────────────────────────────── */
@@ -3306,7 +3309,7 @@ function pageStock(){
 // ─── SPREADSHEET IMPORT (admin migration tool) ────────────────────────────────
 let _imp = null;
 function openImportModal(){
-  _imp = { phase:1, kind:(stockView==='items'?'item':'material'), headers:[], rows:[], map:{}, fill:{location:'',heldBy:'',band:''}, overrides:{} };
+  _imp = { phase:1, kind:(stockView==='items'?'item':'material'), headers:[], rows:[], map:{}, fill:{location:'',heldBy:'',band:''}, overrides:{}, removed:new Set() };
   impShow();
 }
 function impShow(){ showModal(_imp.phase===1?impUploadHtml():impReviewHtml(), _imp.phase===1?'modal-lg':'modal-xl'); const f=document.getElementById('imp-file'); if(f) f.onchange=impFileChosen; }
@@ -3450,7 +3453,7 @@ function impParse(){
   _imp.headerless=!hasHeader;
   const base=hasHeader?impAutoMap(_imp.headers,_imp.kind):{name:'',amount:'',quality:'',holder:'',location:''};
   _imp.map=impInferMap(_imp.rows,_imp.kind,base);
-  _imp.overrides={}; _imp.fill={location:'',heldBy:'',band:''}; _imp.phase=2; impShow();
+  _imp.overrides={}; _imp.fill={location:'',heldBy:'',band:''}; _imp.removed=new Set(); _imp.phase=2; impShow();
 }
 const IMP_BANDS=[[0,399],[400,599],[600,699],[700,799],[800,899],[900,949],[950,998],[999,1000]];
 function impBandOf(v){ for(let i=0;i<IMP_BANDS.length;i++){ if(v>=IMP_BANDS[i][0]&&v<=IMP_BANDS[i][1]) return i+1; } return v>1000?8:1; }
@@ -3502,18 +3505,29 @@ function impReviewInner(){
     o+=impMembers().map(u=>`<option value="${esc(u.username)}"${c.holderMember&&cur===u.username?' selected':''}>${esc(u.username)}</option>`).join('');
     if(cur&&!c.holderMember) o+=`<option value="${esc(cur)}" selected>${esc(cur)} (off-roster)</option>`;
     return o; };
+  // material names are a preset picker from the databank (like location); items
+  // stay a free-text field because the item catalog is far too long for a per-row
+  // dropdown, so they keep fuzzy match + the "not in databank" flag.
+  const nameOpts=c=>{ const cur=c.matched?c.name:''; let o=`<option value="">(pick)</option>`;
+    o+=impCatList().map(m=>`<option value="${esc(m.name)}"${cur===m.name?' selected':''}>${esc(m.name)}</option>`).join('');
+    return o; };
+  const nameCell=(c,i)=> isMat
+    ? `<td class="imp-name"><select onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}">${nameOpts(c)}</select></td>`
+    : `<td class="imp-name"><div class="imp-namecell"><input type="text" value="${esc(c.name)}" onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}">${(c.included&&!c.matched)?`<span class="imp-flag">not in databank</span>`:''}</div></td>`;
   let ready=0, attention=0, skipped=0;
   const body=_imp.rows.map((_,i)=>{
+    if(_imp.removed.has(i)) return '';
     const c=impCompute(i);
     if(!c.included){ skipped++; }
     else if(c.valid){ ready++; } else { attention++; }
     const cls=!c.included?' class="imp-skip"':'';
     return `<tr${cls}>
-      <td class="imp-name"><div class="imp-namecell"><input type="text" value="${esc(c.name)}" onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}">${(c.included&&!c.matched)?`<span class="imp-flag">not in databank</span>`:''}</div></td>
+      ${nameCell(c,i)}
       <td><input type="number" step="any" value="${esc(c.qty===c.qty?c.qty:'')}" onchange="impCell(${i},'qty',this.value)" style="width:80px;min-width:0;"></td>
       ${isMat?`<td><select onchange="impCell(${i},'band',this.value)" ${(c.included&&c.band==='')?'class="imp-bad"':''}>${bandOpts(c.band)}</select></td>`:''}
       <td><select onchange="impCell(${i},'holder',this.value)" class="${(c.included&&!c.holder)?'imp-bad':''}">${holderOpts(c)}</select></td>
       <td><select onchange="impCell(${i},'location',this.value)" class="${(c.included&&!c.locOk)?'imp-bad':''}">${locOpts(c.locOk?c.location:'')}</select></td>
+      <td class="imp-xcell"><button class="btn-del imp-x" onclick="impRemoveRow(${i})" aria-label="Remove row" title="Remove this row">&times;</button></td>
     </tr>`;
   }).join('');
   const canImport = ready>0 && attention===0;
@@ -3525,7 +3539,7 @@ function impReviewInner(){
   else sentence=`Nothing to import here.`;
   if(skipped) sentence+=` ${skipped===1?'One row was':`${skipped} rows were`} left out for having no amount.`;
   return `<div class="imp-sum">${sentence}</div>
-    <div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>${isMat?'Material':'Item'}</th><th>Qty</th>${isMat?'<th>Quality</th>':''}<th>Holder</th><th>Location</th></tr></thead><tbody>${body}</tbody></table></div>
+    <div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>${isMat?'Material':'Item'}</th><th>Qty</th>${isMat?'<th>Quality</th>':''}<th>Holder</th><th>Location</th><th></th></tr></thead><tbody>${body}</tbody></table></div>
     <div class="err-msg" id="imp-err2"></div>
     <div style="display:flex;gap:10px;margin-top:var(--space-4);">
       <button class="btn btn-black" ${canImport?'':'disabled style="opacity:.5;cursor:default;"'} onclick="doImport()">Import ${ready} ${_imp.kind==='item'?'item':'material'}${ready===1?'':'s'}</button>
@@ -3535,10 +3549,11 @@ function impReviewInner(){
 function impRerender(){ const el=document.getElementById('imp-review'); if(el) el.innerHTML=impReviewInner(); }
 function impSetMap(field,val){ _imp.map[field]= val===''?'':Number(val); impRerender(); }
 function impCell(i,field,val){ _imp.overrides[i]=_imp.overrides[i]||{}; _imp.overrides[i][field]=val; impRerender(); }
+function impRemoveRow(i){ _imp.removed.add(i); impRerender(); }
 function impBack(){ _imp.phase=1; impShow(); }
 async function doImport(){
   const rows=[];
-  _imp.rows.forEach((_,i)=>{ const c=impCompute(i); if(c.included&&c.valid){
+  _imp.rows.forEach((_,i)=>{ if(_imp.removed.has(i)) return; const c=impCompute(i); if(c.included&&c.valid){
     const entry={ kind:_imp.kind, name:c.name, qty:c.qty, location:c.location, heldBy:c.holder, status:_imp.kind==='item'?'crafted':'at_base' };
     if(c.system) entry.system=c.system;
     if(_imp.kind==='material' && c.band){ entry.qualityStep=Number(c.band); const nm=impNameMatch(c.name); const m=nm&&nm.obj; const qd=m&&(m.qualities||[]).find(x=>x.step===Number(c.band)); if(qd) entry.qualityValue=qd.value; }
@@ -4269,6 +4284,7 @@ function showModal(html, boxClass) {
     box.innerHTML=`<button onclick="closeModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:var(--text-lg);cursor:pointer;color:var(--fg);line-height:1;padding:4px 8px;" aria-label="Close">&times;</button>${html}`;
   }
   if(overlay) overlay.classList.add('open');
+  document.body.classList.add('modal-open');   // stop the page behind from scrolling
   // Move focus into the dialog (first real field, not the close button).
   setTimeout(()=>{
     if(!box) return;
@@ -4283,6 +4299,7 @@ function closeModal() {
   if(box) box.className='modal-box';
   const overlay=document.getElementById('modal-overlay');
   if(overlay) overlay.classList.remove('open');
+  document.body.classList.remove('modal-open');
   if(_modalLastFocus && _modalLastFocus.focus){ try{_modalLastFocus.focus(); }catch(e){} }
   _modalLastFocus=null;
   const cb=_modalOnClose; _modalOnClose=null;
