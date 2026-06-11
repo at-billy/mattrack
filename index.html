@@ -2511,6 +2511,9 @@ function renderCraftInventory(){
   </tr>`).join('')}</tbody></table>`;
 }
 async function doSendOne(id){
+  const s=(state.stock||[]).find(x=>x._id===id);
+  const what = s ? `${s.qty} ${s.name}` : 'this item';
+  if(!await confirmModal({title:'Send to logistics', body:`Send ${what} to logistics for distribution? They'll collect it from you.`, confirmLabel:'Send'})) return;
   try{ const out=await convexMutation('workorders:createMove',{sessionToken:state.sessionToken,stockIds:[id]}); toast(`Sent to logistics (${out.sent})`); await refreshAll(); renderPage(); }catch(e){ notifyError(e); }
 }
 
@@ -3161,7 +3164,7 @@ function openHandoutModal(id){
     <div class="field"><label class="lbl">Note (optional)</label><input id="ho-note" type="text" placeholder="event name, details…"></div>
     <div class="err-msg" id="ho-err"></div>
     <div style="display:flex;gap:10px;margin-top:var(--space-2);">
-      <button class="btn btn-black" onclick="doHandout('${esc(s._id)}')">Hand Out</button>
+      <button class="btn btn-black" id="ho-submit" onclick="doHandout('${esc(s._id)}')">Hand Out</button>
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     </div>`);
 }
@@ -3170,6 +3173,17 @@ async function doHandout(id){
   const qty=Number(V('ho-qty')); const recipient=V('ho-rcpt').trim(); const context=V('ho-ctx'); const note=V('ho-note').trim();
   if(!(qty>0)){ showErr('ho-err','Quantity must be greater than 0'); return; }
   if(!recipient){ showErr('ho-err','Who received it?'); return; }
+  // Two-step confirm: handing out is an irreversible give-away. First click arms,
+  // second click within 5s commits. (confirmModal can't stack inside this modal.)
+  const btn=document.getElementById('ho-submit');
+  if(btn && !btn.dataset.armed){
+    btn.dataset.armed='1';
+    btn.textContent=`Confirm: hand out ${qty} to ${recipient}`;
+    btn.classList.remove('btn-black'); btn.classList.add('btn-red');
+    const e=document.getElementById('ho-err'); if(e) e.style.display='none';
+    setTimeout(()=>{ if(btn&&btn.dataset.armed){ delete btn.dataset.armed; btn.textContent='Hand Out'; btn.classList.remove('btn-red'); btn.classList.add('btn-black'); } }, 5000);
+    return;
+  }
   try{ const out=await convexMutation('distribution:handOut',{sessionToken:state.sessionToken,stockId:id,qty,recipient,context,note:note||undefined}); toast(`Handed out ${out.handed}`); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('ho-err',e.message); }
 }
 
