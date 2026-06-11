@@ -115,6 +115,21 @@ select{
 body.dark select{
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23e0e0e0'/%3E%3C/svg%3E");}
 
+/* Custom number stepper — hide the native spin buttons, the JS enhancer adds two
+   themed arrows in their place (see the stepper IIFE). */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+input[type=number]{-moz-appearance:textfield;}
+.ns-wrap{position:relative;display:inline-flex;vertical-align:middle;max-width:100%;}
+.ns-btns{position:absolute;top:1.5px;right:1.5px;bottom:1.5px;width:17px;display:flex;flex-direction:column;overflow:hidden;}
+.ns-btn{flex:1 1 50%;display:flex;align-items:center;justify-content:center;padding:0;border:none;background:var(--bg);color:var(--fg);cursor:pointer;line-height:0;}
+.ns-btn:hover{background:var(--bg2);}
+.ns-btn:active{background:var(--border-l);}
+.ns-down{border-top:1px solid var(--border-m);}
+.ns-btn::before{content:"";display:block;width:0;height:0;border-left:3.5px solid transparent;border-right:3.5px solid transparent;}
+.ns-up::before{border-bottom:5px solid currentColor;}
+.ns-down::before{border-top:5px solid currentColor;}
+
 /* Custom select widget (enhances native <select> so the open list matches the design) */
 .cs-wrap{position:relative;display:block;width:100%;}
 select.cs-native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;padding:0;}
@@ -5319,6 +5334,45 @@ async function claimBootstrapAdmin() {
       if(n.nodeType!==1) continue;
       if(n.tagName==='SELECT') enhance(n);
       else if(n.querySelectorAll) n.querySelectorAll('select:not([data-cs-on])').forEach(enhance);
+    }
+  }).observe(document.documentElement,{childList:true,subtree:true});
+  enhanceAll();
+})();
+
+// ─── CUSTOM NUMBER STEPPER ──────────────────────────────────────────────────
+// Replaces the native spin buttons (hidden via CSS) with two themed arrows.
+// Auto-applies to every <input type="number">, including ones added later. The
+// native field keeps working (arrow keys, typing); we just restyle the steppers.
+(function(){
+  function step(inp, dir){
+    if(inp.disabled||inp.readOnly) return;
+    try{ dir>0?inp.stepUp():inp.stepDown(); }
+    catch(e){ const s=parseFloat(inp.step)||1; inp.value=(parseFloat(inp.value)||0)+dir*s; }
+    inp.dispatchEvent(new Event('input',{bubbles:true}));
+    inp.dispatchEvent(new Event('change',{bubbles:true}));
+  }
+  function mkBtn(cls){ const b=document.createElement('button'); b.type='button'; b.className='ns-btn '+cls; b.tabIndex=-1; b.setAttribute('aria-hidden','true'); return b; }
+  function enhance(inp){
+    if(inp.dataset.nsOn || inp.getAttribute('type')!=='number') return;
+    inp.dataset.nsOn='1';
+    const wrap=document.createElement('span'); wrap.className='ns-wrap';
+    wrap.style.width = inp.style.width || '100%';
+    if(inp.style.margin) wrap.style.margin=inp.style.margin;
+    inp.parentNode.insertBefore(wrap, inp);
+    wrap.appendChild(inp);
+    inp.style.width='100%'; inp.style.margin='0'; inp.style.paddingRight='20px';
+    const btns=document.createElement('span'); btns.className='ns-btns';
+    const up=mkBtn('ns-up'), down=mkBtn('ns-down');
+    btns.append(up, down); wrap.appendChild(btns);
+    up.addEventListener('click',e=>{ e.preventDefault(); step(inp,1); });
+    down.addEventListener('click',e=>{ e.preventDefault(); step(inp,-1); });
+  }
+  function enhanceAll(root){ (root||document).querySelectorAll('input[type="number"]:not([data-ns-on])').forEach(enhance); }
+  new MutationObserver((muts)=>{
+    for(const m of muts) for(const n of m.addedNodes){
+      if(n.nodeType!==1) continue;
+      if(n.tagName==='INPUT' && n.getAttribute('type')==='number') enhance(n);
+      else if(n.querySelectorAll) n.querySelectorAll('input[type="number"]:not([data-ns-on])').forEach(enhance);
     }
   }).observe(document.documentElement,{childList:true,subtree:true});
   enhanceAll();
