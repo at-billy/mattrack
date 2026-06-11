@@ -157,6 +157,7 @@ tbody tr:hover{background:#f9f9f9;}
 .imp-wrap{max-height:50vh;overflow:auto;overscroll-behavior:contain;border:1px solid var(--border-m);}
 .imp-x{padding:4px 9px;line-height:1;}
 .imp-tbl td.imp-xcell{width:1%;text-align:center;}
+.imp-tbl td.imp-na{text-align:center;color:var(--fg);font-size:var(--text-sm);}
 .imp-tbl{width:100%;border-collapse:collapse;font-size:var(--text-md);}
 .imp-tbl th,.imp-tbl td{padding:7px 8px;border-bottom:1px solid var(--border-m);text-align:left;vertical-align:middle;white-space:nowrap;}
 .imp-tbl th{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;background:var(--bg);}
@@ -3309,16 +3310,13 @@ function pageStock(){
 // ─── SPREADSHEET IMPORT (admin migration tool) ────────────────────────────────
 let _imp = null;
 function openImportModal(){
-  _imp = { phase:1, kind:(stockView==='items'?'item':'material'), headers:[], rows:[], map:{}, fill:{location:'',heldBy:'',band:''}, overrides:{}, removed:new Set() };
+  _imp = { phase:1, headers:[], rows:[], map:{}, overrides:{}, removed:new Set() };
   impShow();
 }
 function impShow(){ showModal(_imp.phase===1?impUploadHtml():impReviewHtml(), _imp.phase===1?'modal-lg':'modal-xl'); const f=document.getElementById('imp-file'); if(f) f.onchange=impFileChosen; }
 function impUploadHtml(){
-  const k=_imp.kind;
   return `<div class="modal-title">Import from spreadsheet</div>
-    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:var(--space-4);line-height:1.6;">Upload a CSV or paste cells straight from your sheet. We read the columns for you, match names, holders and locations against the databank, and only ask about what we can't work out. Nothing imports until every row checks out.</p>
-    <div class="field"><label class="lbl">Importing</label>
-      <select id="imp-kind"><option value="material"${k==='material'?' selected':''}>Materials</option><option value="item"${k==='item'?' selected':''}>Items</option></select></div>
+    <p style="font-size:var(--text-md);color:var(--fg);margin-bottom:var(--space-4);line-height:1.6;">Upload a CSV or paste cells straight from your sheet. We read the columns, match every name, holder and location against the databank, and sort materials and items out for you. Nothing imports until each row checks out.</p>
     <div class="field"><label class="lbl">CSV file</label>
       <div class="imp-file">
         <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('imp-file').click()">Choose file</button>
@@ -3365,13 +3363,23 @@ function impLev(a,b){ a=a||''; b=b||''; const m=a.length,n=b.length; if(!m)retur
   let prev=Array.from({length:n+1},(_,i)=>i), cur=new Array(n+1);
   for(let i=1;i<=m;i++){ cur[0]=i; for(let j=1;j<=n;j++){ const cost=a[i-1]===b[j-1]?0:1; cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+cost); } const t=prev; prev=cur; cur=t; }
   return prev[n]; }
+// Does `q` appear inside `nx` on whole-word boundaries? Stops short fragments
+// from matching mid-word (e.g. "iron" must not match inside "chiron", "arm" must
+// not match inside "arms").
+function impWordIncludes(nx, q){ if(q.length<3) return false; let i=nx.indexOf(q);
+  while(i>=0){ const before=i===0?' ':nx[i-1]; const after=(i+q.length>=nx.length)?' ':nx[i+q.length];
+    if(before===' '&&after===' ') return true; i=nx.indexOf(q,i+1); }
+  return false; }
 // best fuzzy hit in a list of {name}; returns {obj,exact,via} or null.
 function impFuzzy(query, list, nameOf){
   const q=impNorm(query); if(!q||!list||!list.length) return null;
   let exact=null, abbr=null, abbrD=1e9, fuzz=null, fuzzD=1e9;
   for(const x of list){ const nx=impNorm(nameOf(x)); if(!nx) continue;
     if(nx===q){ exact=x; break; }
-    if(nx.startsWith(q)||q.startsWith(nx)||nx.includes(q)||q.includes(nx)){ const d=Math.abs(nx.length-q.length); if(d<abbrD){abbrD=d;abbr=x;} continue; }
+    // prefix abbreviation ("heph"->"hephaestanite") or a whole-word substring
+    // ("arms"->"adp arms blue"). The catalog name must contain the query, never
+    // the other way round, so short names can't swallow longer ones.
+    if(nx.startsWith(q)||impWordIncludes(nx,q)){ const d=Math.abs(nx.length-q.length); if(d<abbrD){abbrD=d;abbr=x;} continue; }
     const d=impLev(q,nx), tol=Math.max(2,Math.floor(nx.length*0.34)); if(d<=tol && d<fuzzD){ fuzzD=d; fuzz=x; }
   }
   if(exact) return {obj:exact, exact:true, via:'exact'};
@@ -3379,8 +3387,19 @@ function impFuzzy(query, list, nameOf){
   if(fuzz) return {obj:fuzz, exact:false, via:'spelling'};
   return null;
 }
-function impCatList(){ return _imp.kind==='item'?(state.catalog.items||[]):(state.catalog.materials||[]); }
-function impNameMatch(name){ return impFuzzy(name, impCatList(), x=>x.name); }
+function impMatList(){ return state.catalog.materials||[]; }
+function impItemList(){ return state.catalog.items||[]; }
+// Auto-detect a name across BOTH catalogs. Exact matches win over fuzzy, and a
+// material wins over an item on a tie (material names are short and distinct).
+function impResolveName(name){ const q=impNorm(name); if(!q) return null;
+  const me=impMatList().find(x=>impNorm(x.name)===q); if(me) return {obj:me,kind:'material',exact:true,via:'exact'};
+  const ie=impItemList().find(x=>impNorm(x.name)===q); if(ie) return {obj:ie,kind:'item',exact:true,via:'exact'};
+  const mf=impFuzzy(name, impMatList(), x=>x.name); if(mf) return {obj:mf.obj,kind:'material',exact:false,via:mf.via};
+  const itf=impFuzzy(name, impItemList(), x=>x.name); if(itf) return {obj:itf.obj,kind:'item',exact:false,via:itf.via};
+  return null; }
+// Match within one chosen catalog (used when the row's Type is set by hand).
+function impNameInKind(name, kind){ const hit=impFuzzy(name, kind==='item'?impItemList():impMatList(), x=>x.name);
+  return hit?{obj:hit.obj,kind,exact:hit.exact,via:hit.via}:null; }
 function impMembers(){ return (state.allUsers||[]).filter(u=>!(u.roles||[]).includes('removed')); }
 function impHolderResolve(name){ const raw=String(name||'').trim();
   if(!raw) return {value:'', member:false, guess:false};
@@ -3401,9 +3420,9 @@ const IMP_HDR_WORDS=/material|item|name|what|blueprint|amt|ammt|amount|\bscu\b|s
 function impLooksHeader(row){
   const cells=(row||[]).map(c=>String(c||'').trim()).filter(Boolean); if(!cells.length) return true;
   if(cells.some(c=>/^-?\d+(\.\d+)?$/.test(c))) return false;            // numbers -> data
-  if(cells.some(c=>{ const m=impNameMatch(c); return m&&m.exact; })) return false; // a real name -> data
+  if(cells.some(c=>{ const m=impResolveName(c); return m&&m.exact; })) return false; // a real name -> data
   if(cells.some(c=>IMP_HDR_WORDS.test(c.toLowerCase()))) return true;   // header words -> header
-  return !cells.some(c=>impNameMatch(c));                              // fuzzy name -> probably data
+  return !cells.some(c=>impResolveName(c));                            // fuzzy name -> probably data
 }
 // Infer column roles from cell content; fills any field still unmapped (also
 // handles header-less sheets entirely).
@@ -3418,7 +3437,7 @@ function impInferMap(rows, kind, base){
   const intIn=v=>{ const m=v.replace(/[^0-9.\-]/g,''); if(!/^-?\d+$/.test(m))return false; const n=+m; return n>=0&&n<=1000; };
   const range=v=>/\d+\s*[-–]\s*\d+/.test(v)||/n\/?a/i.test(v);
   const S={}; for(let i=0;i<ncol;i++){ if(used.has(i))continue; S[i]={
-    name:frac(i,v=>!!impNameMatch(v)), holder:frac(i,v=>impHolderResolve(v).member),
+    name:frac(i,v=>!!impResolveName(v)), holder:frac(i,v=>impHolderResolve(v).member),
     loc:frac(i,v=>impLocResolve(v).ok), num:frac(i,num), dec:frac(i,dec),
     intIn:frac(i,intIn), range:frac(i,range) }; }
   const pick=(scoreFn,min)=>{ let bi='',bs=min; for(const i in S){ if(used.has(+i))continue; const s=scoreFn(S[i]); if(s>bs){bs=s;bi=+i;} } if(bi!=='')used.add(bi); return bi; };
@@ -3442,7 +3461,6 @@ function impInferMap(rows, kind, base){
   return map;
 }
 function impParse(){
-  _imp.kind=(document.getElementById('imp-kind')||{value:_imp.kind}).value;
   let grid=impParseCSV((document.getElementById('imp-paste')||{value:''}).value);
   if(!grid.length){ showErr('imp-err','Nothing to read. Choose a file or paste rows.'); return; }
   const hasHeader=impLooksHeader(grid[0]);
@@ -3451,9 +3469,11 @@ function impParse(){
   _imp.rows=_imp.rows.filter(r=>r.some(c=>String(c||'').trim()!==''));
   if(!_imp.rows.length){ showErr('imp-err','No data rows found.'); return; }
   _imp.headerless=!hasHeader;
-  const base=hasHeader?impAutoMap(_imp.headers,_imp.kind):{name:'',amount:'',quality:'',holder:'',location:''};
-  _imp.map=impInferMap(_imp.rows,_imp.kind,base);
-  _imp.overrides={}; _imp.fill={location:'',heldBy:'',band:''}; _imp.removed=new Set(); _imp.phase=2; impShow();
+  // Map as if materials may be present (so a quality column gets picked up); the
+  // per-row kind is detected later, and quality only applies to material rows.
+  const base=hasHeader?impAutoMap(_imp.headers,'material'):{name:'',amount:'',quality:'',holder:'',location:''};
+  _imp.map=impInferMap(_imp.rows,'material',base);
+  _imp.overrides={}; _imp.removed=new Set(); _imp.phase=2; impShow();
 }
 const IMP_BANDS=[[0,399],[400,599],[600,699],[700,799],[800,899],[900,949],[950,998],[999,1000]];
 function impBandOf(v){ for(let i=0;i<IMP_BANDS.length;i++){ if(v>=IMP_BANDS[i][0]&&v<=IMP_BANDS[i][1]) return i+1; } return v>1000?8:1; }
@@ -3463,9 +3483,15 @@ function impCompute(i){
   const col=field=>{ const idx=_imp.map[field]; return (idx!==''&&idx!=null)?String(r[idx]??'').trim():''; };
   const qtyRaw = ('qty' in ov)? ov.qty : col('amount');
   const qty = parseFloat(String(qtyRaw).replace(/[^0-9.\-]/g,''));
-  const band = ('band' in ov)? ov.band : (impParseBand(col('quality')) || _imp.fill.band || '');
   const rawName = ('name' in ov)? ov.name : col('name');
-  const nm = impNameMatch(rawName);
+  // kind: an explicit Type override matches within that catalog; otherwise we
+  // auto-detect across both. Unknown rows default to material so a Quality cell
+  // shows (the admin can flip Type or remove the row).
+  let nm, kind;
+  if(ov.kind){ kind=ov.kind; nm=impNameInKind(rawName, kind); }
+  else { nm=impResolveName(rawName); kind = nm? nm.kind : 'material'; }
+  const isMat = kind==='material';
+  const band = isMat ? (('band' in ov)? ov.band : (impParseBand(col('quality')) || '')) : '';
   const rawHolder = ('holder' in ov)? ov.holder : col('holder');
   const hr = impHolderResolve(rawHolder);
   // location defaults to the org base when the sheet doesn't say (materials sit
@@ -3473,8 +3499,8 @@ function impCompute(i){
   const rawLoc = ('location' in ov)? ov.location : (col('location') || impBaseLoc());
   const lr = impLocResolve(rawLoc);
   const included = Number.isFinite(qty) && qty>0;
-  const valid = included && !!nm && hr.value && lr.ok && (_imp.kind!=='material' || band!=='');
-  return { rawName, name: nm?nm.obj.name:rawName, matched:!!nm, nameExact: nm?nm.exact:false, nameVia: nm?nm.via:'',
+  const valid = included && !!nm && hr.value && lr.ok && (!isMat || band!=='');
+  return { rawName, name: nm?nm.obj.name:rawName, kind, isMat, matched:!!nm, nameExact: nm?nm.exact:false, nameVia: nm?nm.via:'',
     qty, band,
     rawHolder, holder:hr.value, holderMember:hr.member, holderGuess:hr.guess,
     rawLoc, location:lr.value, locOk:lr.ok, locGuess:lr.guess, system:lr.system,
@@ -3483,20 +3509,19 @@ function impCompute(i){
 function impReviewHtml(){
   const h=_imp.headers, sel=(field)=>`<select onchange="impSetMap('${field}',this.value)"><option value=""${_imp.map[field]===''?' selected':''}>(none)</option>${h.map((hd,idx)=>`<option value="${idx}"${String(_imp.map[field])===String(idx)?' selected':''}>${esc(hd||('column '+(idx+1)))}</option>`).join('')}</select>`;
   const intro=_imp.headerless?"There's no header row, so we read your columns by content and matched everything against the databank."
-                             :"We read your columns and matched names, holders and locations against the databank.";
-  return `<div class="modal-title">Import ${_imp.kind==='item'?'items':'materials'}: review and complete</div>
+                             :"We read your columns and matched every name, holder and location against the databank, sorting materials and items as we go.";
+  return `<div class="modal-title">Review and complete your import</div>
     <div style="font-size:var(--text-md);color:var(--fg);line-height:1.5;">${intro} Have a look, fix anything outlined in red, and you're good to go.</div>
     <div class="imp-map">
-      <div><div class="lbl">${_imp.kind==='item'?'Item':'Material'} name</div>${sel('name')}</div>
+      <div><div class="lbl">Name</div>${sel('name')}</div>
       <div><div class="lbl">Amount</div>${sel('amount')}</div>
-      ${_imp.kind==='material'?`<div><div class="lbl">Quality</div>${sel('quality')}</div>`:''}
+      <div><div class="lbl">Quality</div>${sel('quality')}</div>
       <div><div class="lbl">Holder</div>${sel('holder')}</div>
       <div><div class="lbl">Location</div>${sel('location')}</div>
     </div>
     <div id="imp-review">${impReviewInner()}</div>`;
 }
 function impReviewInner(){
-  const isMat=_imp.kind==='material';
   const bandOpts=v=>`<option value=""${!v?' selected':''}>(pick)</option>${QUALITY_BANDS.map((b,i)=>`<option value="${i+1}"${String(v)===String(i+1)?' selected':''}>${b}</option>`).join('')}`;
   const locOpts=v=>`<option value="">(pick)</option>${impLocList().map(l=>`<option value="${esc(l.name)}"${v===l.name?' selected':''}>${esc(l.name)}</option>`).join('')}`;
   // holder is a member dropdown; an off-roster name from the sheet rides along as
@@ -3505,44 +3530,49 @@ function impReviewInner(){
     o+=impMembers().map(u=>`<option value="${esc(u.username)}"${c.holderMember&&cur===u.username?' selected':''}>${esc(u.username)}</option>`).join('');
     if(cur&&!c.holderMember) o+=`<option value="${esc(cur)}" selected>${esc(cur)} (off-roster)</option>`;
     return o; };
-  // material names are a preset picker from the databank (like location); items
-  // stay a free-text field because the item catalog is far too long for a per-row
-  // dropdown, so they keep fuzzy match + the "not in databank" flag.
-  const nameOpts=c=>{ const cur=c.matched?c.name:''; let o=`<option value="">(pick)</option>`;
-    o+=impCatList().map(m=>`<option value="${esc(m.name)}"${cur===m.name?' selected':''}>${esc(m.name)}</option>`).join('');
+  // per-row Type drives how each row lands (material at base + quality, item crafted)
+  const typeOpts=c=>['material','item'].map(k=>`<option value="${k}"${c.kind===k?' selected':''}>${k}</option>`).join('');
+  // material names get the databank preset picker (like location); items stay a
+  // free-text field (the item catalog is far too long for a per-row dropdown) with
+  // fuzzy match + the "not in databank" flag.
+  const matOpts=c=>{ const cur=c.matched?c.name:''; let o=`<option value="">(pick)</option>`;
+    o+=impMatList().map(m=>`<option value="${esc(m.name)}"${cur===m.name?' selected':''}>${esc(m.name)}</option>`).join('');
     return o; };
-  const nameCell=(c,i)=> isMat
-    ? `<td class="imp-name"><select onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}">${nameOpts(c)}</select></td>`
+  const nameCell=(c,i)=> (c.isMat && c.matched)
+    ? `<td class="imp-name"><select onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}">${matOpts(c)}</select></td>`
     : `<td class="imp-name"><div class="imp-namecell"><input type="text" value="${esc(c.name)}" onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}">${(c.included&&!c.matched)?`<span class="imp-flag">not in databank</span>`:''}</div></td>`;
-  let ready=0, attention=0, skipped=0;
+  let ready=0, attention=0, skipped=0, readyMat=0, readyItem=0;
   const body=_imp.rows.map((_,i)=>{
     if(_imp.removed.has(i)) return '';
     const c=impCompute(i);
     if(!c.included){ skipped++; }
-    else if(c.valid){ ready++; } else { attention++; }
+    else if(c.valid){ ready++; c.isMat?readyMat++:readyItem++; } else { attention++; }
     const cls=!c.included?' class="imp-skip"':'';
     return `<tr${cls}>
+      <td><select onchange="impCell(${i},'kind',this.value)">${typeOpts(c)}</select></td>
       ${nameCell(c,i)}
       <td><input type="number" step="any" value="${esc(c.qty===c.qty?c.qty:'')}" onchange="impCell(${i},'qty',this.value)" style="width:80px;min-width:0;"></td>
-      ${isMat?`<td><select onchange="impCell(${i},'band',this.value)" ${(c.included&&c.band==='')?'class="imp-bad"':''}>${bandOpts(c.band)}</select></td>`:''}
+      ${c.isMat
+        ? `<td><select onchange="impCell(${i},'band',this.value)" ${(c.included&&c.band==='')?'class="imp-bad"':''}>${bandOpts(c.band)}</select></td>`
+        : `<td class="imp-na">n/a</td>`}
       <td><select onchange="impCell(${i},'holder',this.value)" class="${(c.included&&!c.holder)?'imp-bad':''}">${holderOpts(c)}</select></td>
       <td><select onchange="impCell(${i},'location',this.value)" class="${(c.included&&!c.locOk)?'imp-bad':''}">${locOpts(c.locOk?c.location:'')}</select></td>
       <td class="imp-xcell"><button class="btn-del imp-x" onclick="impRemoveRow(${i})" aria-label="Remove row" title="Remove this row">&times;</button></td>
     </tr>`;
   }).join('');
   const canImport = ready>0 && attention===0;
-  const kindW=_imp.kind==='item'?'item':'material';
+  const mix = (readyMat&&readyItem) ? ` (${readyMat} material${readyMat===1?'':'s'}, ${readyItem} item${readyItem===1?'':'s'})` : '';
   let sentence;
-  if(ready&&!attention) sentence=ready===1?`One ${kindW} is ready to import.`:`All ${ready} ${kindW}s are ready to import.`;
-  else if(ready&&attention) sentence=`${ready} ${ready===1?`${kindW} is`:`${kindW}s are`} ready, but ${attention} still ${attention===1?'needs':'need'} a quick fix before you can import.`;
+  if(ready&&!attention) sentence=(ready===1?`One row is ready to import.`:`All ${ready} rows are ready to import${mix}.`);
+  else if(ready&&attention) sentence=`${ready} ${ready===1?'row is':'rows are'} ready${mix}, but ${attention} still ${attention===1?'needs':'need'} a quick fix before you can import.`;
   else if(attention) sentence=`Nothing's ready yet. ${attention} ${attention===1?'row needs':'rows need'} a quick fix first.`;
   else sentence=`Nothing to import here.`;
   if(skipped) sentence+=` ${skipped===1?'One row was':`${skipped} rows were`} left out for having no amount.`;
   return `<div class="imp-sum">${sentence}</div>
-    <div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>${isMat?'Material':'Item'}</th><th>Qty</th>${isMat?'<th>Quality</th>':''}<th>Holder</th><th>Location</th><th></th></tr></thead><tbody>${body}</tbody></table></div>
+    <div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>Type</th><th>Name</th><th>Qty</th><th>Quality</th><th>Holder</th><th>Location</th><th></th></tr></thead><tbody>${body}</tbody></table></div>
     <div class="err-msg" id="imp-err2"></div>
     <div style="display:flex;gap:10px;margin-top:var(--space-4);">
-      <button class="btn btn-black" ${canImport?'':'disabled style="opacity:.5;cursor:default;"'} onclick="doImport()">Import ${ready} ${_imp.kind==='item'?'item':'material'}${ready===1?'':'s'}</button>
+      <button class="btn btn-black" ${canImport?'':'disabled style="opacity:.5;cursor:default;"'} onclick="doImport()">Import ${ready} row${ready===1?'':'s'}</button>
       <button class="btn btn-outline" onclick="impBack()">Back</button>
     </div>`;
 }
@@ -3554,13 +3584,13 @@ function impBack(){ _imp.phase=1; impShow(); }
 async function doImport(){
   const rows=[];
   _imp.rows.forEach((_,i)=>{ if(_imp.removed.has(i)) return; const c=impCompute(i); if(c.included&&c.valid){
-    const entry={ kind:_imp.kind, name:c.name, qty:c.qty, location:c.location, heldBy:c.holder, status:_imp.kind==='item'?'crafted':'at_base' };
+    const entry={ kind:c.kind, name:c.name, qty:c.qty, location:c.location, heldBy:c.holder, status:c.isMat?'at_base':'crafted' };
     if(c.system) entry.system=c.system;
-    if(_imp.kind==='material' && c.band){ entry.qualityStep=Number(c.band); const nm=impNameMatch(c.name); const m=nm&&nm.obj; const qd=m&&(m.qualities||[]).find(x=>x.step===Number(c.band)); if(qd) entry.qualityValue=qd.value; }
+    if(c.isMat && c.band){ entry.qualityStep=Number(c.band); const m=impMatList().find(x=>x.name===c.name); const qd=m&&(m.qualities||[]).find(x=>x.step===Number(c.band)); if(qd) entry.qualityValue=qd.value; }
     rows.push(entry);
   }});
   if(!rows.length){ showErr('imp-err2','Nothing ready to import.'); return; }
-  try{ const out=await convexMutation('admin:importStock',{sessionToken:state.sessionToken,rows}); toast(`Imported ${out.created} ${_imp.kind==='item'?'item':'material'}${out.created===1?'':'s'}`); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('imp-err2',friendlyError(e)); }
+  try{ const out=await convexMutation('admin:importStock',{sessionToken:state.sessionToken,rows}); toast(`Imported ${out.created} ${out.created===1?'entry':'entries'}`); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('imp-err2',friendlyError(e)); }
 }
 
 function renderStockControls(){
