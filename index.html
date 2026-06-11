@@ -3194,6 +3194,7 @@ function renderDistribution(){
 }
 function openHandoutModal(id){
   const s=state.stock.find(x=>x._id===id); if(!s) return;
+  const members=(state.allUsers||[]).filter(u=>!(u.roles||[]).includes('removed')).map(u=>u.username).sort((a,b)=>a.localeCompare(b));
   showModal(`
     <div class="modal-title">Hand out — ${esc(s.name)}</div>
     <div class="grid2">
@@ -3202,7 +3203,14 @@ function openHandoutModal(id){
     </div>
     <div class="grid2">
       <div class="field"><label class="lbl">FRCoin (each)</label><input id="ho-frc" type="number" min="0" step="1" value="0" oninput="this.dataset.touched='1';handoutTotalHint()"></div>
-      <div class="field"><label class="lbl">Recipient</label><input id="ho-rcpt" type="text" placeholder="who received it"></div>
+      <div class="field"><label class="lbl">Recipient</label>
+        <select id="ho-rcpt-sel" onchange="handoutRcptChanged()">
+          <option value="">— pick a member —</option>
+          ${members.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}
+          <option value="__other">Someone else…</option>
+        </select>
+        <input id="ho-rcpt-other" type="text" placeholder="name not on the roster" style="display:none;margin-top:8px;">
+      </div>
     </div>
     <div id="ho-total" style="font-size:var(--text-sm);color:var(--fg);font-weight:700;margin:-14px 0 var(--space-4);">Free handout.</div>
     <div class="field"><label class="lbl">Note (optional)</label><input id="ho-note" type="text" placeholder="event name, details…"></div>
@@ -3211,6 +3219,15 @@ function openHandoutModal(id){
       <button class="btn btn-black" id="ho-submit" onclick="doHandout('${esc(s._id)}')">Hand Out</button>
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     </div>`);
+}
+// Recipient: a member from the roster, or "Someone else…" to type a name not
+// signed up (squads, externals). Mirrors the gather report's holder picker.
+function handoutRcptChanged(){
+  const sel=document.getElementById('ho-rcpt-sel'); const other=document.getElementById('ho-rcpt-other');
+  if(!sel||!other) return;
+  const isOther = sel.value==='__other';
+  other.style.display = isOther ? '' : 'none';
+  if(isOther){ try{ other.focus(); }catch(e){} } else { other.value=''; }
 }
 // FRCoin defaults to the context: a request is free (0), an event is 1 each —
 // unless the distributor has already typed their own price.
@@ -3228,10 +3245,11 @@ function handoutTotalHint(){
 }
 async function doHandout(id){
   const V=x=>(document.getElementById(x)||{value:''}).value;
-  const qty=Number(V('ho-qty')); const recipient=V('ho-rcpt').trim(); const context=V('ho-ctx'); const note=V('ho-note').trim();
+  const qty=Number(V('ho-qty')); const context=V('ho-ctx'); const note=V('ho-note').trim();
+  const rsel=V('ho-rcpt-sel'); const recipient = (rsel==='__other' ? V('ho-rcpt-other') : rsel).trim();
   const frcoin=Math.max(0, Number(V('ho-frc'))||0);
   if(!(qty>0)){ showErr('ho-err','Quantity must be greater than 0'); return; }
-  if(!recipient){ showErr('ho-err','Who received it?'); return; }
+  if(!recipient){ showErr('ho-err','Pick a member or type who received it'); return; }
   // Two-step confirm: handing out is an irreversible give-away. First click arms,
   // second click within 5s commits. (confirmModal can't stack inside this modal.)
   const btn=document.getElementById('ho-submit');
