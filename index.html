@@ -154,21 +154,17 @@ tbody tr:hover{background:#f9f9f9;}
 /* ── Spreadsheet import tool ─────────────────────────────────────── */
 .imp-map{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--space-3);margin:var(--space-4) 0;}
 .imp-map .lbl{margin-bottom:4px;}
-.imp-bulk{display:flex;gap:var(--space-3);flex-wrap:wrap;align-items:flex-end;margin:var(--space-3) 0;padding:var(--space-3);background:var(--bg2);}
-.imp-bulk .field{margin:0;}
-.imp-bulk input,.imp-bulk select{width:140px;}
-.imp-wrap{max-height:46vh;overflow:auto;border:1px solid var(--border-m);}
-.imp-tbl{width:100%;border-collapse:collapse;font-size:var(--text-sm);}
-.imp-tbl th,.imp-tbl td{padding:6px 8px;border-bottom:1px solid var(--border-m);text-align:left;vertical-align:middle;white-space:nowrap;}
+.imp-wrap{max-height:50vh;overflow:auto;border:1px solid var(--border-m);}
+.imp-tbl{width:100%;border-collapse:collapse;font-size:var(--text-md);}
+.imp-tbl th,.imp-tbl td{padding:7px 8px;border-bottom:1px solid var(--border-m);text-align:left;vertical-align:middle;white-space:nowrap;}
 .imp-tbl th{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;background:var(--bg);}
-.imp-tbl input,.imp-tbl select{width:100%;min-width:90px;padding:4px 6px;font-size:var(--text-sm);margin:0;}
-.imp-tbl tr.imp-skip{opacity:.4;}
+/* one consistent control size across every field (text inputs + custom selects) */
+.imp-tbl input,.imp-tbl .cs-trigger{width:100%;min-width:90px;font-size:var(--text-md);padding:8px var(--space-2);margin:0;line-height:1.3;box-sizing:border-box;}
+.imp-tbl tr.imp-skip{opacity:.45;}
 .imp-bad{border-color:var(--red)!important;}
-.imp-flag{color:var(--red);font-size:var(--text-xs);font-weight:700;white-space:nowrap;}
-.imp-note{color:var(--fg);font-size:var(--text-xs);font-weight:700;white-space:nowrap;}
-.imp-sum{font-size:var(--text-sm);color:var(--fg);margin:var(--space-3) 0;}
-.imp-tbl td.imp-name{white-space:normal;min-width:150px;}
-/* custom file picker — match the outline-button design language */
+.imp-sum{font-size:var(--text-md);color:var(--fg);margin:var(--space-3) 0;line-height:1.5;}
+.imp-tbl td.imp-name{white-space:normal;min-width:160px;}
+/* custom file picker - match the outline-button design language */
 .imp-file{display:flex;align-items:center;gap:var(--space-3);}
 .imp-file-name{font-size:var(--text-sm);color:var(--fg);}
 .imp-file-native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
@@ -3315,7 +3311,7 @@ function impUploadHtml(){
   return `<div class="modal-title">Import from spreadsheet</div>
     <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:var(--space-4);line-height:1.6;">Upload a CSV or paste cells straight from your sheet. We read the columns for you, match names, holders and locations against the databank, and only ask about what we can't work out. Nothing imports until every row checks out.</p>
     <div class="field"><label class="lbl">Importing</label>
-      <select id="imp-kind"><option value="material"${k==='material'?' selected':''}>Materials (at base)</option><option value="item"${k==='item'?' selected':''}>Finished items</option></select></div>
+      <select id="imp-kind"><option value="material"${k==='material'?' selected':''}>Materials</option><option value="item"${k==='item'?' selected':''}>Items</option></select></div>
     <div class="field"><label class="lbl">CSV file</label>
       <div class="imp-file">
         <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('imp-file').click()">Choose file</button>
@@ -3351,7 +3347,7 @@ function impAutoMap(headers, kind){
     amount: find(isAmt),
     // quality must be a quality column, not the amount column (whose name may
     // contain things like "low_q").
-    quality: kind==='material'?find(l=>/qual|grade|low_q|high_q|band/.test(l) && !isAmt(l)):'',
+    quality: kind==='material'?find(l=>/qual|grade|low_q|high_q|band|\bq\b/.test(l) && !isAmt(l)):'',
     holder: find(l=>/who|holder|held|owner|by|player|member/.test(l)),
     location: find(l=>/loc|where|base|place|system/.test(l)),
   };
@@ -3386,6 +3382,7 @@ function impHolderResolve(name){ const raw=String(name||'').trim();
   return {value:raw, member:false, guess:false}; // off-roster, allowed
 }
 function impLocList(){ return state.catalog.locations||[]; }
+function impBaseLoc(){ const b=impLocList().find(l=>l.isBase); return b?b.name:''; }
 function impLocResolve(name){ const raw=String(name||'').trim();
   if(!raw) return {value:'', ok:false, guess:false, system:undefined};
   const hit=impFuzzy(raw, impLocList(), l=>l.name);
@@ -3409,18 +3406,32 @@ function impInferMap(rows, kind, base){
   const sample=rows.slice(0,Math.min(rows.length,25));
   const used=new Set(Object.values(map).filter(v=>v!==''&&v!=null).map(Number));
   const frac=(idx,test)=>{ let t=0,n=0; for(const r of sample){ const v=String(r[idx]??'').trim(); if(!v)continue; n++; if(test(v))t++; } return n?t/n:0; };
-  const isNum=v=>/\d/.test(v)&&/^-?\d+(\.\d+)?$/.test(v.replace(/[^0-9.\-]/g,''));
-  const isRange=v=>/\d+\s*[-–]\s*\d+/.test(v)||/n\/?a/i.test(v);
-  const score={}; for(let i=0;i<ncol;i++){ if(used.has(i))continue; score[i]={
-    name: frac(i,v=>!!impNameMatch(v)), holder: frac(i,v=>impHolderResolve(v).member),
-    loc: frac(i,v=>impLocResolve(v).ok), num: frac(i,isNum), range: frac(i,isRange) }; }
-  const pick=(key,min)=>{ let bi='',bs=min; for(const i in score){ if(used.has(+i))continue; if(score[i][key]>bs){bs=score[i][key];bi=+i;} } if(bi!=='')used.add(bi); return bi; };
+  const num=v=>{ const m=v.replace(/[^0-9.\-]/g,''); return /\d/.test(m)&&/^-?\d+(\.\d+)?$/.test(m); };
+  const dec=v=>/\d\.\d/.test(v);
+  const intIn=v=>{ const m=v.replace(/[^0-9.\-]/g,''); if(!/^-?\d+$/.test(m))return false; const n=+m; return n>=0&&n<=1000; };
+  const range=v=>/\d+\s*[-–]\s*\d+/.test(v)||/n\/?a/i.test(v);
+  const S={}; for(let i=0;i<ncol;i++){ if(used.has(i))continue; S[i]={
+    name:frac(i,v=>!!impNameMatch(v)), holder:frac(i,v=>impHolderResolve(v).member),
+    loc:frac(i,v=>impLocResolve(v).ok), num:frac(i,num), dec:frac(i,dec),
+    intIn:frac(i,intIn), range:frac(i,range) }; }
+  const pick=(scoreFn,min)=>{ let bi='',bs=min; for(const i in S){ if(used.has(+i))continue; const s=scoreFn(S[i]); if(s>bs){bs=s;bi=+i;} } if(bi!=='')used.add(bi); return bi; };
   const blank=f=>map[f]===''||map[f]==null;
-  if(blank('name')) map.name=pick('name',0.34);
-  if(blank('holder')) map.holder=pick('holder',0.34);
-  if(blank('location')) map.location=pick('loc',0.34);
-  if(kind==='material'&&blank('quality')) map.quality=pick('range',0.2);
-  if(blank('amount')) map.amount=pick('num',0.34);
+  if(blank('name')) map.name=pick(s=>s.name,0.34);
+  if(blank('holder')) map.holder=pick(s=>s.holder,0.34);
+  if(blank('location')) map.location=pick(s=>s.loc,0.34);
+  if(kind==='material'&&blank('quality')){
+    // Quality reads as ranges ("322-580", "n/a") or plain integers 0-1000.
+    // Only treat a plain-integer column as quality when we can still tell amount
+    // apart: either amount is already known, or there's a second numeric column.
+    const amountKnown=!blank('amount');
+    const numericLeft=Object.keys(S).filter(i=>!used.has(+i)&&S[i].num>0.5).length;
+    map.quality=pick(s=>{
+      if(s.range>=0.34) return 1+s.range;                         // strong signal
+      if((amountKnown||numericLeft>=2)&&s.num>0.5) return s.intIn-s.dec; // integer, not decimal
+      return 0;
+    },0.3);
+  }
+  if(blank('amount')) map.amount=pick(s=>s.num,0.34);
   return map;
 }
 function impParse(){
@@ -3448,9 +3459,11 @@ function impCompute(i){
   const band = ('band' in ov)? ov.band : (impParseBand(col('quality')) || _imp.fill.band || '');
   const rawName = ('name' in ov)? ov.name : col('name');
   const nm = impNameMatch(rawName);
-  const rawHolder = ('holder' in ov)? ov.holder : (col('holder') || _imp.fill.heldBy || '');
+  const rawHolder = ('holder' in ov)? ov.holder : col('holder');
   const hr = impHolderResolve(rawHolder);
-  const rawLoc = ('location' in ov)? ov.location : (col('location') || _imp.fill.location || '');
+  // location defaults to the org base when the sheet doesn't say (materials sit
+  // at base, items are finished at base), so the importer doesn't have to ask.
+  const rawLoc = ('location' in ov)? ov.location : (col('location') || impBaseLoc());
   const lr = impLocResolve(rawLoc);
   const included = Number.isFinite(qty) && qty>0;
   const valid = included && !!nm && hr.value && lr.ok && (_imp.kind!=='material' || band!=='');
@@ -3462,11 +3475,10 @@ function impCompute(i){
 }
 function impReviewHtml(){
   const h=_imp.headers, sel=(field)=>`<select onchange="impSetMap('${field}',this.value)"><option value=""${_imp.map[field]===''?' selected':''}>(none)</option>${h.map((hd,idx)=>`<option value="${idx}"${String(_imp.map[field])===String(idx)?' selected':''}>${esc(hd||('column '+(idx+1)))}</option>`).join('')}</select>`;
-  const bandOpts=`<option value="">(pick)</option>${QUALITY_BANDS.map((b,i)=>`<option value="${i+1}">${b}</option>`).join('')}`;
-  const locBulk=`<select id="imp-bulk-loc"><option value="">(pick a location)</option>${impLocList().map(l=>`<option value="${esc(l.name)}">${esc(l.name)}</option>`).join('')}</select>`;
-  const intro=_imp.headerless?'No header row detected, so we read your columns by content.':'We matched your columns automatically.';
+  const intro=_imp.headerless?"There's no header row, so we read your columns by content and matched everything against the databank."
+                             :"We read your columns and matched names, holders and locations against the databank.";
   return `<div class="modal-title">Import ${_imp.kind==='item'?'items':'materials'}: review and complete</div>
-    <div style="font-size:var(--text-sm);color:var(--fg);">${intro} Check the mapping, then fix anything flagged. You can set one value for a whole column with the bulk row.</div>
+    <div style="font-size:var(--text-md);color:var(--fg);line-height:1.5;">${intro} Have a look, fix anything outlined in red, and you're good to go.</div>
     <div class="imp-map">
       <div><div class="lbl">${_imp.kind==='item'?'Item':'Material'} name</div>${sel('name')}</div>
       <div><div class="lbl">Amount</div>${sel('amount')}</div>
@@ -3474,47 +3486,41 @@ function impReviewHtml(){
       <div><div class="lbl">Holder</div>${sel('holder')}</div>
       <div><div class="lbl">Location</div>${sel('location')}</div>
     </div>
-    <div class="imp-bulk">
-      <div class="field"><label class="lbl">Set location for all</label>${locBulk}</div>
-      <button class="btn btn-outline btn-sm" onclick="impBulk('location','imp-bulk-loc')">Apply</button>
-      <div class="field"><label class="lbl">Set holder for all</label><input id="imp-bulk-held" type="text" list="imp-members" placeholder="member or any name"></div>
-      <button class="btn btn-outline btn-sm" onclick="impBulk('heldBy','imp-bulk-held')">Apply</button>
-      ${_imp.kind==='material'?`<div class="field"><label class="lbl">Set quality for blanks</label><select id="imp-bulk-band">${bandOpts}</select></div><button class="btn btn-outline btn-sm" onclick="impBulk('band','imp-bulk-band')">Apply</button>`:''}
-    </div>
-    <datalist id="imp-members">${impMembers().map(u=>`<option value="${esc(u.username)}">`).join('')}</datalist>
     <div id="imp-review">${impReviewInner()}</div>`;
 }
 function impReviewInner(){
   const isMat=_imp.kind==='material';
   const bandOpts=v=>`<option value=""${!v?' selected':''}>(pick)</option>${QUALITY_BANDS.map((b,i)=>`<option value="${i+1}"${String(v)===String(i+1)?' selected':''}>${b}</option>`).join('')}`;
   const locOpts=v=>`<option value="">(pick)</option>${impLocList().map(l=>`<option value="${esc(l.name)}"${v===l.name?' selected':''}>${esc(l.name)}</option>`).join('')}`;
+  // holder is a member dropdown; an off-roster name from the sheet rides along as
+  // its own option, shown in brackets, so nothing jumps onto a second line.
+  const holderOpts=c=>{ const cur=c.holder; let o=`<option value="">(pick)</option>`;
+    o+=impMembers().map(u=>`<option value="${esc(u.username)}"${c.holderMember&&cur===u.username?' selected':''}>${esc(u.username)}</option>`).join('');
+    if(cur&&!c.holderMember) o+=`<option value="${esc(cur)}" selected>${esc(cur)} (off-roster)</option>`;
+    return o; };
   let ready=0, attention=0, skipped=0;
   const body=_imp.rows.map((_,i)=>{
     const c=impCompute(i);
     if(!c.included){ skipped++; }
     else if(c.valid){ ready++; } else { attention++; }
     const cls=!c.included?' class="imp-skip"':'';
-    // name: show what we'll import; flag unknowns red and auto-corrections in black
-    const nameFlag = c.included
-      ? (!c.matched ? ` <span class="imp-flag">unknown</span>`
-        : (!c.nameExact ? ` <span class="imp-note">from “${esc(c.rawName)}”</span>` : ''))
-      : '';
-    // holder: must be non-empty; member vs off-roster is informational only
-    const holderFlag = (c.included&&c.holder)
-      ? (c.holderGuess ? ` <span class="imp-note">from “${esc(c.rawHolder)}”</span>`
-        : (!c.holderMember ? ` <span class="imp-note">off-roster</span>` : ''))
-      : '';
-    const locFlag = (c.included&&!c.locOk&&c.rawLoc) ? ` <span class="imp-flag">unknown</span>` : '';
     return `<tr${cls}>
-      <td class="imp-name"><input type="text" value="${esc(c.rawName)}" onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}">${nameFlag}</td>
-      <td><input type="number" step="any" value="${esc(c.qty===c.qty?c.qty:'')}" onchange="impCell(${i},'qty',this.value)" style="width:72px;"></td>
+      <td class="imp-name"><input type="text" value="${esc(c.name)}" onchange="impCell(${i},'name',this.value)" class="${(c.included&&!c.matched)?'imp-bad':''}"></td>
+      <td><input type="number" step="any" value="${esc(c.qty===c.qty?c.qty:'')}" onchange="impCell(${i},'qty',this.value)" style="width:80px;min-width:0;"></td>
       ${isMat?`<td><select onchange="impCell(${i},'band',this.value)" ${(c.included&&c.band==='')?'class="imp-bad"':''}>${bandOpts(c.band)}</select></td>`:''}
-      <td><input type="text" list="imp-members" value="${esc(c.holder)}" onchange="impCell(${i},'holder',this.value)" class="${(c.included&&!c.holder)?'imp-bad':''}">${holderFlag}</td>
-      <td><select onchange="impCell(${i},'location',this.value)" class="${(c.included&&!c.locOk)?'imp-bad':''}">${locOpts(c.locOk?c.location:'')}</select>${locFlag}</td>
+      <td><select onchange="impCell(${i},'holder',this.value)" class="${(c.included&&!c.holder)?'imp-bad':''}">${holderOpts(c)}</select></td>
+      <td><select onchange="impCell(${i},'location',this.value)" class="${(c.included&&!c.locOk)?'imp-bad':''}">${locOpts(c.locOk?c.location:'')}</select></td>
     </tr>`;
   }).join('');
   const canImport = ready>0 && attention===0;
-  return `<div class="imp-sum"><strong>${ready}</strong> ready · <strong style="color:${attention?'var(--red)':'var(--fg)'};">${attention}</strong> need attention · ${skipped} skipped (no amount)</div>
+  const kindW=_imp.kind==='item'?'item':'material';
+  let sentence;
+  if(ready&&!attention) sentence=ready===1?`One ${kindW} is ready to import.`:`All ${ready} ${kindW}s are ready to import.`;
+  else if(ready&&attention) sentence=`${ready} ${ready===1?`${kindW} is`:`${kindW}s are`} ready, but ${attention} still ${attention===1?'needs':'need'} a quick fix before you can import.`;
+  else if(attention) sentence=`Nothing's ready yet. ${attention} ${attention===1?'row needs':'rows need'} a quick fix first.`;
+  else sentence=`Nothing to import here.`;
+  if(skipped) sentence+=` ${skipped===1?'One row was':`${skipped} rows were`} left out for having no amount.`;
+  return `<div class="imp-sum">${sentence}</div>
     <div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>${isMat?'Material':'Item'}</th><th>Qty</th>${isMat?'<th>Quality</th>':''}<th>Holder</th><th>Location</th></tr></thead><tbody>${body}</tbody></table></div>
     <div class="err-msg" id="imp-err2"></div>
     <div style="display:flex;gap:10px;margin-top:var(--space-4);">
@@ -3524,7 +3530,6 @@ function impReviewInner(){
 }
 function impRerender(){ const el=document.getElementById('imp-review'); if(el) el.innerHTML=impReviewInner(); }
 function impSetMap(field,val){ _imp.map[field]= val===''?'':Number(val); impRerender(); }
-function impBulk(field,inputId){ const v=(document.getElementById(inputId)||{value:''}).value.trim(); _imp.fill[field]=v; impRerender(); }
 function impCell(i,field,val){ _imp.overrides[i]=_imp.overrides[i]||{}; _imp.overrides[i][field]=val; impRerender(); }
 function impBack(){ _imp.phase=1; impShow(); }
 async function doImport(){
