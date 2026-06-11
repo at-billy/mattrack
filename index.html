@@ -1970,7 +1970,7 @@ function pageOverview() {
   const byUnit = (items, qtyOf, unitOf) => {
     const m={}; for(const it of items){ const u=((unitOf(it)||'SCU')+'').trim()||'SCU'; m[u]=(m[u]||0)+(qtyOf(it)||0); }
     const parts=Object.keys(m).sort().map(u=>`${Math.round(m[u]*10)/10} ${u}`);
-    return parts.length?parts.join(' · '):'0 SCU';
+    return parts.length?parts.join(' + '):'0 SCU';
   };
   const fieldStr = byUnit(openPickupWOs.flatMap(w=>(w.report||[])), r=>r.approxQty, r=>r.unit);
   const openMoves = wos.filter(w=>(w.kind==='move') && w.status!=='done').length;
