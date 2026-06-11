@@ -267,15 +267,21 @@ export const importStock = mutation({
     const matBy = new Map((await ctx.db.query("materialCatalog").collect()).map(m => [lower(m.name), m]));
     const itemBy = new Map((await ctx.db.query("itemCatalog").collect()).map(it => [lower(it.name), it]));
     const userBy = new Map((await ctx.db.query("users").collect()).filter(u => !u.roles.includes("removed")).map(u => [lower(u.username), u]));
+    const locBy = new Map((await ctx.db.query("locationCatalog").collect()).map(l => [lower(l.name), l]));
     const OK_STATUS = ["at_base", "in_transit", "crafted", "with_distributor"];
 
     let created = 0;
     for (const r of rows) {
       if (!(r.qty > 0)) throw new ConvexError(`Quantity must be greater than 0 (${r.name})`);
-      if (!r.location.trim()) throw new ConvexError(`Location is required (${r.name})`);
       if (!OK_STATUS.includes(r.status)) throw new ConvexError(`Bad status for ${r.name}`);
-      const holder = userBy.get(lower(r.heldBy));
-      if (!holder) throw new ConvexError(`Unknown holder: ${r.heldBy}`);
+      // Location must be one of the known catalog locations.
+      const loc = locBy.get(lower(r.location));
+      if (!loc) throw new ConvexError(`Unknown location: ${r.location}`);
+      // Holder: prefer a roster member (canonical username), otherwise accept the
+      // typed name as an off-roster holder (someone not signed up).
+      const member = userBy.get(lower(r.heldBy));
+      const heldByName = member ? member.username : (r.heldBy || "").trim();
+      if (!heldByName) throw new ConvexError(`Holder is required (${r.name})`);
       let name: string, category: string, unit: string;
       if (r.kind === "material") {
         const m = matBy.get(lower(r.name));
@@ -291,8 +297,8 @@ export const importStock = mutation({
         qualityStep: r.kind === "material" ? (r.qualityStep ?? undefined) : undefined,
         qualityValue: r.qualityValue ?? undefined,
         qty: r.qty, unit,
-        location: r.location.trim(), system: r.system?.trim() || undefined,
-        heldBy: holder.username, status: r.status,
+        location: loc.name, system: loc.system || r.system?.trim() || undefined,
+        heldBy: heldByName, status: r.status,
         addedBy: admin._id, addedByName: admin.username,
       });
       created++;
