@@ -3521,9 +3521,11 @@ function impCompute(i){
   const rawLoc = ('location' in ov)? ov.location : (col('location') || impBaseLoc());
   const lr = impLocResolve(rawLoc);
   const included = Number.isFinite(qty) && qty>0;
-  const valid = included && !!nm && hr.value && lr.ok && (!isMat || band!=='');
+  // items are discrete: whole numbers only. materials are SCU, so fractions are ok.
+  const qtyOk = included && (isMat || Number.isInteger(qty));
+  const valid = qtyOk && !!nm && hr.value && lr.ok && (!isMat || band!=='');
   return { rawName, name: nm?nm.obj.name:rawName, kind, isMat, matched:!!nm, nameExact: nm?nm.exact:false, nameVia: nm?nm.via:'',
-    qty, band,
+    qty, qtyOk, band,
     rawHolder, holder:hr.value, holderMember:hr.member, holderGuess:hr.guess,
     rawLoc, location:lr.value, locOk:lr.ok, locGuess:lr.guess, system:lr.system,
     included, valid };
@@ -3577,7 +3579,7 @@ function impReviewInner(){
     return `<tr${cls}>
       <td><select onchange="impCell(${i},'kind',this.value)">${typeOpts(c)}</select></td>
       ${nameCell(c,i)}
-      <td><input type="number" step="any" value="${esc(c.qty===c.qty?c.qty:'')}" onchange="impCell(${i},'qty',this.value)" style="width:80px;min-width:0;"></td>
+      <td><input type="number" step="${c.isMat?'any':'1'}" min="0" value="${esc(c.qty===c.qty?c.qty:'')}" onchange="impCell(${i},'qty',this.value)" class="${(c.included&&!c.qtyOk)?'imp-bad':''}" style="width:80px;min-width:0;"></td>
       ${c.isMat
         ? `<td><select onchange="impCell(${i},'band',this.value)" ${(c.included&&c.band==='')?'class="imp-bad"':''}>${bandOpts(c.band)}</select></td>`
         : `<td class="imp-na">n/a</td>`}
@@ -3616,6 +3618,7 @@ async function doImport(){
     rows.push(entry);
   }});
   if(!rows.length){ showErr('imp-err2','Nothing ready to import.'); return; }
+  if(rows.length>2000){ showErr('imp-err2','Too many rows for one import (max 2000). Remove some, or split the file and import in batches.'); return; }
   try{ const out=await convexMutation('admin:importStock',{sessionToken:state.sessionToken,rows}); toast(`Imported ${out.created} ${out.created===1?'entry':'entries'}`); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('imp-err2',friendlyError(e)); }
 }
 

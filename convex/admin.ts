@@ -263,6 +263,7 @@ export const importStock = mutation({
   handler: async (ctx, { sessionToken, rows }) => {
     const admin = await requireSession(ctx.db, sessionToken);
     assertRole(admin, ["admin"]);
+    if (rows.length > 2000) throw new ConvexError("Too many rows in one import (max 2000). Split the file into smaller batches.");
     const lower = (s: string) => (s || "").trim().toLowerCase();
     const matBy = new Map((await ctx.db.query("materialCatalog").collect()).map(m => [lower(m.name), m]));
     const itemBy = new Map((await ctx.db.query("itemCatalog").collect()).map(it => [lower(it.name), it]));
@@ -286,10 +287,15 @@ export const importStock = mutation({
       if (r.kind === "material") {
         const m = matBy.get(lower(r.name));
         if (!m) throw new ConvexError(`Unknown material: ${r.name}`);
+        if (r.qualityStep != null && (!Number.isInteger(r.qualityStep) || r.qualityStep < 1 || r.qualityStep > 8))
+          throw new ConvexError(`Bad quality band for ${r.name}`);
+        if (r.qualityValue != null && (r.qualityValue < 0 || r.qualityValue > 1000))
+          throw new ConvexError(`Bad quality value for ${r.name}`);
         name = m.name; category = m.category || ""; unit = (r.unit && r.unit.trim()) || m.unit;
       } else if (r.kind === "item") {
         const it = itemBy.get(lower(r.name));
         if (!it) throw new ConvexError(`Unknown item: ${r.name}`);
+        if (!Number.isInteger(r.qty)) throw new ConvexError(`Item quantity must be a whole number (${r.name})`);
         name = it.name; category = it.category || ""; unit = (r.unit && r.unit.trim()) || "UNIT";
       } else throw new ConvexError("Invalid kind");
       await ctx.db.insert("stock", {
