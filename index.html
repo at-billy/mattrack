@@ -242,6 +242,15 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 
 /* ── TOAST / MODAL ───────────────────────────────────────────────── */
 #toast{position:fixed;bottom:28px;right:28px;background:#000;color:#fff;padding:var(--space-3) 20px;font-size:var(--text-md);font-weight:700;letter-spacing:.08em;text-transform:uppercase;display:none;z-index:999;}
+/* Bottom-centre "for you" role notification (auto-dismisses) */
+#role-notif{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:998;display:none;
+  background:var(--bg);color:var(--fg);border:2px solid var(--border);box-shadow:0 8px 30px rgba(0,0,0,.18);
+  padding:16px 40px 16px 20px;max-width:440px;width:calc(100% - 32px);}
+#role-notif.open{display:block;}
+.rn-kicker{font-size:var(--text-xs);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-bottom:6px;}
+.rn-title{font-size:var(--text-md);font-weight:900;letter-spacing:-.2px;line-height:1.15;margin-bottom:6px;}
+.rn-body{font-size:var(--text-sm);line-height:1.5;color:var(--fg);}
+.rn-close{position:absolute;top:8px;right:10px;background:none;border:none;font-size:var(--text-lg);line-height:1;cursor:pointer;color:var(--fg);padding:2px 6px;}
 #modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:var(--space-5);}
 #modal-overlay.open{display:flex;}
 .modal-box{background:#fff;padding:36px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;position:relative;}
@@ -617,6 +626,7 @@ details.log-month>div{padding-bottom:var(--space-7);}
   .center-screen{padding:20px;}
   .filter-tabs{gap:28px;margin-bottom:36px;}
   #toast{left:16px;right:16px;bottom:16px;text-align:center;}
+  #role-notif{bottom:16px;}
 }
 @media (max-width:480px){
   .ov-stats{grid-template-columns:1fr;}
@@ -632,6 +642,7 @@ details.log-month>div{padding-bottom:var(--space-7);}
 
 <div id="root"></div>
 <div id="toast"></div>
+<div id="role-notif"></div>
 <div id="modal-overlay" onclick="modalOverlayClick(event)"><div class="modal-box" id="modal-box"></div></div>
 
 <!-- Convex reactive client (loaded from CDN). If this fails, the app falls back to polling. -->
@@ -1279,6 +1290,7 @@ function startFallbackPoll() {
 
 function stopData() {
   state._catalogLoaded = false; // re-fetch the catalog fresh on next sign-in
+  _seenWoIds = null; dismissRoleNotif(); // reset role notifications for the next sign-in
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
   for (const unsub of convexSubs) { try { unsub(); } catch (e) {} }
   convexSubs = [];
@@ -1286,6 +1298,7 @@ function stopData() {
 }
 
 function updateLiveView(silent=false) {
+  maybeRoleNotify(); // bottom-centre "for you" popup on login + new role work
   if (silent) {
     // Background push (someone else changed data). Re-render the current page so the
     // change shows live — but don't clobber an in-progress edit. If the user is typing
@@ -1340,6 +1353,60 @@ function updateLiveView(silent=false) {
   }
   renderNav();
 }
+
+// ─── ROLE NOTIFICATIONS (bottom-centre, auto-dismiss) ──────────────────────────
+let _seenWoIds = null;  // null until the first post-login data load; then the baseline set of WO ids
+let _rnTimer = null;
+// Which role a work order calls on (borrow targets the specific lender).
+function isWoForMe(w, u){
+  if(w.kind==='borrow') return w.giverName===u.username || w.giverId===u._id;
+  const role = { pickup:'logistics', delivery:'crafter', craft:'crafter', move:'logistics', distribution:'distributor' }[w.kind];
+  return role ? hasRole(u, role) : false;
+}
+function woNotifLabel(w){
+  switch(w.kind){
+    case 'pickup': return `New pickup reported${w.location?` at ${w.location}`:''}`;
+    case 'delivery': return `Materials inbound to receive`;
+    case 'craft': return `New craft order: ${w.qtyNeeded||''}× ${w.itemName||'item'}`.trim();
+    case 'move': return `Finished goods to move`;
+    case 'distribution': return `Goods inbound to your stockpile`;
+    case 'borrow': return `Borrow request: ${(w.items&&w.items[0]&&w.items[0].name)||'material'}`;
+    default: return 'New work order';
+  }
+}
+const WO_VIEW_OF = { pickup:'Pickup', delivery:'Transfers', craft:'Orders', move:'Transfers', distribution:'Distribution', borrow:'Transfers' };
+function maybeRoleNotify(){
+  const u = state.user; if(!u || isRecruit(u)) return;
+  const wos = state.workorders || [];
+  if(_seenWoIds === null){
+    // First load after sign-in: baseline everything as "seen", show a summary.
+    _seenWoIds = new Set(wos.map(w=>w._id));
+    showRoleNotif(roleLoginSummary(u));
+    return;
+  }
+  // Later loads/pushes: newly-created open work for my role(s) that I didn't make.
+  const fresh = wos.filter(w=>w.status==='open' && !_seenWoIds.has(w._id) && w.createdBy!==u._id && isWoForMe(w,u));
+  for(const w of wos) _seenWoIds.add(w._id);
+  if(!fresh.length) return;
+  const inner = fresh.length===1
+    ? `<div class="rn-kicker">For you</div><div class="rn-title">${esc(woNotifLabel(fresh[0]))}</div><div class="rn-body">Open <strong>${esc(WO_VIEW_OF[fresh[0].kind]||'Work')}</strong> to act on it.</div>`
+    : `<div class="rn-kicker">For you</div><div class="rn-title">${fresh.length} new items need you</div><div class="rn-body">${esc(fresh.slice(0,3).map(woNotifLabel).join(' · '))}${fresh.length>3?' …':''}</div>`;
+  showRoleNotif(inner);
+}
+function roleLoginSummary(u){
+  const labels={pickup:'Pickup',transfers:'Transfers',orders:'Orders',crafting:'Crafting',distribution:'Distribution'};
+  const allowed=workViewsAllowed(u);
+  const parts=Object.keys(labels).filter(v=>allowed.includes(v)).map(v=>{const n=woViewCount(v);return n?`${labels[v]} ${n}`:null;}).filter(Boolean);
+  const body = parts.length ? `Waiting for you: ${parts.join(' · ')}` : `You're all caught up.`;
+  return `<div class="rn-kicker">Welcome back</div><div class="rn-title">${esc(u.username)}</div><div class="rn-body">${esc(body)}</div>`;
+}
+function showRoleNotif(inner){
+  const el=document.getElementById('role-notif'); if(!el) return;
+  el.innerHTML=`<button class="rn-close" aria-label="Dismiss" onclick="dismissRoleNotif()">&times;</button>${inner}`;
+  el.classList.add('open');
+  clearTimeout(_rnTimer); _rnTimer=setTimeout(dismissRoleNotif, 15000);
+}
+function dismissRoleNotif(){ const el=document.getElementById('role-notif'); if(el){ el.classList.remove('open'); el.innerHTML=''; } clearTimeout(_rnTimer); }
 
 // ─── ROUTER ───────────────────────────────────────────────────────────────────
 function goTo(tab) {
@@ -1686,7 +1753,7 @@ function renderNav() {
     sub=`<div class="nav-sub-item" style="cursor:default;">Welcome back, ${esc(u.username)}</div>`;
   } else if(main==='task'){
     const wa=workViewsAllowed(u);
-    const wItem=(v,label)=>wa.includes(v)?`<div class="nav-sub-item${woView===v?' active':''}" onclick="setWoView('${v}')">${label}</div>`:'';
+    const wItem=(v,label)=>{ if(!wa.includes(v)) return ''; const n=woViewCount(v); return `<div class="nav-sub-item${woView===v?' active':''}" onclick="setWoView('${v}')">${label}${n?` (${n})`:''}</div>`; };
     sub=`${wItem('pickup','Pickup')}${wItem('transfers','Transfers')}${wItem('orders','Orders')}${wItem('crafting','Crafting')}${wItem('distribution','Distribution')}`;
   } else if(main==='items'){
     const canReport=isGatherer(u)||isAdmin(u);
@@ -2733,6 +2800,44 @@ function transferVisible(w,u){
   return false;
 }
 function transferActiveCount(){ const u=state.user; return state.workorders.filter(w=>TRANSFER_KINDS.includes(w.kind)&&w.status!=='done'&&transferVisible(w,u)).length; }
+// Does this transfer have a pending action for the current user (the basis for badges)?
+function transferActionableByMe(w,u){
+  if(w.kind==='borrow'){
+    const iAmLender=w.giverName===u.username||w.giverId===u._id;
+    const iAmBorrower=w.createdBy===u._id;
+    return (w.status==='open'&&iAmLender)||(w.status==='claimed'&&iAmBorrower);
+  }
+  if(w.status==='open') return hasRole(u, transferAcceptRole(w.kind));
+  if(w.status==='claimed') return w.claimedById===u._id;
+  return false;
+}
+// How many items in a WORK sub-view are waiting on THIS user right now (sub-nav badge).
+function woViewCount(view){
+  const u=state.user; if(!u) return 0;
+  const wos=state.workorders||[], stock=state.stock||[];
+  if(view==='pickup'){
+    if(!hasRole(u,'logistics')) return 0;
+    return wos.filter(w=>w.kind==='pickup'&&(w.status==='open'||(w.status==='claimed'&&w.claimedById===u._id))).length;
+  }
+  if(view==='transfers') return wos.filter(w=>TRANSFER_KINDS.includes(w.kind)&&w.status!=='done'&&transferActionableByMe(w,u)).length;
+  if(view==='orders'){
+    if(!isCrafter(u)) return 0;
+    return wos.filter(w=>w.kind==='craft'&&w.status==='open').length;
+  }
+  if(view==='crafting'){
+    if(!isCrafter(u)) return 0;
+    const locked=lockedStockSet();
+    return stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&s.heldBy===u.username&&!locked.has(s._id)).length;
+  }
+  if(view==='distribution'){
+    if(!isDistributor(u)) return 0;
+    const locked=lockedStockSet();
+    const avail=stock.filter(s=>s.kind==='item'&&s.status==='crafted'&&s.heldBy!==u.username&&!locked.has(s._id)).length;
+    const mine=stock.filter(s=>s.kind==='item'&&s.status==='with_distributor'&&s.heldBy===u.username).length;
+    return avail+mine;
+  }
+  return 0;
+}
 function transferFields(w){
   const what=(w.items||[]).map(it=>`${esc(it.name)}${it.qualityStep!=null?` · ${qBandLabel(it.qualityStep)}`:''} ×${it.qty}`).join(', ')||'—';
   if(w.kind==='borrow') return { what, from:w.giverName||'—', to:w.createdByName||'—', stage:woStatusLabel(w.status), stageOrder:({open:0,claimed:1,done:2})[w.status]??9, type:'Borrow' };
