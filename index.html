@@ -1877,7 +1877,7 @@ function fpActivityHeadline(e){
     case 'workorder_completed': return {kicker:dt, text: d.kind==='pickup' ? `${e.userName} collected a pickup` : d.kind==='delivery' ? `${e.userName} received materials at base` : `${e.userName} closed a workorder`, foot: d.kind==='pickup'?'Pickup':'Crafting'};
     case 'item_crafted':        return {kicker:dt, text:`${e.userName} crafted ${d.count}× ${d.item}${d.quality!=null?` (Q${d.quality})`:''}`, foot:'Distribution'};
     case 'items_taken':         return {kicker:dt, text:`${d.to||e.userName} stocked ${pl(d.count,'item')}${d.from?` from ${d.from}`:''}`, foot:'Distribution'};
-    case 'item_handed_out':     return {kicker:dt, text:`${d.qty}× ${d.item||d.name} handed to ${d.recipient||d.handedOutTo}`, foot:'Log'};
+    case 'item_handed_out':     { const fr=d.frcoin, tot=(fr!=null?fr*(d.qty||0):0); return {kicker:dt, text:`${d.qty}× ${d.item||d.name} handed to ${d.recipient||d.handedOutTo}${tot>0?` for ${tot} FRCoin`:''}`, foot:'Log'}; }
     case 'catalog_imported':    return {kicker:dt, text:`Catalog seeded with ${d.items||0} items and ${d.materials||0} materials`, foot:'Admin'};
     case 'user_joined':         return {kicker:'New recruit', text:`${e.userName} signed up to the wing`, foot:'Roster'};
     case 'member_restored':     return {kicker:dt, text:`${d.targetUsername} is back on the roster`, foot:'Roster'};
@@ -2261,7 +2261,7 @@ function fmtArchiveDetails(e){
     case 'task_closed':      return `Closed: <strong>${esc(d.title)}</strong>`;
     case 'item_added':       return `<strong>${esc(d.name)}</strong> &middot; ${itemCatLabel(d.category)} &middot; qty ${d.quantity}`;
     case 'item_removed':     return `<strong>${esc(d.name)}</strong>`;
-    case 'item_handed_out':  return `<strong>${esc(d.item||d.name||'')}</strong> &times;${d.qty??d.handedOutQty} &middot; to <strong>${esc(d.recipient||d.handedOutTo||'')}</strong>${d.context?` (${esc(d.context)})`:''}`;
+    case 'item_handed_out':  { const q=d.qty??d.handedOutQty, fr=d.frcoin, fs=(fr==null)?'':(fr*q>0?` &middot; ${fr*q} FRCoin`:` &middot; free`); return `<strong>${esc(d.item||d.name||'')}</strong> &times;${q} &middot; to <strong>${esc(d.recipient||d.handedOutTo||'')}</strong>${d.context?` (${esc(d.context)})`:''}${fs}`; }
     case 'gather_reported':  return `${d.count||0} line${d.count===1?'':'s'} reported${d.location?` at <strong>${esc(d.location)}</strong>`:''}`;
     case 'borrow_requested': return `Asked to borrow ${d.qty}× ${esc(d.item)} from <strong>${esc(d.from)}</strong>`;
     case 'borrow_completed': return `Borrowed ${d.qty}× ${esc(d.item)} from <strong>${esc(d.from)}</strong>`;
@@ -3197,10 +3197,14 @@ function openHandoutModal(id){
   showModal(`
     <div class="modal-title">Hand out — ${esc(s.name)}</div>
     <div class="grid2">
-      <div class="field"><label class="lbl">Quantity</label><input id="ho-qty" type="number" min="1" step="${qtyStep(s.kind)}" max="${s.qty}" value="${s.qty}"></div>
-      <div class="field"><label class="lbl">For</label><select id="ho-ctx"><option value="request">A request</option><option value="event">An event</option></select></div>
+      <div class="field"><label class="lbl">Quantity</label><input id="ho-qty" type="number" min="1" step="${qtyStep(s.kind)}" max="${s.qty}" value="${s.qty}" oninput="handoutTotalHint()"></div>
+      <div class="field"><label class="lbl">For</label><select id="ho-ctx" onchange="handoutCtxChanged()"><option value="request">A request</option><option value="event">An event</option></select></div>
     </div>
-    <div class="field"><label class="lbl">Recipient</label><input id="ho-rcpt" type="text" placeholder="who received it"></div>
+    <div class="grid2">
+      <div class="field"><label class="lbl">FRCoin (each)</label><input id="ho-frc" type="number" min="0" step="1" value="0" oninput="this.dataset.touched='1';handoutTotalHint()"></div>
+      <div class="field"><label class="lbl">Recipient</label><input id="ho-rcpt" type="text" placeholder="who received it"></div>
+    </div>
+    <div id="ho-total" style="font-size:var(--text-sm);color:var(--fg);font-weight:700;margin:-14px 0 var(--space-4);">Free handout.</div>
     <div class="field"><label class="lbl">Note (optional)</label><input id="ho-note" type="text" placeholder="event name, details…"></div>
     <div class="err-msg" id="ho-err"></div>
     <div style="display:flex;gap:10px;margin-top:var(--space-2);">
@@ -3208,23 +3212,39 @@ function openHandoutModal(id){
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     </div>`);
 }
+// FRCoin defaults to the context: a request is free (0), an event is 1 each —
+// unless the distributor has already typed their own price.
+function handoutCtxChanged(){
+  const ctx=document.getElementById('ho-ctx'); const frc=document.getElementById('ho-frc');
+  if(ctx&&frc&&!frc.dataset.touched) frc.value = ctx.value==='event' ? '1' : '0';
+  handoutTotalHint();
+}
+function handoutTotalHint(){
+  const q=Number((document.getElementById('ho-qty')||{}).value)||0;
+  const f=Number((document.getElementById('ho-frc')||{}).value)||0;
+  const el=document.getElementById('ho-total'); if(!el) return;
+  const total=q*f;
+  el.textContent = total>0 ? `Total: ${total} FRCoin  (${f} each × ${q})` : 'Free handout.';
+}
 async function doHandout(id){
   const V=x=>(document.getElementById(x)||{value:''}).value;
   const qty=Number(V('ho-qty')); const recipient=V('ho-rcpt').trim(); const context=V('ho-ctx'); const note=V('ho-note').trim();
+  const frcoin=Math.max(0, Number(V('ho-frc'))||0);
   if(!(qty>0)){ showErr('ho-err','Quantity must be greater than 0'); return; }
   if(!recipient){ showErr('ho-err','Who received it?'); return; }
   // Two-step confirm: handing out is an irreversible give-away. First click arms,
   // second click within 5s commits. (confirmModal can't stack inside this modal.)
   const btn=document.getElementById('ho-submit');
   if(btn && !btn.dataset.armed){
+    const total=frcoin*qty;
     btn.dataset.armed='1';
-    btn.textContent=`Confirm: hand out ${qty} to ${recipient}`;
+    btn.textContent=`Confirm: hand out ${qty} to ${recipient}${total>0?` for ${total} FRCoin`:' (free)'}`;
     btn.classList.remove('btn-black'); btn.classList.add('btn-red');
     const e=document.getElementById('ho-err'); if(e) e.style.display='none';
     setTimeout(()=>{ if(btn&&btn.dataset.armed){ delete btn.dataset.armed; btn.textContent='Hand Out'; btn.classList.remove('btn-red'); btn.classList.add('btn-black'); } }, 5000);
     return;
   }
-  try{ const out=await convexMutation('distribution:handOut',{sessionToken:state.sessionToken,stockId:id,qty,recipient,context,note:note||undefined}); toast(`Handed out ${out.handed}`); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('ho-err',e.message); }
+  try{ const out=await convexMutation('distribution:handOut',{sessionToken:state.sessionToken,stockId:id,qty,recipient,context,frcoin,note:note||undefined}); toast(`Handed out ${out.handed}`); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('ho-err',e.message); }
 }
 
 // ─── STOCK / LEDGER ─────────────────────────────────────────────────────────

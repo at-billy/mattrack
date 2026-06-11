@@ -15,9 +15,10 @@ export const handOut = mutation({
     qty: v.number(),
     recipient: v.string(),
     context: v.string(),
+    frcoin: v.optional(v.number()),   // FRCoin price PER ITEM (0 = free)
     note: v.optional(v.string()),
   },
-  handler: async (ctx, { sessionToken, stockId, qty, recipient, context, note }) => {
+  handler: async (ctx, { sessionToken, stockId, qty, recipient, context, frcoin, note }) => {
     const user = await requireSession(ctx.db, sessionToken);
     // Only distributors can hand out — this is a physical in-game action.
     // Admin site powers don't extend to handing out items they don't hold.
@@ -30,8 +31,12 @@ export const handOut = mutation({
     assertLen(recipient, 120, "recipient");
     if (!CONTEXTS.includes(context)) throw new ConvexError("Invalid context");
     if (note) assertLen(note, 300, "note");
+    const fr = frcoin ?? 0;
+    if (!(fr >= 0) || fr > 1_000_000) throw new ConvexError("FRCoin price must be between 0 and 1,000,000");
+    const total = fr * qty;
 
-    const handoutNote = `to ${recipient.trim()} (${context})${note ? " — " + note.trim() : ""}`;
+    const priceStr = total > 0 ? ` · ${total} FRCoin` : " · free";
+    const handoutNote = `to ${recipient.trim()} (${context})${priceStr}${note ? " — " + note.trim() : ""}`;
     if (qty === s.qty) {
       await ctx.db.patch(stockId, { status: "handed_out", note: handoutNote });
     } else {
@@ -47,7 +52,7 @@ export const handOut = mutation({
     await ctx.db.insert("archive", {
       type: "item_handed_out",
       userId: user._id, userName: user.username,
-      details: { item: s.name, qty, recipient: recipient.trim(), context },
+      details: { item: s.name, qty, recipient: recipient.trim(), context, frcoin: fr },
     });
     return { handed: qty };
   },

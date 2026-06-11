@@ -128,8 +128,8 @@ export const seedDemo = internalMutation({
       await addStock({ kind: "item", name: it.name, category: it.category || "", qualityValue: 760, qty: 5, unit: "UNIT", location: baseName, system: baseSys, heldBy: "rin", status: "with_distributor" });
     }
     if (items[0]) {
-      await addStock({ kind: "item", name: items[0].name, category: items[0].category || "", qualityValue: 700, qty: 2, unit: "UNIT", location: baseName, system: baseSys, heldBy: "rin", status: "handed_out", note: "to Echo Squad (event)" });
-      await ctx.db.insert("archive", { type: "item_handed_out", userId: idByName["rin"], userName: "rin", details: { qty: 2, item: items[0].name, recipient: "Echo Squad", context: "event" } });
+      await addStock({ kind: "item", name: items[0].name, category: items[0].category || "", qualityValue: 700, qty: 2, unit: "UNIT", location: baseName, system: baseSys, heldBy: "rin", status: "handed_out", note: "to Echo Squad (event) · 2 FRCoin" });
+      await ctx.db.insert("archive", { type: "item_handed_out", userId: idByName["rin"], userName: "rin", details: { qty: 2, item: items[0].name, recipient: "Echo Squad", context: "event", frcoin: 1 } });
     }
 
     // 5) An open pickup (kade reported a haul)
