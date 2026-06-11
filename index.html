@@ -160,7 +160,10 @@ tbody tr:hover{background:#f9f9f9;}
 .imp-tbl td.imp-na{text-align:center;color:var(--fg);font-size:var(--text-sm);}
 .imp-tbl{width:100%;border-collapse:collapse;font-size:var(--text-md);}
 .imp-tbl th,.imp-tbl td{padding:7px 8px;border-bottom:1px solid var(--border-m);text-align:left;vertical-align:middle;white-space:nowrap;}
-.imp-tbl th{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;background:var(--bg);}
+/* z-index keeps the sticky header above the row cells — the custom-select cells
+   are position:relative and would otherwise paint over it (leaving only the plain
+   Qty input's header visible). */
+.imp-tbl th{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;background:var(--bg);z-index:4;box-shadow:0 1px 0 var(--border-m);}
 /* one consistent control size across every field (text inputs + custom selects) */
 .imp-tbl input,.imp-tbl .cs-trigger{width:100%;min-width:90px;font-size:var(--text-md);padding:8px var(--space-2);margin:0;line-height:1.3;box-sizing:border-box;}
 .imp-tbl tr.imp-skip{opacity:.45;}
@@ -282,7 +285,7 @@ table.cards td[data-label=""]{white-space:nowrap;min-width:260px;vertical-align:
 .modal-box{background:#fff;padding:36px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;overscroll-behavior:contain;position:relative;}
 body.modal-open{overflow:hidden;}
 .modal-lg{max-width:700px;}
-.modal-xl{max-width:1040px;}
+.modal-xl{max-width:1280px;}
 /* ── CRAFT ORDER CARDS ───────────────────────────────────────────── */
 .co-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:var(--space-4);}
 .co-card{border:1.5px solid var(--border);padding:var(--space-5);background:var(--bg);display:flex;flex-direction:column;gap:var(--space-4);}
