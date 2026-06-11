@@ -2610,7 +2610,7 @@ function craftModalDetailsHtml(){
   <div class="field" style="margin:var(--space-5) 0 var(--space-4);">
     <label class="lbl">Amount to craft</label>
     <div style="display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;">
-      <input id="cm-qty" type="number" min="1" max="${remaining}" value="1" style="width:90px;margin:0;" oninput="craftModalUpdateQty()">
+      <input id="cm-qty" type="number" min="1" step="1" max="${remaining}" value="1" style="width:90px;margin:0;" oninput="craftModalUpdateQty()">
       <button class="btn btn-outline btn-sm" onclick="craftModalMax()">Max</button>
       <span style="font-size:var(--text-sm);color:var(--fg);">${remaining} left in this order</span>
     </div>
@@ -2678,10 +2678,10 @@ function openCraftOrderModal(){
     <div class="modal-title">New craft order</div>
     <div class="field"><label class="lbl">Item</label><select id="co-item" onchange="coRecipe()">${items.map(it=>`<option value="${esc(it.name)}">${esc(it.name)}</option>`).join('')}</select></div>
     <div class="grid2">
-      <div class="field"><label class="lbl">Quantity</label><input id="co-qty" type="number" min="1" value="1"></div>
+      <div class="field"><label class="lbl">Quantity</label><input id="co-qty" type="number" min="1" step="1" value="1"></div>
       <div class="field"><label class="lbl">Priority</label><select id="co-prio"><option value="urgent">Urgent</option><option value="high">High</option><option value="normal" selected>Normal</option><option value="whenever">Whenever</option></select></div>
     </div>
-    <div class="field"><label class="lbl">Max crafters</label><input id="co-max" type="number" min="1" placeholder="no limit"></div>
+    <div class="field"><label class="lbl">Max crafters</label><input id="co-max" type="number" min="1" step="1" placeholder="no limit"></div>
     <div class="field"><label class="lbl">Required material quality</label>
       <div id="co-recipe"></div>
     </div>
@@ -2982,7 +2982,7 @@ function openBorrowModal(id){
   showModal(`
     <div class="modal-title">Borrow ${esc(s.name)}</div>
     <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:14px;">From <strong>${esc(s.heldBy)}</strong>${s.qualityStep!=null?` · ${qBandLabel(s.qualityStep)}`:''} · ${s.qty} ${esc(s.unit)} on hand. They'll be asked to agree and meet you; you confirm receipt once you've got it.</p>
-    <div class="field"><label class="lbl">Quantity</label><input id="bw-qty" type="number" min="0" step="any" max="${s.qty}" value="${s.qty}"></div>
+    <div class="field"><label class="lbl">Quantity</label><input id="bw-qty" type="number" min="0" step="${qtyStep(s.kind)}" max="${s.qty}" value="${s.qty}"></div>
     <div class="err-msg" id="bw-err"></div>
     <div style="display:flex;gap:10px;margin-top:var(--space-2);"><button class="btn btn-black" onclick="doBorrow('${esc(s._id)}')">Request</button><button class="btn btn-outline" onclick="closeModal()">Cancel</button></div>`);
 }
@@ -3072,7 +3072,7 @@ function addReportLine(){
   row.innerHTML=`
     <select class="rp-type" style="flex:0 0 auto;width:120px;"><option>Mineable</option><option>Salvage</option><option>Loot</option></select>
     <select class="rp-what" style="flex:1;min-width:160px;"><option value="">— what is it —</option>${mats.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}</select>
-    <input class="rp-qty" type="number" min="0" step="any" placeholder="~qty" style="width:80px;">
+    <input class="rp-qty" type="number" min="0" step="0.01" placeholder="~qty" style="width:80px;">
     <input class="rp-unit" type="text" value="SCU" style="width:64px;">
     <button class="btn-del" onclick="this.closest('.rp-line').remove()" aria-label="Remove">&times;</button>`;
   document.getElementById('rp-lines').appendChild(row);
@@ -3128,7 +3128,7 @@ function addManifestLine(){
   row.innerHTML=`
     <select class="mn-name" style="flex:1;min-width:160px;" onchange="mnFillBands(this)"><option value="">— material —</option>${mats.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join('')}</select>
     <select class="mn-q" style="width:150px;"><option value="">band —</option></select>
-    <input class="mn-qty" type="number" min="0" step="any" placeholder="qty" style="width:80px;">
+    <input class="mn-qty" type="number" min="0" step="0.01" placeholder="qty" style="width:80px;">
     <button class="btn-del" onclick="this.closest('.mn-line').remove()" aria-label="Remove">&times;</button>`;
   document.getElementById('mn-lines').appendChild(row);
 }
@@ -3197,7 +3197,7 @@ function openHandoutModal(id){
   showModal(`
     <div class="modal-title">Hand out — ${esc(s.name)}</div>
     <div class="grid2">
-      <div class="field"><label class="lbl">Quantity</label><input id="ho-qty" type="number" min="1" max="${s.qty}" value="${s.qty}"></div>
+      <div class="field"><label class="lbl">Quantity</label><input id="ho-qty" type="number" min="1" step="${qtyStep(s.kind)}" max="${s.qty}" value="${s.qty}"></div>
       <div class="field"><label class="lbl">For</label><select id="ho-ctx"><option value="request">A request</option><option value="event">An event</option></select></div>
     </div>
     <div class="field"><label class="lbl">Recipient</label><input id="ho-rcpt" type="text" placeholder="who received it"></div>
@@ -3579,7 +3579,7 @@ function impReviewInner(){
     return `<tr${cls}>
       <td><select onchange="impCell(${i},'kind',this.value)">${typeOpts(c)}</select></td>
       ${nameCell(c,i)}
-      <td><input type="number" step="${c.isMat?'any':'1'}" min="0" value="${esc(c.qty===c.qty?c.qty:'')}" onchange="impCell(${i},'qty',this.value)" class="${(c.included&&!c.qtyOk)?'imp-bad':''}" style="width:80px;min-width:0;"></td>
+      <td><input type="number" step="${c.isMat?'0.01':'1'}" min="0" value="${esc(c.qty===c.qty?c.qty:'')}" onchange="impCell(${i},'qty',this.value)" class="${(c.included&&!c.qtyOk)?'imp-bad':''}" style="width:80px;min-width:0;"></td>
       ${c.isMat
         ? `<td><select onchange="impCell(${i},'band',this.value)" ${(c.included&&c.band==='')?'class="imp-bad"':''}>${bandOpts(c.band)}</select></td>`
         : `<td class="imp-na">n/a</td>`}
@@ -3661,6 +3661,10 @@ function renderStockList(){
     }).join('')}</tbody></table>`;
 }
 
+// Quantity step: items (and plain counts) move by whole numbers; SCU/materials
+// move by 0.01. Used everywhere a quantity input appears, so the up/down arrows
+// behave the same across the app.
+function qtyStep(kind){ return kind==='item' ? '1' : '0.01'; }
 function stockKindChanged(){
   const sel=document.getElementById('st-kind'); const nm=document.getElementById('st-name'); if(!sel||!nm) return;
   const kind=sel.value;
@@ -3675,6 +3679,7 @@ function stockNameChanged(){
   const name=document.getElementById('st-name').value;
   const qwrap=document.getElementById('st-qwrap');
   const unit=document.getElementById('st-unit');
+  const qtyEl=document.getElementById('st-qty'); if(qtyEl) qtyEl.step=qtyStep(kind);
   if(kind==='material'){
     const m=state.catalog.materials.find(x=>x.name===name);
     if(unit) unit.value=m?m.unit:'SCU';
@@ -3700,7 +3705,7 @@ function openStockModal(id){
     </div>
     <div class="grid2">
       <div class="field" id="st-qwrap"><label class="lbl">Quality</label><select id="st-q"></select></div>
-      <div class="field"><label class="lbl">Quantity</label><input id="st-qty" type="number" step="any" value="${row?row.qty:''}"></div>
+      <div class="field"><label class="lbl">Quantity</label><input id="st-qty" type="number" step="${qtyStep(row?row.kind:(stockView==='items'?'item':'material'))}" min="0" value="${row?row.qty:''}"></div>
     </div>
     <div class="grid2">
       <div class="field"><label class="lbl">Unit</label><input id="st-unit" type="text" value="${row?esc(row.unit):''}" readonly></div>
@@ -3919,7 +3924,7 @@ function openMaterialModal(id){
   const q = {}; if(m) for(const x of (m.qualities||[])) q[x.step]=x.value;
   const qInputs = QUALITY_BANDS.map((band,i)=>{const s=i+1;return `<div style="display:flex;align-items:center;gap:8px;">
     <span style="width:74px;font-size:var(--text-sm);color:var(--fg);white-space:nowrap;">${band}</span>
-    <input id="mq-${s}" type="number" step="any" placeholder="—" value="${m&&q[s]!=null?q[s]:''}" style="width:100%;">
+    <input id="mq-${s}" type="number" step="1" min="0" max="1000" placeholder="—" value="${m&&q[s]!=null?q[s]:''}" style="width:100%;">
   </div>`;}).join('');
   showModal(`
     <div class="modal-title">${m?'Edit material':'New material'}</div>
@@ -3961,7 +3966,7 @@ function recipeRowHtml(materials, r){
   const opts=materials.map(m=>`<option value="${esc(m.name)}"${r&&r.materialName===m.name?' selected':''}>${esc(m.name)}</option>`).join('');
   return `<div class="recipe-row" style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
     <select class="rr-mat" style="flex:1;"><option value="">— material —</option>${opts}</select>
-    <input class="rr-qty" type="number" step="any" placeholder="qty" value="${r?r.qty:''}" style="width:90px;">
+    <input class="rr-qty" type="number" min="0" step="0.01" placeholder="qty" value="${r?r.qty:''}" style="width:90px;">
     <select class="rr-unit" style="width:90px;">${CAT_UNITS.map(t=>`<option${r&&r.unit===t?' selected':''}>${t}</option>`).join('')}</select>
     <button class="btn-del" onclick="this.closest('.recipe-row').remove()" aria-label="Remove">&times;</button>
   </div>`;
@@ -4586,7 +4591,7 @@ function renderLotteryDraftDetail(l) {
           <div style="font-size:var(--text-md);font-weight:700;margin-bottom:12px;letter-spacing:.08em;text-transform:uppercase;">Generate Packages</div>
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <label style="font-size:var(--text-md);">Number of packages:</label>
-            <input type="number" id="pkg-count" min="2" max="20" value="${lotteryPkgCount}" style="width:70px;margin:0;padding:6px;font-size:var(--text-md);" oninput="lotteryPkgCount=parseInt(this.value)||2">
+            <input type="number" id="pkg-count" min="2" max="20" step="1" value="${lotteryPkgCount}" style="width:70px;margin:0;padding:6px;font-size:var(--text-md);" oninput="lotteryPkgCount=parseInt(this.value)||2">
             <button class="btn btn-black btn-sm" onclick="doGeneratePackages('${esc(l._id)}')">Generate</button>
           </div>
           <div id="lottery-gen-status">${pkgs.length?`<div style="margin-top:10px;font-size:var(--text-md);color:#22c55e;font-weight:700;">${pkgs.length} packages generated</div>`:''}</div>
