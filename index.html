@@ -150,6 +150,7 @@ thead th{font-size:var(--text-md);font-weight:700;letter-spacing:.12em;text-tran
 tbody td{padding:20px 14px;vertical-align:middle;font-size:var(--text-md);}
 tbody tr:hover{background:#f9f9f9;}
 .empty{padding:120px 0;text-align:center;color:#000;font-size:var(--text-md);letter-spacing:.04em;}
+.empty-action{margin-top:24px;display:flex;justify-content:center;}
 /* Action column stability: reserve a fixed minimum width for the last column
    so the table never resizes when buttons appear or disappear. 260px covers
    the widest button combination ("Confirm receipt + Abandon"). white-space:nowrap
@@ -2432,7 +2433,7 @@ function renderCraftOrderCards(){
   const u=state.user;
   let orders=state.workorders.filter(w=>w.kind==='craft'&&w.status===cfF&&searchMatch('wo', w.itemName, w.priority));
   orders=orders.sort((a,b)=>((CRAFT_PRIO[a.priority]??2)-(CRAFT_PRIO[b.priority]??2))||(b._creationTime-a._creationTime));
-  if(!orders.length) return `<div class="empty">No ${cfF==='open'?'open':'completed'} craft orders${searchGet('wo').text?' match your search':(cfF==='open'&&isAdmin(u)?' — add one above':'')}.</div>`;
+  if(!orders.length) return `<div class="empty">No ${cfF==='open'?'open':'completed'} craft orders${searchGet('wo').text?' match your search':''}.${(cfF==='open'&&!searchGet('wo').text&&isAdmin(u))?`<div class="empty-action"><button class="btn btn-black" onclick="openCraftOrderModal()">+ Craft Order</button></div>`:''}</div>`;
   return `<div class="co-cards">${orders.map(o=>{
     const item=state.catalog.items.find(it=>it.name===o.itemName);
     const recipe=item?item.recipe||[]:[];
@@ -2491,7 +2492,7 @@ function renderCraftInventory(){
   rows = cfInvF==='shipping' ? rows.filter(s=>locked.has(s._id)) : rows.filter(s=>!locked.has(s._id));
   const val=(s,c)=>{ switch(c){ case 'qty':return s.qty||0; case 'quality':return s.qualityValue!=null?s.qualityValue:-1; case 'location':return s.location||''; case 'heldby':return s.heldBy||''; default:return s.name||''; } };
   rows=[...rows].sort((a,b)=>cmpVals(val(a,cfInvSortCol),val(b,cfInvSortCol),cfInvSortDir));
-  if(!rows.length) return `<div class="empty">${cfInvF==='shipping'?'Nothing waiting on logistics right now.':'No finished items yet. Hit “Craft” to make what’s being asked for.'}</div>`;
+  if(!rows.length) return `<div class="empty">${cfInvF==='shipping'?'Nothing waiting on logistics right now.':`No finished items yet. Make what's being asked for.${isCrafter(u)?`<div class="empty-action"><button class="btn btn-black" onclick="openCraftModal()">Craft</button></div>`:''}`}</div>`;
   const canSend=isCrafter(u); // only crafters ship — admin site powers don't extend to physical inventory actions
   const cols=[['name','Item'],['qty','Qty'],['quality','Quality'],['location','Location']];
   return `<table class="cards"><thead><tr>${cols.map(([c,l])=>sortTh('setCfInvSort',cfInvSortCol,cfInvSortDir,c,l)).join('')}<th></th></tr></thead><tbody>${rows.map(s=>`<tr>
@@ -2964,7 +2965,7 @@ function renderReportBody(){
   const mine=state.workorders.filter(w=>w.kind==='pickup'&&w.createdBy===u._id
       &&searchMatch('report', w.location, (w.report||[]).map(r=>r.what+' '+r.type).join(' ')))
     .sort((a,b)=>b._creationTime-a._creationTime);
-  return mine.length?renderReportList(mine):`<div class="empty">${searchGet('report').text?'Nothing matches your search.':'Nothing reported yet. Hit “Report materials” to log a haul — say what you have and where, and logistics comes to collect it.'}</div>`;
+  return mine.length?renderReportList(mine):`<div class="empty">${searchGet('report').text?'Nothing matches your search.':`Nothing reported yet. Say what you hauled and where, and logistics comes to collect it.${(isGatherer(state.user)||isAdmin(state.user))?`<div class="empty-action"><button class="btn btn-black" onclick="openReportModal()">Report materials</button></div>`:''}`}</div>`;
 }
 function renderReportList(rows){
   return `<table class="cards"><thead><tr><th>Location</th><th>What you reported</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(w=>{
