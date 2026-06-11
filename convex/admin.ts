@@ -239,3 +239,64 @@ export const clearDemo = internalMutation({
     return { removedUsers: users, removedSessions: sessions, clearedThrottles: throttles };
   },
 });
+
+// Bulk import of stock from a migrated spreadsheet (admin-only). Rows are
+// already completed/validated in the UI; the server re-checks the essentials:
+// the material/item name must exist in the catalog, the holder must be a current
+// member, qty > 0, and a location is present. Inserts one stock row each.
+export const importStock = mutation({
+  args: {
+    sessionToken: v.string(),
+    rows: v.array(v.object({
+      kind: v.string(),                 // "material" | "item"
+      name: v.string(),
+      qty: v.number(),
+      unit: v.optional(v.string()),
+      location: v.string(),
+      system: v.optional(v.string()),
+      heldBy: v.string(),
+      status: v.string(),               // material -> at_base, item -> crafted
+      qualityStep: v.optional(v.number()),
+      qualityValue: v.optional(v.number()),
+    })),
+  },
+  handler: async (ctx, { sessionToken, rows }) => {
+    const admin = await requireSession(ctx.db, sessionToken);
+    assertRole(admin, ["admin"]);
+    const lower = (s: string) => (s || "").trim().toLowerCase();
+    const matBy = new Map((await ctx.db.query("materialCatalog").collect()).map(m => [lower(m.name), m]));
+    const itemBy = new Map((await ctx.db.query("itemCatalog").collect()).map(it => [lower(it.name), it]));
+    const userBy = new Map((await ctx.db.query("users").collect()).filter(u => !u.roles.includes("removed")).map(u => [lower(u.username), u]));
+    const OK_STATUS = ["at_base", "in_transit", "crafted", "with_distributor"];
+
+    let created = 0;
+    for (const r of rows) {
+      if (!(r.qty > 0)) throw new ConvexError(`Quantity must be greater than 0 (${r.name})`);
+      if (!r.location.trim()) throw new ConvexError(`Location is required (${r.name})`);
+      if (!OK_STATUS.includes(r.status)) throw new ConvexError(`Bad status for ${r.name}`);
+      const holder = userBy.get(lower(r.heldBy));
+      if (!holder) throw new ConvexError(`Unknown holder: ${r.heldBy}`);
+      let name: string, category: string, unit: string;
+      if (r.kind === "material") {
+        const m = matBy.get(lower(r.name));
+        if (!m) throw new ConvexError(`Unknown material: ${r.name}`);
+        name = m.name; category = m.category || ""; unit = (r.unit && r.unit.trim()) || m.unit;
+      } else if (r.kind === "item") {
+        const it = itemBy.get(lower(r.name));
+        if (!it) throw new ConvexError(`Unknown item: ${r.name}`);
+        name = it.name; category = it.category || ""; unit = (r.unit && r.unit.trim()) || "UNIT";
+      } else throw new ConvexError("Invalid kind");
+      await ctx.db.insert("stock", {
+        kind: r.kind, name, category,
+        qualityStep: r.kind === "material" ? (r.qualityStep ?? undefined) : undefined,
+        qualityValue: r.qualityValue ?? undefined,
+        qty: r.qty, unit,
+        location: r.location.trim(), system: r.system?.trim() || undefined,
+        heldBy: holder.username, status: r.status,
+        addedBy: admin._id, addedByName: admin.username,
+      });
+      created++;
+    }
+    return { created };
+  },
+});

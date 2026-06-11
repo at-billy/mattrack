@@ -151,6 +151,21 @@ tbody td{padding:20px 14px;vertical-align:middle;font-size:var(--text-md);}
 tbody tr:hover{background:#f9f9f9;}
 .empty{padding:120px 0;text-align:center;color:#000;font-size:var(--text-md);letter-spacing:.04em;}
 .empty-action{margin-top:24px;display:flex;justify-content:center;}
+/* ── Spreadsheet import tool ─────────────────────────────────────── */
+.imp-map{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--space-3);margin:var(--space-4) 0;}
+.imp-map .lbl{margin-bottom:4px;}
+.imp-bulk{display:flex;gap:var(--space-3);flex-wrap:wrap;align-items:flex-end;margin:var(--space-3) 0;padding:var(--space-3);background:var(--bg2);}
+.imp-bulk .field{margin:0;}
+.imp-bulk input,.imp-bulk select{width:140px;}
+.imp-wrap{max-height:46vh;overflow:auto;border:1px solid var(--border-m);}
+.imp-tbl{width:100%;border-collapse:collapse;font-size:var(--text-sm);}
+.imp-tbl th,.imp-tbl td{padding:6px 8px;border-bottom:1px solid var(--border-m);text-align:left;vertical-align:middle;white-space:nowrap;}
+.imp-tbl th{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;position:sticky;top:0;background:var(--bg);}
+.imp-tbl input,.imp-tbl select{width:100%;min-width:90px;padding:4px 6px;font-size:var(--text-sm);margin:0;}
+.imp-tbl tr.imp-skip{opacity:.4;}
+.imp-bad{border-color:var(--red)!important;}
+.imp-flag{color:var(--red);font-size:var(--text-xs);font-weight:700;white-space:nowrap;}
+.imp-sum{font-size:var(--text-sm);color:var(--fg);margin:var(--space-3) 0;}
 /* Action column stability: reserve a fixed minimum width for the last column
    so the table never resizes when buttons appear or disappear. 260px covers
    the widest button combination ("Confirm receipt + Abandon"). white-space:nowrap
@@ -3270,12 +3285,158 @@ function pageStock(){
   return `
     <div class="page-head">
       <div class="page-head-left"><div class="page-lead">${n} ${noun}${n===1?'':'s'} in stock</div></div>
-      ${canAdd?`<button class="btn btn-black" onclick="openStockModal()">+ Add Stock</button>`:''}
+      <div style="display:flex;gap:var(--space-2);">
+        ${isAdmin(u)?`<button class="btn btn-outline" onclick="openImportModal()">Import</button>`:''}
+        ${canAdd?`<button class="btn btn-black" onclick="openStockModal()">+ Add Stock</button>`:''}
+      </div>
     </div>
     <div id="stock-content" style="margin-top:var(--space-6);">
       <div id="stock-controls">${renderStockControls()}</div>
       <div id="stock-list">${renderStockList()}</div>
     </div>`;
+}
+
+// ─── SPREADSHEET IMPORT (admin migration tool) ────────────────────────────────
+let _imp = null;
+function openImportModal(){
+  _imp = { phase:1, kind:(stockView==='items'?'item':'material'), headers:[], rows:[], map:{}, fill:{location:'',heldBy:'',band:''}, overrides:{} };
+  impShow();
+}
+function impShow(){ showModal(_imp.phase===1?impUploadHtml():impReviewHtml(), 'modal-lg'); const f=document.getElementById('imp-file'); if(f) f.onchange=impFileChosen; }
+function impUploadHtml(){
+  const k=_imp.kind;
+  return `<div class="modal-title">Import from spreadsheet</div>
+    <p style="font-size:var(--text-sm);color:var(--fg);margin-bottom:var(--space-4);line-height:1.6;">Upload a CSV (or paste cells from your sheet). Next you'll map the columns and fill anything that's missing — nothing imports until every row is complete.</p>
+    <div class="field"><label class="lbl">Importing</label>
+      <select id="imp-kind"><option value="material"${k==='material'?' selected':''}>Materials (at base)</option><option value="item"${k==='item'?' selected':''}>Finished items</option></select></div>
+    <div class="field"><label class="lbl">CSV file</label><input id="imp-file" type="file" accept=".csv,text/csv,text/plain"></div>
+    <div style="text-align:center;color:var(--fg);font-size:var(--text-sm);margin:6px 0;">or paste below</div>
+    <div class="field"><textarea id="imp-paste" rows="6" style="width:100%;font-family:monospace;font-size:var(--text-sm);" placeholder="material,amount,quality\nIron,120,800-899"></textarea></div>
+    <div class="err-msg" id="imp-err"></div>
+    <div style="display:flex;gap:10px;"><button class="btn btn-black" onclick="impParse()">Next</button><button class="btn btn-outline" onclick="closeModal()">Cancel</button></div>`;
+}
+function impFileChosen(e){ const f=e.target.files&&e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const t=document.getElementById('imp-paste'); if(t) t.value=String(r.result||''); }; r.readAsText(f); }
+function impParseCSV(text){
+  text=String(text||'').replace(/\r\n?/g,'\n').replace(/\n+$/,''); if(!text.trim()) return [];
+  const delim = (text.split('\n')[0].includes('\t')) ? '\t' : ',';
+  const rows=[]; let row=[], cell='', q=false;
+  for(let i=0;i<text.length;i++){ const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; } else cell+=c; }
+    else if(c==='"') q=true;
+    else if(c===delim){ row.push(cell); cell=''; }
+    else if(c==='\n'){ row.push(cell); rows.push(row); row=[]; cell=''; }
+    else cell+=c;
+  }
+  row.push(cell); rows.push(row);
+  return rows;
+}
+function impAutoMap(headers, kind){
+  const L=headers.map(h=>h.toLowerCase());
+  const isAmt=l=>/amt|ammt|amount|\bscu\b|scu_|qty|quantity|count/.test(l);
+  const find=test=>{ const i=L.findIndex(test); return i<0?'':i; };
+  return {
+    name: find(l=>/material|item|name|what|blueprint/.test(l)),
+    amount: find(isAmt),
+    // quality must be a quality column, not the amount column (whose name may
+    // contain things like "low_q").
+    quality: kind==='material'?find(l=>/qual|grade|low_q|high_q|band/.test(l) && !isAmt(l)):'',
+    holder: find(l=>/who|holder|held|owner|by|player|member/.test(l)),
+    location: find(l=>/loc|where|base|place|system/.test(l)),
+  };
+}
+function impParse(){
+  _imp.kind=(document.getElementById('imp-kind')||{value:_imp.kind}).value;
+  const grid=impParseCSV((document.getElementById('imp-paste')||{value:''}).value);
+  if(!grid.length){ showErr('imp-err','Nothing to read — choose a file or paste rows.'); return; }
+  _imp.headers=grid[0].map(h=>String(h||'').trim());
+  _imp.rows=grid.slice(1).filter(r=>r.some(c=>String(c||'').trim()!==''));
+  if(!_imp.rows.length){ showErr('imp-err','No data rows under the header.'); return; }
+  _imp.map=impAutoMap(_imp.headers,_imp.kind);
+  _imp.overrides={}; _imp.fill={location:'',heldBy:'',band:''}; _imp.phase=2; impShow();
+}
+const IMP_BANDS=[[0,399],[400,599],[600,699],[700,799],[800,899],[900,949],[950,998],[999,1000]];
+function impBandOf(v){ for(let i=0;i<IMP_BANDS.length;i++){ if(v>=IMP_BANDS[i][0]&&v<=IMP_BANDS[i][1]) return i+1; } return v>1000?8:1; }
+function impParseBand(str){ str=String(str||'').trim(); if(!str||/n\/?a/i.test(str)) return ''; const nums=str.match(/\d+/g); if(!nums) return ''; const lo=+nums[0], hi=+nums[nums.length-1]; return String(impBandOf(Math.round((lo+hi)/2))); }
+function impCatMatch(name){ const n=String(name||'').trim().toLowerCase(); if(!n) return null; const list=_imp.kind==='item'?state.catalog.items:state.catalog.materials; return list.find(x=>x.name.toLowerCase()===n)||null; }
+function impHolderMatch(name){ const n=String(name||'').trim().toLowerCase(); if(!n) return null; return (state.allUsers||[]).find(u=>!(u.roles||[]).includes('removed')&&u.username.toLowerCase()===n)||null; }
+function impLocSystem(loc){ const o=(state.catalog.locations||[]).find(l=>l.name.toLowerCase()===String(loc||'').trim().toLowerCase()); return o?o.system:undefined; }
+function impCompute(i){
+  const r=_imp.rows[i], ov=_imp.overrides[i]||{};
+  const col=field=>{ const idx=_imp.map[field]; return (idx!==''&&idx!=null)?String(r[idx]??'').trim():''; };
+  const qtyRaw = ('qty' in ov)? ov.qty : col('amount');
+  const qty = parseFloat(String(qtyRaw).replace(/[^0-9.\-]/g,''));
+  const band = ('band' in ov)? ov.band : (impParseBand(col('quality')) || _imp.fill.band || '');
+  const holder = ('holder' in ov)? ov.holder : (col('holder') || _imp.fill.heldBy || '');
+  const location = ('location' in ov)? ov.location : (col('location') || _imp.fill.location || '');
+  const name = col('name');
+  const matched = impCatMatch(name);
+  const holderOk = !!impHolderMatch(holder);
+  const included = Number.isFinite(qty) && qty>0;
+  const valid = included && !!matched && holder && holderOk && location && (_imp.kind!=='material' || band!=='');
+  return { name, matched:!!matched, qty, band, holder, holderOk, location, included, valid };
+}
+function impReviewHtml(){
+  const h=_imp.headers, sel=(field)=>`<select onchange="impSetMap('${field}',this.value)"><option value=""${_imp.map[field]===''?' selected':''}>— none —</option>${h.map((hd,idx)=>`<option value="${idx}"${String(_imp.map[field])===String(idx)?' selected':''}>${esc(hd||('col '+(idx+1)))}</option>`).join('')}</select>`;
+  const bandOpts=`<option value="">—</option>${QUALITY_BANDS.map((b,i)=>`<option value="${i+1}">${b}</option>`).join('')}`;
+  return `<div class="modal-title">Import ${_imp.kind==='item'?'items':'materials'} — map &amp; complete</div>
+    <div style="font-size:var(--text-sm);color:var(--fg);">Point each field at the right column, then fill any blanks. Set a value for a whole column with the bulk row.</div>
+    <div class="imp-map">
+      <div><div class="lbl">${_imp.kind==='item'?'Item':'Material'} name</div>${sel('name')}</div>
+      <div><div class="lbl">Amount</div>${sel('amount')}</div>
+      ${_imp.kind==='material'?`<div><div class="lbl">Quality</div>${sel('quality')}</div>`:''}
+      <div><div class="lbl">Holder</div>${sel('holder')}</div>
+      <div><div class="lbl">Location</div>${sel('location')}</div>
+    </div>
+    <div class="imp-bulk">
+      <div class="field"><label class="lbl">Set location for all</label><input id="imp-bulk-loc" type="text" placeholder="e.g. Levski"></div>
+      <button class="btn btn-outline btn-sm" onclick="impBulk('location','imp-bulk-loc')">Apply</button>
+      <div class="field"><label class="lbl">Set holder for all</label><input id="imp-bulk-held" type="text" placeholder="username"></div>
+      <button class="btn btn-outline btn-sm" onclick="impBulk('heldBy','imp-bulk-held')">Apply</button>
+      ${_imp.kind==='material'?`<div class="field"><label class="lbl">Set quality for blanks</label><select id="imp-bulk-band">${bandOpts}</select></div><button class="btn btn-outline btn-sm" onclick="impBulk('band','imp-bulk-band')">Apply</button>`:''}
+    </div>
+    <div id="imp-review">${impReviewInner()}</div>`;
+}
+function impReviewInner(){
+  const isMat=_imp.kind==='material';
+  const bandOpts=v=>`<option value=""${!v?' selected':''}>—</option>${QUALITY_BANDS.map((b,i)=>`<option value="${i+1}"${String(v)===String(i+1)?' selected':''}>${b}</option>`).join('')}`;
+  let ready=0, attention=0, skipped=0;
+  const body=_imp.rows.map((_,i)=>{
+    const c=impCompute(i);
+    if(!c.included){ skipped++; }
+    else if(c.valid){ ready++; } else { attention++; }
+    const cls=!c.included?' class="imp-skip"':'';
+    return `<tr${cls}>
+      <td>${esc(c.name||'—')}${(c.name&&!c.matched)?` <span class="imp-flag">unknown</span>`:''}</td>
+      <td><input type="number" step="any" value="${esc(c.qty===c.qty?c.qty:'')}" onchange="impCell(${i},'qty',this.value)" style="width:72px;"></td>
+      ${isMat?`<td><select onchange="impCell(${i},'band',this.value)" ${(c.included&&c.band==='')?'class="imp-bad"':''}>${bandOpts(c.band)}</select></td>`:''}
+      <td><input type="text" value="${esc(c.holder)}" onchange="impCell(${i},'holder',this.value)" class="${(c.included&&(!c.holder||!c.holderOk))?'imp-bad':''}" style="width:110px;">${(c.included&&c.holder&&!c.holderOk)?` <span class="imp-flag">no member</span>`:''}</td>
+      <td><input type="text" value="${esc(c.location)}" onchange="impCell(${i},'location',this.value)" class="${(c.included&&!c.location)?'imp-bad':''}" style="width:110px;"></td>
+    </tr>`;
+  }).join('');
+  const canImport = ready>0 && attention===0;
+  return `<div class="imp-sum"><strong>${ready}</strong> ready &middot; <strong style="color:${attention?'var(--red)':'var(--fg)'};">${attention}</strong> need attention &middot; ${skipped} skipped (no amount)</div>
+    <div class="imp-wrap"><table class="imp-tbl"><thead><tr><th>${isMat?'Material':'Item'}</th><th>Qty</th>${isMat?'<th>Quality</th>':''}<th>Holder</th><th>Location</th></tr></thead><tbody>${body}</tbody></table></div>
+    <div class="err-msg" id="imp-err2"></div>
+    <div style="display:flex;gap:10px;margin-top:var(--space-4);">
+      <button class="btn btn-black" ${canImport?'':'disabled style="opacity:.5;cursor:default;"'} onclick="doImport()">Import ${ready} ${_imp.kind==='item'?'item':'material'}${ready===1?'':'s'}</button>
+      <button class="btn btn-outline" onclick="impBack()">Back</button>
+    </div>`;
+}
+function impRerender(){ const el=document.getElementById('imp-review'); if(el) el.innerHTML=impReviewInner(); }
+function impSetMap(field,val){ _imp.map[field]= val===''?'':Number(val); impRerender(); }
+function impBulk(field,inputId){ const v=(document.getElementById(inputId)||{value:''}).value.trim(); _imp.fill[field]=v; impRerender(); }
+function impCell(i,field,val){ _imp.overrides[i]=_imp.overrides[i]||{}; _imp.overrides[i][field]=val; impRerender(); }
+function impBack(){ _imp.phase=1; impShow(); }
+async function doImport(){
+  const rows=[];
+  _imp.rows.forEach((_,i)=>{ const c=impCompute(i); if(c.included&&c.valid){
+    const entry={ kind:_imp.kind, name:c.name, qty:c.qty, location:c.location, heldBy:c.holder, status:_imp.kind==='item'?'crafted':'at_base' };
+    const sys=impLocSystem(c.location); if(sys) entry.system=sys;
+    if(_imp.kind==='material' && c.band){ entry.qualityStep=Number(c.band); const m=impCatMatch(c.name); const qd=m&&(m.qualities||[]).find(x=>x.step===Number(c.band)); if(qd) entry.qualityValue=qd.value; }
+    rows.push(entry);
+  }});
+  if(!rows.length){ showErr('imp-err2','Nothing ready to import.'); return; }
+  try{ const out=await convexMutation('admin:importStock',{sessionToken:state.sessionToken,rows}); toast(`Imported ${out.created} ${_imp.kind==='item'?'item':'material'}${out.created===1?'':'s'}`); closeModal(); await refreshAll(); renderPage(); }catch(e){ showErr('imp-err2',friendlyError(e)); }
 }
 
 function renderStockControls(){
